@@ -1,0 +1,8 @@
+<pool type='dir'>
+  <name>raft_pool</name>
+  <source>
+  </source>
+  <target>
+    <path>PATH_MY_DIR</path>
+  </target>
+</pool>
