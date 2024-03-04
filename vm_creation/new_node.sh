@@ -1,9 +1,11 @@
 #!/bin/sh
 
-work_dir=./.work
-node_count_file=node_count
-source_xml_vm=./vm.xml
-source_xml_pool=./new_pool.xml
+sources_dir=sources
+
+work_dir=.work
+node_count_file=$(pwd)/$work_dir/node_count
+source_xml_vm=$(pwd)/$sources_dir/vm.xml
+source_xml_pool=$(pwd)/$sources_dir/new_pool.xml
 temp_xml_vm=new_node.xml
 temp_xml_pool=new_pool.xml
 subs_expr_disk=PATH_DISK
@@ -19,18 +21,18 @@ fi
 cd $work_dir
 
 if [[ ! -e $node_count_file ]]; then
-    echo "0" > ./$node_count_file
+    echo "1" > $node_count_file
 fi
 
-RAFT_NODE=$(cat ./$node_count_file)
+RAFT_NODE=$(cat $node_count_file)
 
 echo $RAFT_NODE
 next_node=$[$RAFT_NODE+1]
 
 echo "$next_node" > $node_count_file
 
-cp ../$source_xml_vm $temp_xml_vm
-cp ../$source_xml_pool $temp_xml_pool
+cp $source_xml_vm $temp_xml_vm
+cp $source_xml_pool $temp_xml_pool
 
 pwd_conv=$(echo $pwd\/.work | sed 's/\//\\\//g')
 
