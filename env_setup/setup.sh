@@ -19,6 +19,12 @@ sudo systemctl enable --now libvirtd
 echo "adding libvirt group to user $first_user"
 sudo usermod  -aG libvirt $first_user
 
+echo "installing ssh"
+sudo pacman -Sy openssh
+
+echo "coping ssh key for remote node access"
+cp ./raft_node_key ~/.ssh
+
 echo "to open the gui to manage the virtual machine use virt-manager"
 echo "for more infos check:"
 echo $wiki_libvirt
