@@ -21,7 +21,7 @@ fi
 cd $work_dir
 
 if [[ ! -e $node_count_file ]]; then
-    echo "1" > $node_count_file
+    echo "2" > $node_count_file
 fi
 
 RAFT_NODE=$(cat $node_count_file)

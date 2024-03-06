@@ -19,6 +19,10 @@ sudo systemctl enable --now libvirtd
 echo "adding libvirt group to user $first_user"
 sudo usermod  -aG libvirt $first_user
 
+echo "getting and coping the install iso in the dir /var/lib/libvirt/images/"
+wget https://download1526.mediafire.com/3f24vvgj9zwg4Gc18H9p4VxkEJjA4WeXsID9RlXQoPTP3B7weJfEdxpwyl9u-XKfhirBPkPfrOdNqSsW5HyrtxbHlruvivcd70EkEvHdOA35cpHviRP772jjuBCsPfg7v1ewiXHEERIo8yMvn5zdeqBcQ12sdnEX-i-AKS2MNoP_Zcw/m7oyfnz9q50f0ct/raft_live_install.iso
+sudo cp ./raft_live_install.iso /var/lib/libvirt/images/
+
 echo "installing ssh"
 sudo pacman -Sy openssh
 

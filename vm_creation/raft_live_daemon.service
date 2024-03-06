@@ -1,0 +1,10 @@
+[Unit]
+Description=raft start setup vm
+
+[Service]
+Type=forking
+ExecStart=/bin/sh ls
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target
