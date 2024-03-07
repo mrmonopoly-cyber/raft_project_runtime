@@ -12,7 +12,7 @@ fi
 
 
 echo "installing the correct packages"
-sudo pacman -Sy libvirt virt-manager iptables-nft dnsmasq virt-viewer dmidecode openbsd-netcat wget
+sudo pacman -Sy libvirt virt-manager iptables-nft dnsmasq virt-viewer dmidecode openbsd-netcat wget qemu-full
 
 echo "enabling the deamon for libvirtd"
 sudo systemctl enable --now libvirtd
@@ -46,5 +46,7 @@ if [[ $answer == "y" ]]; then
     xdg-open $wiki_virt_manager
     xdg-open $wiki_libvirt
 fi
+
+rm ./raft_live_install.iso
 
 exit
