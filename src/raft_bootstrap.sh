@@ -1,5 +1,8 @@
 #!/bin/sh
 
+
+raft_executable=raft_main
+
 my_ip=""
 function get_ip(){
     my_ip=$(ip addr show | grep 192.168 | cut -d' ' -f 6 | cut -d'/' -f1);
@@ -27,7 +30,7 @@ done
 
 
 ##start main program of raft
-$work_dir/raft/raft_main
+$work_dir/raft_project_runtime/raft_main
 
 exit 0
 

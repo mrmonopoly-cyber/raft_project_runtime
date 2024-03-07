@@ -1,5 +1,8 @@
 #!/bin/sh
 
+repo_raft=https://github.com/mrmonopoly-cyber/raft_project_runtime.git
+branch=raft_executables
+
 #setting mirrors
 echo "updating mirrors"
 systemctl start reflector
@@ -63,7 +66,7 @@ cp /root/raft_bootstrap.sh /mnt/root
 chroot /mnt/ chmod +x /root/raft_bootstrap.sh
 
 echo "creating dir for raft program"
-mkdir /mnt/root/raft
+git clone --depth=1 $repo_raft -b $branch
 
 #clean up
 echo "umount all"
