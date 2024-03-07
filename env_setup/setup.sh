@@ -12,7 +12,7 @@ fi
 
 
 echo "installing the correct packages"
-sudo pacman -Sy libvirt virt-manager iptables-nft dnsmasq virt-viewer dmidecode openbsd-netcat --noconfirm
+sudo pacman -Sy libvirt virt-manager iptables-nft dnsmasq virt-viewer dmidecode openbsd-netcat wget
 
 echo "enabling the deamon for libvirtd"
 sudo systemctl enable --now libvirtd
@@ -25,7 +25,7 @@ wget $link_iso
 sudo cp ./raft_live_install.iso /var/lib/libvirt/images/
 
 echo "installing ssh"
-sudo pacman -Sy openssh --noconfirm
+sudo pacman -Sy openssh 
 
 echo "coping ssh key for remote node access"
 cp ./raft_node_key ~/.ssh
