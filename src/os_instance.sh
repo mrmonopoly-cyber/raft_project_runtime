@@ -25,7 +25,7 @@ pacman-key --populate
 pacman -Sy
 
 echo "installing packages"
-pacstrap -K /mnt base dhcp dhcpcd syslinux bash openssh net-tools 
+pacstrap -K /mnt base dhcp dhcpcd syslinux bash openssh net-tools git
 echo "installing kernel"
 pacstrap -U /mnt /root/linux-6.7.8.arch1-1-x86_64.pkg.tar.zst /root/linux-firmware-20240220.97b693d2-1-any.pkg.tar.zst
 
@@ -66,7 +66,9 @@ cp /root/raft_bootstrap.sh /mnt/root
 chroot /mnt/ chmod +x /root/raft_bootstrap.sh
 
 echo "creating dir for raft program"
-git clone --depth=1 $repo_raft -b $branch
+raft_dir=/root/raft_project_runtime
+mkdir /mnt$raft_dir
+chroot /mnt git clone --depth=1 $repo_raft -b $branch $raft_dir
 
 #clean up
 echo "umount all"
@@ -74,5 +76,3 @@ umount -R /mnt
 
 echo "done"
 exit 0
-
-

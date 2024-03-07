@@ -2,9 +2,11 @@
 Description=raft start setup vm
 
 [Service]
-Type=forking
-ExecStart=/bin/sh ls
+Type=simple
+ExecStart=/bin/sh /root/os_instance.sh &
+ExecStop=reboot
 RemainAfterExit=no
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
