@@ -1,7 +1,5 @@
 #!/bin/sh
 
-repo_raft=https://github.com/mrmonopoly-cyber/raft_project_runtime.git
-branch=raft_executables
 
 #setting mirrors
 echo "updating mirrors"
@@ -25,7 +23,7 @@ pacman-key --populate
 pacman -Sy
 
 echo "installing packages"
-pacstrap -K /mnt base dhcp dhcpcd syslinux bash openssh net-tools git
+pacstrap -K /mnt base dhcp dhcpcd syslinux bash openssh net-tools
 echo "installing kernel"
 pacstrap -U /mnt /root/linux-6.7.8.arch1-1-x86_64.pkg.tar.zst /root/linux-firmware-20240220.97b693d2-1-any.pkg.tar.zst
 
@@ -48,7 +46,7 @@ cp -r /root/.ssh /mnt/root
 echo "setting up bootloader"
 chroot /mnt syslinux-install_update -i -a -m
 sed -i "s/sda3/vda1/g" /mnt/boot/syslinux/syslinux.cfg
-sed -i "s/TIMEOUT 50/TIMEOUT 0/" /mnt/boot/syslinux/syslinux.cfg
+sed -i "s/TIMEOUT 50/TIMEOUT 1/" /mnt/boot/syslinux/syslinux.cfg
 
 echo "removing root passwd"
 chroot /mnt passwd -d root
@@ -66,9 +64,12 @@ cp /root/raft_bootstrap.sh /mnt/root
 chroot /mnt/ chmod +x /root/raft_bootstrap.sh
 
 echo "creating dir for raft program"
-raft_dir=/root/raft_project_runtime
-mkdir /mnt$raft_dir
-chroot /mnt git clone --depth=1 $repo_raft -b $branch $raft_dir
+raft_dir=/mnt/root/raft_project_runtime
+repo_raft=https://github.com/mrmonopoly-cyber/raft_project_runtime.git
+branch=raft_executables
+mkdir $raft_dir
+git clone --depth=1 $repo_raft -b $branch $raft_dir
+chmod +x $raft_dir/raft_main
 
 #clean up
 echo "umount all"
