@@ -23,7 +23,7 @@ pacman-key --populate
 pacman -Sy
 
 echo "installing packages"
-pacstrap -K /mnt base dhcp dhcpcd syslinux bash openssh net-tools
+pacstrap -K /mnt base dhcp dhcpcd syslinux bash openssh nmap
 echo "installing kernel"
 pacstrap -U /mnt /root/linux-6.7.8.arch1-1-x86_64.pkg.tar.zst /root/linux-firmware-20240220.97b693d2-1-any.pkg.tar.zst
 
