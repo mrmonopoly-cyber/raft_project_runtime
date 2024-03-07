@@ -55,14 +55,6 @@ echo "setting up time to Rome"
 chroot /mnt ln -sf /usr/share/zoneinfo/Europe/Rome /etc/localtime
 
 #setup raft daemon bootstrap
-echo "setting raft_node daemon"
-cp /root/raft_daemon.service /mnt/usr/lib/systemd/system/
-chroot /mnt systemctl enable raft_daemon.service
-
-echo "copying bootstrap procedure"
-cp /root/raft_bootstrap.sh /mnt/root
-chroot /mnt/ chmod +x /root/raft_bootstrap.sh
-
 echo "creating dir for raft program"
 raft_dir=/mnt/root/raft_project_runtime
 repo_raft=https://github.com/mrmonopoly-cyber/raft_project_runtime.git
@@ -70,6 +62,21 @@ branch=raft_executables
 mkdir $raft_dir
 git clone --depth=1 $repo_raft -b $branch $raft_dir
 chmod +x $raft_dir/raft_main
+
+echo "setting raft_node daemon"
+cp /root/raft_daemon.service /mnt/usr/lib/systemd/system/
+chroot /mnt systemctl enable raft_daemon.service
+
+echo "setting ip discovery"
+cp /root/nmap_discover.sh /mnt/root/raft_project_runtime
+chroot /mnt/ chmod +x /root/raft_project_runtime/nmap_discover.sh
+cp /root/raft_discovery.service /mnt/usr/lib/systemd/system
+chroot /mnt systemctl enable raft_discovery.service
+
+echo "copying bootstrap procedure"
+cp /root/raft_bootstrap.sh /mnt/root/raft_project_runtime
+chroot /mnt/ chmod +x /root/raft_project_runtime/raft_bootstrap.sh
+
 
 #clean up
 echo "umount all"
