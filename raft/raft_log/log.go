@@ -1,6 +1,8 @@
 package raft_log
 
+import p "raft/protobuf"
+
 type Log struct {
-	entries     []Entry
+	entries     []p.Entry
 	commitIndex int
 }

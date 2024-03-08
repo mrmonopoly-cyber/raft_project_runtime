@@ -4,30 +4,42 @@ import (
 	"log"
 	"net"
 	"net/http"
-	str "strconv"
 	"sync"
+  m "raft/messages"
 )
 
 type Server struct {
 	_state raftStateImpl
-	//log                l.Log
 	connections        *sync.Map
 	appendEntryChannel chan []byte
+  requestVoteChannel chan m.RequestVoteRPC
+  appendEntryResponseChannel chan m.AppendEntryResponse
+  requesVoteRespChannel chan m.RequestVoteResponse
+  copyStateChannel chan m.CopyStateRPC
 }
 
-func NewServer(term int, id int, role Role, serversId []int) *Server {
+
+func NewServer(term int, id string, role Role, serversId []string) *Server {
 	var server = &Server{
-		*NewState(term, id, role, serversId),
+    *NewState(term, id, role, serversId),
 		&sync.Map{},
 		make(chan []byte),
+    make(chan m.RequestVoteRPC),
+    make(chan m.AppendEntryResponse),
+    make(chan m.RequestVoteResponse),
+    make(chan m.CopyStateRPC),
 	}
 
-	return server
+  return server
 }
 
 func (s *Server) Start() {
 
-	s.ConncectToServers()
+  s.startListen()
+
+	s.ConnectToServers()
+
+  go s.handleResponse(&s.appendEntryChannel)
 
 	s._state.StartElectionTimeout()
 
@@ -35,63 +47,59 @@ func (s *Server) Start() {
 		s._state.StartHearthbeatTimeout()
 	}
 
-	for {
-		go s.listen()
-	}
+	go s.run()
 }
 
-func (s *Server) ConncectToServers() {
-	list, err := net.Listen("tcp", "localhost:"+str.Itoa(s._state.GetID()))
-
-	if err != nil {
-		log.Println("Listener error: ", err)
-	}
-	go http.Serve(list, nil)
-
-	go acceptIncomingConn(list, &s.appendEntryChannel)
+/*
+ * Create a connection between this server to all the others and populate the map containing these connections 
+*/
+func (s *Server) ConnectToServers() {
+	//go acceptIncomingConn(list, &s.appendEntryChannel)
 
 	for i := 0; i < len(s._state.GetServersID()); i++ {
 		var serverId = s._state.GetServersID()[i]
 		if serverId != s._state.id {
-			conn, err := net.Dial("tcp", "localhost:"+str.Itoa(serverId))
+			conn, err := net.Dial("tcp", "localhost:"+serverId)
 
 			if err != nil {
-				log.Println("Dial error", err)
+        log.Println("Dial error: ", err)
 			}
 			log.Println("Server ", s._state.id)
-			s.connections.Store(serverId, conn)
-			s.connections.Range(func(k, conn interface{}) bool {
-				log.Println("...", k, conn)
-				return true
-			})
+
+      if conn != nil {
+			  s.connections.Store(serverId, conn)
+      }
 		}
-
-	}
-
-}
-
-func acceptIncomingConn(listener net.Listener, channel *chan []byte) {
-	for {
-		conn, err := listener.Accept()
-
-		if err != nil {
-			log.Printf("Failed to accept connection: %v", err)
-			continue
-		}
-		go handleResponse(conn, channel)
 	}
 }
 
-func handleResponse(conn net.Conn, channel *chan []byte) {
+func (s *Server) startListen() {
+  listener, err := net.Listen("tcp", "localhost:" + s._state.GetID())
+  
+  if err != nil {
+    log.Println("Error during Listen: ", err)
+  }
+
+  go http.Serve(listener, nil)
+  log.Println("Listener up on port: " + s._state.GetID())
+}
+
+/*
+ * Handle incoming messages and send it to the corresponding channel
+*/
+func (s *Server) handleResponse(channel *chan []byte) {
 	buffer := make([]byte, 2048)
 
 	for {
-		_, err := conn.Read(buffer)
-		if err != nil {
-			log.Println("Read error: ", err)
-		}
-
-		*channel <- buffer
+    s.connections.Range(func(k, conn interface{}) bool {
+		  _, err := conn.(net.Conn).Read(buffer)
+		  if err != nil {
+			  log.Println("Read error: ", err)
+		  }
+      *channel <- buffer
+      
+      return true
+    })
 	}
 
 }
@@ -118,17 +126,50 @@ func (s *Server) startElection() {
 	log.Println("/////////////////////////////////////Starting new election...", s._state.id)
 }
 
-func (s *Server) listen() {
+/*
+ * Handle leader
+*/
+func (s *Server) leader() {
+  log.Println("enter in leader")
 	select {
-	case n := <-s.appendEntryChannel:
-		log.Println("********** Message received ***********", n[0])
-		s._state.StartElectionTimeout()
-	case <-s._state.ElectionTimeout().C:
-		if s._state.role != LEADER {
-			s.startElection()
-		}
 	case <-s._state.HeartbeatTimeout().C:
 		s.sendHeartbeat()
 	}
+	
+}
 
+/*
+ * Handle followers
+*/
+func (s *Server) follower() {
+  log.Println("enter in follower")
+	select {
+		case n := <-s.appendEntryChannel:
+			log.Println("********** Message received ***********", n[0])
+			s._state.StartElectionTimeout()
+		case <-s._state.ElectionTimeout().C:
+			if s._state.GetRole() != LEADER {
+				s.startElection()
+			}
+		}	
+}
+
+/*
+ * Handle candidates
+*/
+func (s *Server) candidate() {
+  // TODO: implement candidate behaviour
+}
+
+func (s *Server) run() {
+	for {
+    switch s._state.GetRole() {
+	  case LEADER: 
+		  s.leader()
+	  case FOLLOWER:
+		  s.follower()
+	  case CANDIDATE:
+		  s.candidate()
+	  }
+  }
 }

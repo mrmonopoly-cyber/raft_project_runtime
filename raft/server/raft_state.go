@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"time"
+  l "raft/raft_log"
 )
 
 type Role int
@@ -19,21 +20,22 @@ const (
 )
 
 type raftStateImpl struct {
-	id   int
+	id   string
 	term int
-	//leaderIP         net.IP
+	leaderId         string
 	role Role
 	//voteFor          int
 	//voting           bool
-	serversID []int
+	serversID []string
 	//updated_node     []net.IP
 	//updating_node    []net.IP
 	electionTimeout  *time.Timer
 	heartbeatTimeout *time.Timer
+  log              l.Log
 }
 
 type state interface {
-	GetID() int
+	GetID() string
 	GetTerm() int
 	//GetLeaderIP() net.IP
 	GetRole() Role
@@ -42,11 +44,11 @@ type state interface {
 	Leader() bool
 	HeartbeatTimeout() *time.Timer
 	ElectionTimeout() *time.Timer
-	GetServersID() []int
+	GetServersID() []string
 	NewState() state
 }
 
-func (_state *raftStateImpl) GetID() int {
+func (_state *raftStateImpl) GetID() string {
 	return _state.id
 }
 
@@ -79,11 +81,11 @@ func (_state *raftStateImpl) ElectionTimeout() *time.Timer {
 	return _state.electionTimeout
 }
 
-func (_state *raftStateImpl) GetServersID() []int {
+func (_state *raftStateImpl) GetServersID() []string {
 	return _state.serversID
 }
 
-func NewState(term int, id int, role Role, serversId []int) *raftStateImpl {
+func NewState(term int, id string, role Role, serversId []string) *raftStateImpl {
 	var s = new(raftStateImpl)
 	s.id = id
 	s.role = role
