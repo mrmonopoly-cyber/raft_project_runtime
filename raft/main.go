@@ -1,28 +1,34 @@
 package main
 
 import (
+	"flag"
 	"log"
-	//"os"
+	"os"
+	"strings"
+
+	//"sync"
 	ser "raft/server"
 )
 
 func main() {
 
-	log.Println("Ciaoo")
+  file, _ := os.ReadFile("others_ip")
+  file1, _ := os.ReadFile("my_ip")
+  myIp := string(file1[:])
+  serversId := strings.Split(string(file[:]), "\n")
 
-	serversId := []int{8080, 8090, 9000, 5060, 3029}
+  lFlag := flag.Bool("leader", false, "decide if leader or not")
+  flag.Parse()
 
-	server1 := ser.NewServer(0, 8080, ser.LEADER, serversId)
-	server2 := ser.NewServer(0, 8090, ser.FOLLOWER, serversId)
-	server3 := ser.NewServer(0, 9000, ser.FOLLOWER, serversId)
-	server4 := ser.NewServer(0, 5060, ser.FOLLOWER, serversId)
-	server5 := ser.NewServer(0, 3029, ser.FOLLOWER, serversId)
+  var isLeader = ser.FOLLOWER
 
-	go server1.Start()
-	go server2.Start()
-	go server3.Start()
-	go server4.Start()
-	server5.Start()
+  if (*lFlag == true) {
+    isLeader = ser.LEADER
+  }
 
-	log.Println("nn")
+	server1 := ser.NewServer(0, myIp, isLeader, serversId)
+
+  server1.Start()
+  
+  log.Println("All servers have terminated")
 }
