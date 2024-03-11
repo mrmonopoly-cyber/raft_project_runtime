@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
   l "raft/raft_log"
+  p "raft/protobuf"
 )
 
 type Role int
@@ -15,16 +16,16 @@ const (
 )
 
 const (
-	ELECTION_TIMEOUT time.Duration = 10000000000
-	H_TIMEOUT        time.Duration = 3000000000
+	ELECTION_TIMEOUT time.Duration = 200
+	H_TIMEOUT        time.Duration = 30
 )
 
 type raftStateImpl struct {
 	id   string
-	term int
+	term uint64
 	leaderId         string
 	role Role
-	//voteFor          int
+	voteFor          string
 	//voting           bool
 	serversID []string
 	//updated_node     []net.IP
@@ -36,7 +37,7 @@ type raftStateImpl struct {
 
 type state interface {
 	GetID() string
-	GetTerm() int
+	GetTerm() uint64
 	//GetLeaderIP() net.IP
 	GetRole() Role
 	StartElectionTimeout()
@@ -46,18 +47,36 @@ type state interface {
 	ElectionTimeout() *time.Timer
 	GetServersID() []string
 	NewState() state
+  GetVoteFor() string
+  IncrementTerm()
+  VoteFor(id string)
+  GetEntries() []p.Entry
+  GetCommitIndex() uint64
+  SetRole(newRole Role)
 }
 
 func (_state *raftStateImpl) GetID() string {
 	return _state.id
 }
 
-func (_state *raftStateImpl) GetTerm() int {
+func (_state *raftStateImpl) GetTerm() uint64 {
 	return _state.term
 }
 
 func (_state *raftStateImpl) GetRole() Role {
 	return _state.role
+}
+
+func (_state * raftStateImpl) SetRole(newRole Role) {
+  _state.role = newRole
+}
+
+func (_state *raftStateImpl) GetEntries() []p.Entry {
+  return _state.log.GetEntries()
+}
+
+func (_state *raftStateImpl) GetCommitIndex() uint64 {
+  return _state.log.GetCommitIndex()
 }
 
 func (_state *raftStateImpl) StartElectionTimeout() {
@@ -85,7 +104,19 @@ func (_state *raftStateImpl) GetServersID() []string {
 	return _state.serversID
 }
 
-func NewState(term int, id string, role Role, serversId []string) *raftStateImpl {
+func (_state *raftStateImpl) GetVoteFor() string {
+  return _state.voteFor
+}
+
+func (_state *raftStateImpl) IncrementTerm() {
+  _state.term += 1
+}
+
+func (_state *raftStateImpl) VoteFor(id string) {
+  _state.voteFor = id
+}
+
+func NewState(term uint64, id string, role Role, serversId []string) *raftStateImpl {
 	var s = new(raftStateImpl)
 	s.id = id
 	s.role = role
