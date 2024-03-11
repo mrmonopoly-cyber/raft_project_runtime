@@ -4,7 +4,7 @@ option go_package = "protobuf/";
 
 message RequestVote {
   required uint64 Term = 1;
-  required uint64 CandidateId = 2;
+  required string CandidateId = 2;
   required uint64 LastLogIndex = 3;
   required uint64 LastLogTerm = 4;
 }

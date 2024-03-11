@@ -1,7 +1,9 @@
 package messages
 
 import (
-  p "raft/protobuf"
+	p "raft/protobuf"
+
+	//"golang.org/x/term"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -21,11 +23,14 @@ type Rpc interface {
   GetIndex() uint64
   Encode() ([]byte, error)
   Decode() error
+  NewAppendEntry(term uint64, leaderId string, prevLogIndex uint64, prevLogTerm uint64, entries []*p.Entry, leaderCommit uint64) AppendEntryRPC
+  NewRequestVote(term uint64, candidateId string, lastLogIndex uint64, lastLogTerm uint64) RequestVoteRPC
 }
+
 
 type RequestVoteRPC struct {
   term uint64
-  candidateId uint64
+  candidateId string
   lastLogIndex uint64
   lastLogTerm uint64
 }
@@ -92,7 +97,7 @@ func (m *AppendEntryRPC) GetLeaderId() string {
   return m.leaderId
 }
 
-func (m *RequestVoteRPC) GetCandidateId() uint64 {
+func (m *RequestVoteRPC) GetCandidateId() string {
   return m.candidateId
 }
 
@@ -150,7 +155,7 @@ func (m *AppendEntryRPC) Encode() ([]byte, error) {
 func (m *RequestVoteRPC) Encode() ([]byte, error) {
   reqVote := &p.RequestVote{
     Term: proto.Uint64(m.term),
-    CandidateId: proto.Uint64(m.candidateId),
+    CandidateId: proto.String(m.candidateId),
     LastLogIndex: proto.Uint64(m.lastLogIndex),
     LastLogTerm: proto.Uint64(m.lastLogTerm),
   }
@@ -257,3 +262,24 @@ func (m *CopyStateRPC) Decode(b []byte) error {
 
   return err
 }
+
+func NewAppendEntry(term uint64, leaderId string, prevLogIndex uint64, prevLogTerm uint64, entries []*p.Entry, leaderCommit uint64) AppendEntryRPC {
+  return AppendEntryRPC{
+    term,
+    leaderId,
+    prevLogIndex,
+    prevLogTerm,
+    entries,
+    leaderCommit,
+  }
+}
+
+func NewRequestVote(term uint64, candidateId string, lastLogIndex uint64, lastLogTerm uint64) RequestVoteRPC {
+  return RequestVoteRPC{
+    term,
+    candidateId,
+    lastLogIndex,
+    lastLogTerm,
+  }
+}
+
