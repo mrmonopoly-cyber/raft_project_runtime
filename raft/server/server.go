@@ -37,11 +37,7 @@ func (m *Message) toMessage(b []byte) {
 type Server struct {
 	_state raftStateImpl
 	connections        *sync.Map
-	appendEntryChannel chan m.AppendEntryRPC
-  requestVoteChannel chan m.RequestVoteRPC
-  appendEntryResponseChannel chan m.AppendEntryResponse
-  requesVoteRespChannel chan m.RequestVoteResponse
-  copyStateChannel chan m.CopyStateRPC
+	messageChannel chan *Message
 }
 
 
@@ -49,31 +45,31 @@ func NewServer(term uint64, id string, role Role, serversId []string) *Server {
 	var server = &Server{
     *NewState(term, id, role, serversId),
 		&sync.Map{},
-		make(chan m.AppendEntryRPC),
-    make(chan m.RequestVoteRPC),
-    make(chan m.AppendEntryResponse),
-    make(chan m.RequestVoteResponse),
-    make(chan m.CopyStateRPC),
+		make(chan *Message),
 	}
 
   return server
 }
 
 func (s *Server) Start() {
+  var wg sync.WaitGroup
 
+  wg.Add(2)
   s.startListen()
 
 	s.ConnectToServers()
-
-  go s.handleResponse()
-
-	s._state.StartElectionTimeout()
+	
+  s._state.StartElectionTimeout()
 
 	if s._state.Leader() {
 		s._state.StartHearthbeatTimeout()
 	}
 
-	go s.run()
+	go s.run(&wg)
+
+  go s.handleResponse(&wg)
+  
+  wg.Wait()
 }
 
 /*
@@ -85,12 +81,12 @@ func (s *Server) ConnectToServers() {
 	for i := 0; i < len(s._state.GetServersID()); i++ {
 		var serverId = s._state.GetServersID()[i]
 		if serverId != s._state.id {
-			var conn, err = net.Dial("tcp", serverId + "8080")
+      var conn, err = net.Dial("tcp", "localhost:" + serverId)
 
-			for err == nil {
+			for err != nil {
         log.Println("Dial error: ", err)
         log.Println("retrying...")
-        conn, err = net.Dial("tcp", serverId + "8080")
+        conn, err = net.Dial("tcp", "localhost:" + serverId)
 			}
 			log.Println("Server ", s._state.id)
 
@@ -102,12 +98,12 @@ func (s *Server) ConnectToServers() {
 }
 
 func (s *Server) startListen() {
-  listener, err := net.Listen("tcp", "localhost:8080")
+  listener, err := net.Listen("tcp", "localhost:" + s._state.GetID())
   
   if err != nil {
-    log.Panic(err) 
+    log.Println(err) 
   }
-
+  
   go http.Serve(listener, nil)
   log.Println("Listener up on port: " + listener.Addr().String())
 }
@@ -115,9 +111,9 @@ func (s *Server) startListen() {
 /*
  * Handle incoming messages and send it to the corresponding channel
 */
-func (s *Server) handleResponse() {
+func (s *Server) handleResponse(wg *sync.WaitGroup) {
 	buffer := make([]byte, 2048)
-
+  defer wg.Done()
   // iterating over the connections map and receive byte messages 
 	for {
     s.connections.Range(func(k, conn interface{}) bool {
@@ -125,44 +121,20 @@ func (s *Server) handleResponse() {
 		  if err != nil {
 			  log.Println("Read error: ", err)
 		  }
+
+      log.Println("Buffer:", buffer)
       
-    // for every []byte: decode it to Message type
-    var mess Message
-    mess.toMessage(buffer)
+      // for every []byte: decode it to Message type
+      var mess Message
+      mess.toMessage(buffer)
 
-    // filter by type of message and send it to the appropriate channel
-    switch mess.Ty {
-      case APPEND_ENTRY:
-        var appendEntry = &m.AppendEntryRPC{}
-        appendEntry.Decode(mess.Payload)
-        s.appendEntryChannel <- *appendEntry
-
-      case REQUEST_VOTE:
-        var reqVote = &m.RequestVoteRPC{}
-        reqVote.Decode(mess.Payload)
-        s.requestVoteChannel <- *reqVote
-
-      case APPEND_RESPONSE: 
-        var appendResponse = &m.AppendEntryResponse{}
-        appendResponse.Decode(mess.Payload)
-        s.appendEntryResponseChannel <- *appendResponse
-
-      case VOTE_RESPONSE:
-        var voteResponse = &m.RequestVoteResponse{}
-        voteResponse.Decode(mess.Payload)
-        s.requesVoteRespChannel <- *voteResponse
-
-      case COPY_STATE:
-        var copyState = &m.CopyStateRPC{}
-        copyState.Decode(mess.Payload)
-        s.copyStateChannel <- *copyState
-    }
-      
-    return true
+      s.messageChannel <- &mess
+      return true
     })
-	}
-
+  }
 }
+
+
 
 /*
  *  Send to every connected server a bunch of bytes
@@ -271,39 +243,103 @@ func (s *Server) startElection() {
  * Leader behaviour
 */
 func (s *Server) leader() {
-  log.Println("enter in leader")
+  log.Println("enter leader...")
 	select {
-	case <-s._state.HeartbeatTimeout().C:
-		s.sendHeartbeat()
-	}
-	
+    case mess := <- s.messageChannel: 
+      switch mess.Ty {
+        case APPEND_ENTRY:
+          var appendEntry = &m.AppendEntryRPC{}
+          appendEntry.Decode(mess.Payload)
+          //TODO Handle append entry
+
+        case APPEND_RESPONSE: 
+          var appendResponse = &m.AppendEntryResponse{}
+          appendResponse.Decode(mess.Payload)
+          // TODO Handle Response
+
+        default:
+          // Do nothing
+       }
+	  case <-s._state.HeartbeatTimeout().C:
+		  s.sendHeartbeat()
+	}	
 }
 
 /*
  * Followers behaviour
 */
 func (s *Server) follower() {
-  log.Println("enter in follower")
+  log.Println("Enter follower....")
 	select {
-		case n := <-s.appendEntryChannel:
-			log.Println("********** Message received ***********", n)
-    s._state.StartElectionTimeout()
-		case <-s._state.ElectionTimeout().C:
-			if s._state.GetRole() != LEADER {
-        s._state.SetRole(CANDIDATE)
-				s.startElection()
-			}
-		}	
+  case mess := <- s.messageChannel:
+
+    switch mess.Ty {
+      case APPEND_ENTRY:
+        var appendEntry = &m.AppendEntryRPC{}
+        appendEntry.Decode(mess.Payload)
+			  log.Println("********** Message received ***********", appendEntry)
+        s._state.StartElectionTimeout()
+        // TODO: Handle append entry
+
+      case REQUEST_VOTE:
+        var reqVote = &m.RequestVoteRPC{}
+        reqVote.Decode(mess.Payload)
+        // TODO: Handle request vote
+
+      case COPY_STATE:
+        var copyState = &m.CopyStateRPC{}
+        copyState.Decode(mess.Payload)
+        // TODO: Handle copy state message 
+      
+      default: 
+        // default behaviour: do nothing
+    }
+	case <-s._state.ElectionTimeout().C:
+		if s._state.GetRole() != LEADER {
+      s._state.SetRole(CANDIDATE)
+			s.startElection()
+		}
+  case <- s.messageChannel:
+  }
 }
 
 /*
  * Handle candidates
 */
 func (s *Server) candidate() {
-  // TODO: implement candidate behaviour
+  select {
+  case mess := <- s.messageChannel:
+    switch mess.Ty {
+      case APPEND_ENTRY:
+        var appendEntry = &m.AppendEntryRPC{}
+        appendEntry.Decode(mess.Payload)
+        // TODO Handle response
+
+      case REQUEST_VOTE:
+        var reqVote = &m.RequestVoteRPC{}
+        reqVote.Decode(mess.Payload)
+        // TODO Handle request vote
+
+      case VOTE_RESPONSE:
+        var voteResponse = &m.RequestVoteResponse{}
+        voteResponse.Decode(mess.Payload)
+        // TODO Handle Response vote
+
+      case COPY_STATE:
+        var copyState = &m.CopyStateRPC{}
+        copyState.Decode(mess.Payload)
+        // TODO Handle copy state 
+
+      default:
+        // default behaviour: do nothing
+    }
+  case <-s._state.ElectionTimeout().C:
+    // TODO Handle election timeout during an election phase
+  }
 }
 
-func (s *Server) run() {
+func (s *Server) run(wg *sync.WaitGroup) {
+  defer wg.Done()
 	for {
     switch s._state.GetRole() {
 	  case LEADER: 

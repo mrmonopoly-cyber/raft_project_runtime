@@ -16,8 +16,8 @@ const (
 )
 
 const (
-	ELECTION_TIMEOUT time.Duration = 200
-	H_TIMEOUT        time.Duration = 30
+	ELECTION_TIMEOUT time.Duration = 10000000000
+	H_TIMEOUT        time.Duration = 3000000000
 )
 
 type raftStateImpl struct {
