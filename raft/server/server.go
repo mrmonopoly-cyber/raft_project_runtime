@@ -1,7 +1,9 @@
 package server
 
 import (
+	"bufio"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -54,11 +56,13 @@ func NewServer(term uint64, id string, role Role, serversId []string) *Server {
 func (s *Server) Start() {
   var wg sync.WaitGroup
 
-  wg.Add(2)
-  s.startListen()
+  wg.Add(4)
+  listener := s.startListen(&wg)
+
+  go acceptIncomingConn(listener, &wg)
 
 	s.ConnectToServers()
-	
+
   s._state.StartElectionTimeout()
 
 	if s._state.Leader() {
@@ -80,7 +84,7 @@ func (s *Server) ConnectToServers() {
 
 	for i := 0; i < len(s._state.GetServersID()); i++ {
 		var serverId = s._state.GetServersID()[i]
-		if serverId != s._state.id {
+		if serverId != s._state.GetID() {
       var conn, err = net.Dial("tcp", "localhost:" + serverId)
 
 			for err != nil {
@@ -88,7 +92,6 @@ func (s *Server) ConnectToServers() {
         log.Println("retrying...")
         conn, err = net.Dial("tcp", "localhost:" + serverId)
 			}
-			log.Println("Server ", s._state.id)
 
       if conn != nil {
 			  s.connections.Store(serverId, conn)
@@ -97,38 +100,48 @@ func (s *Server) ConnectToServers() {
 	}
 }
 
-func (s *Server) startListen() {
+func (s *Server) startListen(wg *sync.WaitGroup) net.Listener {
   listener, err := net.Listen("tcp", "localhost:" + s._state.GetID())
   
   if err != nil {
     log.Println(err) 
   }
   
-  go http.Serve(listener, nil)
+  go func () {
+    defer wg.Done()
+    for {
+      http.Serve(listener, nil)
+    }
+  } ()
+  //go http.Serve(listener, nil)
   log.Println("Listener up on port: " + listener.Addr().String())
+  return listener
+}
+
+func acceptIncomingConn(listener net.Listener, wg *sync.WaitGroup) {
+  defer wg.Done()
+  for {
+    listener.Accept()
+  }
 }
 
 /*
  * Handle incoming messages and send it to the corresponding channel
 */
 func (s *Server) handleResponse(wg *sync.WaitGroup) {
-	buffer := make([]byte, 2048)
   defer wg.Done()
   // iterating over the connections map and receive byte messages 
 	for {
     s.connections.Range(func(k, conn interface{}) bool {
-		  _, err := conn.(net.Conn).Read(buffer)
-		  if err != nil {
-			  log.Println("Read error: ", err)
-		  }
-
-      log.Println("Buffer:", buffer)
+		  message, _ := bufio.NewReader(conn.(net.Conn)).ReadString('\n')
       
       // for every []byte: decode it to Message type
-      var mess Message
-      mess.toMessage(buffer)
+      if message != "" {
+        var mess Message
+        mess.toMessage([]byte(message))
+        s.messageChannel <- &mess
+      }
 
-      s.messageChannel <- &mess
       return true
     })
   }
@@ -142,7 +155,8 @@ func (s *Server) handleResponse(wg *sync.WaitGroup) {
 func (s *Server) sendAll(mess []byte) {
 
 	s.connections.Range(func(k, conn interface{}) bool {
-		conn.(net.Conn).Write(mess)
+    log.Println(string(mess))
+    fmt.Fprintf(conn.(net.Conn), string(mess) + "\n")
 		return true
 	})
 }
@@ -151,30 +165,27 @@ func (s *Server) sendAll(mess []byte) {
  *  Send heartbeats (Empty AppendEntryRPC)
 */
 func (s *Server) sendHeartbeat() {
-	if s._state.Leader() {
+  appendEntry := m.NewAppendEntry(
+    s._state.GetTerm(), 
+    s._state.GetID(), 
+    0, 
+    0, 
+    make([]*p.Entry, 0), 
+    0)
 
-    appendEntry := m.NewAppendEntry(
-      s._state.GetTerm(), 
-      s._state.GetID(), 
-      0, 
-      0, 
-      make([]*p.Entry, 0), 
-      0)
-
-    enc, err := appendEntry.Encode()
+  enc, err := appendEntry.Encode()
     
-    if err != nil {
-      log.Println("Error encoding", err)
-    } else {
-      mess := Message{
-        Ty: APPEND_ENTRY,
-        Payload: enc,
-      }
- 		  log.Println("Send heartbeat...", s._state.id)
-		  s._state.StartHearthbeatTimeout()
-		  s.sendAll(mess.toByte())
+  if err != nil {
+    log.Println("Error encoding", err)
+  } else {
+    mess := Message{
+      Ty: APPEND_ENTRY,
+      Payload: enc,
     }
-	}
+ 		log.Println("Send heartbeat...", s._state.id)
+		s._state.StartHearthbeatTimeout()
+		s.sendAll(mess.toByte())
+  }
 }
 
 /*
@@ -235,15 +246,14 @@ func (s *Server) startElection() {
 	log.Println("/////////////////////////////////////Starting new election...", s._state.id)
   s._state.IncrementTerm()
   s._state.VoteFor(s._state.GetID())
-  s._state.ElectionTimeout()
-  s.sendRequestVoteRPC() 
+  //s._state.ElectionTimeout()
+  //s.sendRequestVoteRPC() 
 }
 
 /*
  * Leader behaviour
 */
 func (s *Server) leader() {
-  log.Println("enter leader...")
 	select {
     case mess := <- s.messageChannel: 
       switch mess.Ty {
@@ -269,7 +279,6 @@ func (s *Server) leader() {
  * Followers behaviour
 */
 func (s *Server) follower() {
-  log.Println("Enter follower....")
 	select {
   case mess := <- s.messageChannel:
 
@@ -299,7 +308,6 @@ func (s *Server) follower() {
       s._state.SetRole(CANDIDATE)
 			s.startElection()
 		}
-  case <- s.messageChannel:
   }
 }
 
