@@ -26,7 +26,7 @@ type raftStateImpl struct {
 	leaderId         string
 	role Role
 	voteFor          string
-	//voting           bool
+	voting           bool
 	serversID []string
 	//updated_node     []net.IP
 	//updating_node    []net.IP
@@ -90,6 +90,10 @@ func (_state *raftStateImpl) StartHearthbeatTimeout() {
 
 func (_state *raftStateImpl) Leader() bool {
 	return _state.role == LEADER
+}
+
+func (_state *raftStateImpl) CanVote() bool{
+    return _state.voting
 }
 
 func (_state *raftStateImpl) HeartbeatTimeout() *time.Timer {

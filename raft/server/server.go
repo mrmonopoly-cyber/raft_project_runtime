@@ -250,6 +250,34 @@ func (s *Server) startElection() {
   //s.sendRequestVoteRPC() 
 }
 
+func (s *Server) More_recent_log(last_log_index uint64, last_log_term uint64) bool {
+    //TODO implement More recent log
+    return false
+}
+
+func (s *Server) other_node_vote_candidature(mex m.RequestVoteRPC) {
+    if !s._state.CanVote(){
+        return
+    }
+    if mex.GetTerm() < s._state.GetTerm() {
+        
+        //TODO: send response (my_term,false)
+        return
+    }
+    
+    if !s.More_recent_log(mex.GetLastLogIndex(),mex.GetLastLogTerm()) {
+        
+    }else if s._state.voteFor == "" || s._state.voteFor == mex.GetCandidateId(){
+        s._state.voteFor = mex.GetCandidateId()
+        //TODO: send response to sender (my_term, true)
+        return
+    }
+
+    //TODO: send response to server (my_term,false)
+    return
+    
+}
+
 /*
  * Leader behaviour
 */
@@ -293,6 +321,7 @@ func (s *Server) follower() {
       case REQUEST_VOTE:
         var reqVote = &m.RequestVoteRPC{}
         reqVote.Decode(mess.Payload)
+        s.other_node_vote_candidature(*reqVote)
         // TODO: Handle request vote
 
       case COPY_STATE:

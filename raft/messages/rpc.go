@@ -283,3 +283,10 @@ func NewRequestVote(term uint64, candidateId string, lastLogIndex uint64, lastLo
   }
 }
 
+func NewRequestVoteResponse(voteGranted bool, term uint64) RequestVoteResponse {
+    return RequestVoteResponse{
+        voteGranted,
+        term,
+    }
+}
+
