@@ -26,42 +26,6 @@ func new_CopyStateRPC(term uint64, index uint64, voting bool, entries []*p.Entry
 func (this CopyStateRPC) GetTerm() uint64{
     return this.term
 }
-func (this CopyStateRPC) GetVoting() bool{
-    return this.voting
-}
-func (this CopyStateRPC) GetEntries() []*p.Entry{
-    return this.entries
-}
-func (this CopyStateRPC) GetLeaderId() string{
-    return ""
-}
-func (this CopyStateRPC) GetCandidateId() uint64{
-    return 0
-}
-func (this CopyStateRPC) GetLastLogTerm() uint64{
-    return 0
-}
-func (this CopyStateRPC) GetLastLogIndex() uint64{
-    return 0
-}
-func (this CopyStateRPC) GetPrevLogTerm() uint64{
-    return 0
-}
-func (this CopyStateRPC) GetPrevLogIndex() uint64{
-    return 0
-}
-func (this CopyStateRPC) GetLeaderCommit() uint64{
-    return 0
-}
-func (this CopyStateRPC) HasSucceded() bool{
-    return false
-}
-func (this CopyStateRPC) VoteGranted() bool{
-    return false
-}
-func (this CopyStateRPC) GetIndex() uint64{
-    return this.index
-}
 func (this CopyStateRPC) Encode() ([]byte, error){
 
     copyState := &p.CopyState{
@@ -85,5 +49,11 @@ func (this CopyStateRPC) Decode(b []byte) error{
     }
 
     return err
+}
+func (this CopyStateRPC) GetVoting() bool{
+    return this.voting
+}
+func (this CopyStateRPC) GetEntries() []*p.Entry{
+    return this.entries
 }
 

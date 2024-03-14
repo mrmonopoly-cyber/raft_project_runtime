@@ -32,42 +32,6 @@ func new_AppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 func (this AppendEntryRPC) GetTerm() uint64{
     return this.term
 }
-func (this AppendEntryRPC) GetVoting() bool{
-    return false
-}
-func (this AppendEntryRPC) GetEntries() []*p.Entry{
-    return this.entries
-}
-func (this AppendEntryRPC) GetLeaderId() string{
-    return this.leaderId
-}
-func (this AppendEntryRPC) GetCandidateId() uint64{
-    return 0
-}
-func (this AppendEntryRPC) GetLastLogTerm() uint64{
-    return 0
-}
-func (this AppendEntryRPC) GetLastLogIndex() uint64{
-    return 0
-}
-func (this AppendEntryRPC) GetPrevLogTerm() uint64{
-    return this.prevLogTerm
-}
-func (this AppendEntryRPC) GetPrevLogIndex() uint64{
-    return this.prevLogIndex
-}
-func (this AppendEntryRPC) GetLeaderCommit() uint64{
-    return this.leaderCommit
-}
-func (this AppendEntryRPC) HasSucceded() bool{
-    return false
-}
-func (this AppendEntryRPC) VoteGranted() bool{
-    return false
-}
-func (this AppendEntryRPC) GetIndex() uint64{
-    return 0
-}
 func (this AppendEntryRPC) Encode() ([]byte, error){
     appendEntry := &p.AppendEntriesRequest{ 
         Term: proto.Uint64(this.term),
@@ -95,5 +59,20 @@ func (this AppendEntryRPC) Decode(b []byte) error{
     }
 
     return err
+}
+func (this AppendEntryRPC) GetEntries() []*p.Entry{
+    return this.entries
+}
+func (this AppendEntryRPC) GetLeaderId() string{
+    return this.leaderId
+}
+func (this AppendEntryRPC) GetPrevLogTerm() uint64{
+    return this.prevLogTerm
+}
+func (this AppendEntryRPC) GetPrevLogIndex() uint64{
+    return this.prevLogIndex
+}
+func (this AppendEntryRPC) GetLeaderCommit() uint64{
+    return this.leaderCommit
 }
 
