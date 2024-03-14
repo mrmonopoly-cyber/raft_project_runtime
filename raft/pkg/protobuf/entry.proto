@@ -1,0 +1,21 @@
+package protobuf;
+
+option go_package = "protobuf/";
+
+enum Operation {
+  WRITE = 1;
+  READ = 2;
+  DELETE = 3;
+  JOIN_CONF = 4;
+  NODE_UPDATED = 5;
+  NODE_DELETED = 6;
+}
+
+message Entry {
+	required uint64 Term=1;
+	required string Description=2;
+	required Operation OpType=3;
+}
+
+
+

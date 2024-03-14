@@ -1,8 +1,0 @@
-package protobuf;
-
-option go_package ="protobuf/";
-
-message RequestVoteResponse {
-  required bool voteGranted = 1;
-  required uint64 Term = 2;
-}
