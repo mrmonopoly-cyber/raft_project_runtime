@@ -23,7 +23,6 @@ type Rpc interface {
   GetIndex() uint64
   Encode() ([]byte, error)
   Decode([]byte) error
-  // NewAppendEntry(term uint64, leaderId string, prevLogIndex uint64, prevLogTerm uint64, entries []*p.Entry, leaderCommit uint64) AppendEntryRPC
   // NewRequestVote(term uint64, candidateId string, lastLogIndex uint64, lastLogTerm uint64) RequestVoteRPC
 }
 
@@ -42,11 +41,6 @@ type CopyStateRPC struct {
   voting bool
   entries []*p.Entry
 }
-type AppendEntryResponse struct {
-  success bool
-  term uint64
-  logIndexError uint64
-}
 
 type RequestVoteResponse struct {
   voteGranted bool
@@ -58,10 +52,6 @@ func (m *RequestVoteRPC) GetTerm() uint64 {
 }
 
 func (m *RequestVoteResponse) GetTerm() uint64 {
-  return m.term
-}
-
-func (m *AppendEntryResponse) GetTerm() uint64 {
   return m.term
 }
 
@@ -89,20 +79,12 @@ func (m *RequestVoteRPC) GetLastLogTerm() uint64 {
   return m.lastLogTerm
 }
 
-func (m *AppendEntryResponse) HasSucceded() bool {
-  return m.success
-}
-
 func (m *RequestVoteResponse) VoteGranted() bool {
   return m.voteGranted
 }
 
 func (m *CopyStateRPC) GetIndex() uint64 {
   return m.index
-}
-
-func (m *AppendEntryResponse) GetIndex() uint64 {
-  return m.logIndexError
 }
 
 func (m *RequestVoteRPC) Encode() ([]byte, error) {
@@ -128,16 +110,6 @@ func (m *CopyStateRPC) Encode() ([]byte, error) {
   return proto.Marshal(copyState)
 }
 
-func (m *AppendEntryResponse) Encode() ([]byte, error) {
-  response := &p.AppendEntryResponse{
-    Success: proto.Bool(m.success),
-    Term: proto.Uint64(m.term),
-    LogIndexError: proto.Uint64(m.logIndexError),
-  }
-
-  return proto.Marshal(response)
-}
-
 func (m *RequestVoteResponse) Encode() ([]byte, error) {
   response := &p.RequestVoteResponse{
     VoteGranted: proto.Bool(m.voteGranted),
@@ -156,19 +128,6 @@ func (m *RequestVoteRPC) Decode(b []byte) error {
     m.candidateId = pb.GetCandidateId()
     m.lastLogTerm = pb.GetLastLogTerm()
     m.lastLogIndex = pb.GetLastLogIndex()
-  }
-
-  return err
-}
-
-func (m *AppendEntryResponse) Decode(b []byte) error {
-  pb := new(p.AppendEntryResponse)
-  err := proto.Unmarshal(b, pb)
-
-  if err != nil {
-    m.term = pb.GetTerm()
-    m.success = pb.GetSuccess()
-    m.logIndexError = pb.GetLogIndexError()
   }
 
   return err

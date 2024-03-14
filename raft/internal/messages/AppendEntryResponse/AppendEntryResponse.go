@@ -3,11 +3,14 @@ package AppendEntryResponse
 import (
     p "raft/pkg/protobuf"
 	"raft/internal/messages"
+	"google.golang.org/protobuf/proto"
 )
 
 type AppendEntryResponse struct
 {
-    
+  success bool
+  term uint64
+  logIndexError uint64
 }
 
 func new_AppendEntryResponse() messages.Rpc{
@@ -15,7 +18,7 @@ func new_AppendEntryResponse() messages.Rpc{
 }
 
 func (this AppendEntryResponse) GetTerm() uint64{
-    return 0
+    return this.term
 }
 func (this AppendEntryResponse) GetVoting() bool{
     return false
@@ -45,18 +48,35 @@ func (this AppendEntryResponse) GetLeaderCommit() uint64{
     return 0
 }
 func (this AppendEntryResponse) HasSucceded() bool{
-    return false
+    return this.success
 }
 func (this AppendEntryResponse) VoteGranted() bool{
     return false
 }
 func (this AppendEntryResponse) GetIndex() uint64{
-    return 0
+    return this.logIndexError
 }
 func (this AppendEntryResponse) Encode() ([]byte, error){
-    return nil,nil
+
+    response := &p.AppendEntryResponse{
+        Success: proto.Bool(this.success),
+        Term: proto.Uint64(this.term),
+        LogIndexError: proto.Uint64(this.logIndexError),
+    }
+
+    return proto.Marshal(response)
 }
-func (this AppendEntryResponse) Decode() error{
-    return nil
+func (this AppendEntryResponse) Decode(b []byte) error{
+
+    pb := new(p.AppendEntryResponse)
+    err := proto.Unmarshal(b, pb)
+
+    if err != nil {
+        this.term = pb.GetTerm()
+        this.success = pb.GetSuccess()
+        this.logIndexError = pb.GetLogIndexError()
+    }
+
+    return err
 }
 
