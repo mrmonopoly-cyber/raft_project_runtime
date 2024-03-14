@@ -6,14 +6,15 @@ import (
 	"log"
 	"net"
 	"net/http"
+	append "raft/internal/messages/AppendEntryRPC"
+	res_ap "raft/internal/messages/AppendEntryResponse"
+	cop_st "raft/internal/messages/CopyStateRPC"
+	req_vo "raft/internal/messages/RequestVoteRPC"
+	res_vo "raft/internal/messages/RequestVoteResponse"
 	p "raft/pkg/protobuf"
 	"sync"
-    append "raft/internal/messages/AppendEntryRPC"
-    res_ap "raft/internal/messages/AppendEntryResponse"
-    req_vo "raft/internal/messages/RequestVoteRPC"
-    res_vo "raft/internal/messages/RequestVoteResponse"
-    cop_st "raft/internal/messages/CopyStateRPC"
-    mex "raft/internal/server/message"
+
+	"google.golang.org/protobuf/proto"
 )
 
 
@@ -21,8 +22,9 @@ import (
 
 type Server struct {
 	_state raftStateImpl
-	connections        *sync.Map
-	messageChannel chan *mex.Message
+	connIn        *sync.Map
+  connOut       *sync.Map
+	messageChannel chan *p.Message
 }
 
 
@@ -30,7 +32,8 @@ func NewServer(term uint64, id string, role Role, serversId []string) *Server {
 	var server = &Server{
     *NewState(term, id, role, serversId),
 		&sync.Map{},
-		make(chan *mex.Message),
+    &sync.Map{},
+		make(chan *p.Message),
 	}
 
   return server
@@ -42,7 +45,7 @@ func (s *Server) Start() {
   wg.Add(4)
   listener := s.startListen(&wg)
 
-  go acceptIncomingConn(listener, &wg)
+  go s.acceptIncomingConn(listener, &wg)
 
 	s.ConnectToServers()
 
@@ -77,7 +80,7 @@ func (s *Server) ConnectToServers() {
 			}
 
       if conn != nil {
-			  s.connections.Store(serverId, conn)
+			  s.connOut.Store(serverId, conn)
       }
 		}
 	}
@@ -101,10 +104,13 @@ func (s *Server) startListen(wg *sync.WaitGroup) net.Listener {
   return listener
 }
 
-func acceptIncomingConn(listener net.Listener, wg *sync.WaitGroup) {
+func (s *Server) acceptIncomingConn(listener net.Listener, wg *sync.WaitGroup) {
   defer wg.Done()
+  var i = 0
   for {
-    listener.Accept()
+    conn, _ := listener.Accept()
+    s.connIn.Store(i, conn)
+    i++
   }
 }
 
@@ -115,14 +121,14 @@ func (s *Server) handleResponse(wg *sync.WaitGroup) {
   defer wg.Done()
   // iterating over the connections map and receive byte messages 
 	for {
-    s.connections.Range(func(k, conn interface{}) bool {
+    s.connIn.Range(func(k, conn interface{}) bool {
 		  message, _ := bufio.NewReader(conn.(net.Conn)).ReadString('\n')
       
       // for every []byte: decode it to Message type
       if message != "" {
-        var mess mex.Message
-        mess.ToMessage([]byte(message))
-        s.messageChannel <- &mess
+        mess := new(p.Message)
+        proto.Unmarshal([]byte(message), mess)
+        s.messageChannel <- mess
       }
 
       return true
@@ -137,7 +143,7 @@ func (s *Server) handleResponse(wg *sync.WaitGroup) {
 */
 func (s *Server) sendAll(mess []byte) {
 
-	s.connections.Range(func(k, conn interface{}) bool {
+	s.connOut.Range(func(k, conn interface{}) bool {
     log.Println(string(mess))
     fmt.Fprintf(conn.(net.Conn), string(mess) + "\n")
 		return true
@@ -161,13 +167,14 @@ func (s *Server) sendHeartbeat() {
   if err != nil {
     log.Println("Error encoding", err)
   } else {
-    mess := mex.Message{
-      Ty: mex.APPEND_ENTRY,
+    mess := &p.Message{
+      Kind: p.Ty_APPEND_ENTRY.Enum(),
       Payload: enc,
     }
  		log.Println("Send heartbeat...", s._state.id)
 		s._state.StartHearthbeatTimeout()
-		s.sendAll(mess.ToByte())
+    sending, _ := proto.Marshal(mess)
+		s.sendAll(sending)
   }
 }
 
@@ -192,11 +199,12 @@ func (s *Server) sendAppendEntryRPC() {
   if err != nil {
     log.Println("Error encoding", err)
   } else {
-    mess := mex.Message{
-      Ty: mex.APPEND_ENTRY,
+    mess := &p.Message{
+      Kind: p.Ty_APPEND_ENTRY.Enum(),
       Payload: enc,
     }
-	  s.sendAll(mess.ToByte())
+    sending, _ := proto.Marshal(mess)
+	  s.sendAll(sending)
   }
 }
 
@@ -217,11 +225,12 @@ func (s *Server) sendRequestVoteRPC() {
   if err!= nil { 
     log.Println("During encoding a request vote: ", err)
   } else {
-    mess := mex.Message {
-      Ty: mex.REQUEST_VOTE,
+    mess := &p.Message {
+      Kind: p.Ty_REQUEST_VOTE.Enum(),
       Payload: enc,
     }
-    s.sendAll(mess.ToByte())
+    sending, _ := proto.Marshal(mess)
+    s.sendAll(sending)
   }
 }
 
@@ -267,13 +276,13 @@ func (s *Server) other_node_vote_candidature(mex req_vo.RequestVoteRPC) {
 func (s *Server) leader() {
 	select {
     case mess := <- s.messageChannel: 
-      switch mess.Ty {
-        case mex.APPEND_ENTRY:
+      switch mess.Kind {
+        case p.Ty_APPEND_ENTRY.Enum():
           var appendEntry = &append.AppendEntryRPC{}
           appendEntry.Decode(mess.Payload)
           //TODO Handle append entry
 
-        case mex.APPEND_RESPONSE: 
+        case p.Ty_APPEND_RESPONSE.Enum(): 
           var appendResponse = &res_ap.AppendEntryResponse{}
           appendResponse.Decode(mess.Payload)
           // TODO Handle Response
@@ -293,21 +302,21 @@ func (s *Server) follower() {
 	select {
   case mess := <- s.messageChannel:
 
-    switch mess.Ty {
-      case mex.APPEND_ENTRY:
+    switch mess.Kind {
+      case p.Ty_APPEND_ENTRY.Enum():
         var appendEntry = &append.AppendEntryRPC{}
         appendEntry.Decode(mess.Payload)
 			  log.Println("********** Message received ***********", appendEntry)
         s._state.StartElectionTimeout()
         // TODO: Handle append entry
 
-      case mex.REQUEST_VOTE:
+      case p.Ty_REQUEST_VOTE.Enum():
         var reqVote = &req_vo.RequestVoteRPC{}
         reqVote.Decode(mess.Payload)
         s.other_node_vote_candidature(*reqVote)
         // TODO: Handle request vote
 
-      case mex.COPY_STATE:
+      case p.Ty_COPY_STATE.Enum():
         var copyState = &cop_st.CopyStateRPC{}
         copyState.Decode(mess.Payload)
         // TODO: Handle copy state message 
@@ -329,23 +338,23 @@ func (s *Server) follower() {
 func (s *Server) candidate() {
   select {
   case mess := <- s.messageChannel:
-    switch mess.Ty {
-      case mex.APPEND_ENTRY:
+    switch mess.Kind {
+      case p.Ty_APPEND_ENTRY.Enum():
         var appendEntry = &append.AppendEntryRPC{}
         appendEntry.Decode(mess.Payload)
         // TODO Handle response
 
-      case mex.REQUEST_VOTE:
+      case p.Ty_REQUEST_VOTE.Enum():
         var reqVote = &req_vo.RequestVoteRPC{}
         reqVote.Decode(mess.Payload)
         // TODO Handle request vote
 
-      case mex.VOTE_RESPONSE:
+      case p.Ty_VOTE_RESPONSE.Enum():
         var voteResponse = &res_vo.RequestVoteResponse{}
         voteResponse.Decode(mess.Payload)
         // TODO Handle Response vote
 
-      case mex.COPY_STATE:
+      case p.Ty_COPY_STATE.Enum():
         var copyState = &cop_st.CopyStateRPC{}
         copyState.Decode(mess.Payload)
         // TODO Handle copy state 
