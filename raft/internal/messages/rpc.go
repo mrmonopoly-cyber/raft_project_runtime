@@ -22,20 +22,11 @@ type Rpc interface {
   VoteGranted() bool
   GetIndex() uint64
   Encode() ([]byte, error)
-  Decode() error
-  NewAppendEntry(term uint64, leaderId string, prevLogIndex uint64, prevLogTerm uint64, entries []*p.Entry, leaderCommit uint64) AppendEntryRPC
-  NewRequestVote(term uint64, candidateId string, lastLogIndex uint64, lastLogTerm uint64) RequestVoteRPC
+  Decode([]byte) error
+  // NewAppendEntry(term uint64, leaderId string, prevLogIndex uint64, prevLogTerm uint64, entries []*p.Entry, leaderCommit uint64) AppendEntryRPC
+  // NewRequestVote(term uint64, candidateId string, lastLogIndex uint64, lastLogTerm uint64) RequestVoteRPC
 }
 
-
-type AppendEntryRPC struct {
-	term         uint64       
-	leaderId     string       
-	prevLogIndex uint64       
-	prevLogTerm  uint64       
-	entries      []*p.Entry 
-	leaderCommit uint64       
-}
 
 type RequestVoteRPC struct {
   term uint64
@@ -66,10 +57,6 @@ func (m *RequestVoteRPC) GetTerm() uint64 {
   return m.term
 }
 
-func (m *AppendEntryRPC) GetTerm() uint64 {
-  return m.term
-}
-
 func (m *RequestVoteResponse) GetTerm() uint64 {
   return m.term
 }
@@ -86,16 +73,8 @@ func (m *CopyStateRPC) GetVoting() bool {
   return m.voting
 }
 
-func (m *AppendEntryRPC) GetEntries() []*p.Entry {
-  return m.entries
-}
-
 func (m *CopyStateRPC) GetEntries() []*p.Entry {
   return m.entries
-}
-
-func (m *AppendEntryRPC) GetLeaderId() string {
-  return m.leaderId
 }
 
 func (m *RequestVoteRPC) GetCandidateId() string {
@@ -108,18 +87,6 @@ func (m *RequestVoteRPC) GetLastLogIndex() uint64 {
 
 func (m *RequestVoteRPC) GetLastLogTerm() uint64 {
   return m.lastLogTerm
-}
-
-func (m *AppendEntryRPC) GetPrevLogTerm() uint64 {
-  return m.prevLogTerm
-}
-
-func (m *AppendEntryRPC) GetPrevLogIndex() uint64 {
-  return m.prevLogIndex
-}
-
-func (m *AppendEntryRPC) GetLeaderCommit() uint64 {
-  return m.leaderCommit
 }
 
 func (m *AppendEntryResponse) HasSucceded() bool {
@@ -137,21 +104,6 @@ func (m *CopyStateRPC) GetIndex() uint64 {
 func (m *AppendEntryResponse) GetIndex() uint64 {
   return m.logIndexError
 }
-
-func (m *AppendEntryRPC) Encode() ([]byte, error) {
-  appendEntry := &p.AppendEntriesRequest{ 
-    Term: proto.Uint64(m.term),
-    PrevLogIndex: proto.Uint64(m.prevLogIndex),
-    PrevLogTerm: proto.Uint64(m.prevLogTerm),
-    CommitIndex: proto.Uint64(m.leaderCommit),
-    LeaderId: proto.String(m.leaderId),
-    Entries: m.entries,
-  }
-
-  mess, err := proto.Marshal(appendEntry)
-  return mess, err
-}
-
 
 func (m *RequestVoteRPC) Encode() ([]byte, error) {
   reqVote := &p.RequestVote{
@@ -193,22 +145,6 @@ func (m *RequestVoteResponse) Encode() ([]byte, error) {
   }
 
   return proto.Marshal(response)
-}
-
-func (m *AppendEntryRPC) Decode(b []byte) error {
-  pb := new(p.AppendEntriesRequest)
-  err := proto.Unmarshal(b, pb)
-  
-  if err != nil {
-    m.term = pb.GetTerm()
-    m.leaderId = pb.GetLeaderId()
-    m.leaderCommit = pb.GetCommitIndex()
-    m.entries = pb.GetEntries()
-    m.prevLogTerm = pb.GetPrevLogTerm()
-    m.prevLogIndex = pb.GetPrevLogIndex()
-  }
-
-  return err
 }
 
 func (m *RequestVoteRPC) Decode(b []byte) error {
@@ -262,17 +198,6 @@ func (m *CopyStateRPC) Decode(b []byte) error {
   }
 
   return err
-}
-
-func NewAppendEntry(term uint64, leaderId string, prevLogIndex uint64, prevLogTerm uint64, entries []*p.Entry, leaderCommit uint64) AppendEntryRPC {
-  return AppendEntryRPC{
-    term,
-    leaderId,
-    prevLogIndex,
-    prevLogTerm,
-    entries,
-    leaderCommit,
-  }
 }
 
 func NewRequestVote(term uint64, candidateId string, lastLogIndex uint64, lastLogTerm uint64) RequestVoteRPC {
