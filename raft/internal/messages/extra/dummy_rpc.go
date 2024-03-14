@@ -11,7 +11,7 @@ type NEW_RPC struct
     term uint64
 }
 
-func new_NEW_RPC(term uint64) messages.Rpc{
+func New_NEW_RPC(term uint64) messages.Rpc{
     return &NEW_RPC{term:term}
 }
 

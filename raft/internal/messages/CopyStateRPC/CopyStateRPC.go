@@ -14,7 +14,8 @@ type CopyStateRPC struct
     entries []*p.Entry
 }
 
-func new_CopyStateRPC(term uint64, index uint64, voting bool, entries []*p.Entry) messages.Rpc{
+func new_CopyStateRPC(term uint64, index uint64, voting bool, 
+                        entries []*p.Entry) messages.Rpc{
     return &CopyStateRPC{
         term:term,
         index:index,

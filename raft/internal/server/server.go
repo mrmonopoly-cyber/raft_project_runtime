@@ -7,9 +7,13 @@ import (
 	"log"
 	"net"
 	"net/http"
-	m "raft/internal/messages"
 	p "raft/pkg/protobuf"
 	"sync"
+    append "raft/internal/messages/AppendEntryRPC"
+    res_ap "raft/internal/messages/AppendEntryResponse"
+    req_vo "raft/internal/messages/RequestVoteRPC"
+    res_vo "raft/internal/messages/RequestVoteResponse"
+    cop_st "raft/internal/messages/CopyStateRPC"
 )
 
 type EnumType int
@@ -165,7 +169,7 @@ func (s *Server) sendAll(mess []byte) {
  *  Send heartbeats (Empty AppendEntryRPC)
 */
 func (s *Server) sendHeartbeat() {
-  appendEntry := m.NewAppendEntry(
+  appendEntry := append.New_AppendEntryRPC (
     s._state.GetTerm(), 
     s._state.GetID(), 
     0, 
@@ -196,7 +200,7 @@ func (s *Server) sendAppendEntryRPC() {
   prevLogIndex := len(s._state.GetEntries())-2
   prevLogTerm := s._state.GetEntries()[prevLogIndex].GetTerm()
 
-  appendEntry := m.NewAppendEntry(
+  appendEntry := append.New_AppendEntryRPC(
     s._state.GetTerm(), 
     s._state.GetID(), 
     uint64(prevLogIndex), 
@@ -223,7 +227,7 @@ func (s *Server) sendAppendEntryRPC() {
 func (s *Server) sendRequestVoteRPC() {
   lastLogIndex := len(s._state.GetEntries())-1
   lastLogTerm := s._state.GetEntries()[lastLogIndex].GetTerm()
-  requestVote := m.NewRequestVote(
+  requestVote := req_vo.New_RequestVoteRPC(
     s._state.GetTerm(),
     s._state.GetID(),
     uint64(lastLogIndex), 
@@ -255,7 +259,7 @@ func (s *Server) More_recent_log(last_log_index uint64, last_log_term uint64) bo
     return false
 }
 
-func (s *Server) other_node_vote_candidature(mex m.RequestVoteRPC) {
+func (s *Server) other_node_vote_candidature(mex req_vo.RequestVoteRPC) {
     if !s._state.CanVote(){
         return
     }
@@ -286,12 +290,12 @@ func (s *Server) leader() {
     case mess := <- s.messageChannel: 
       switch mess.Ty {
         case APPEND_ENTRY:
-          var appendEntry = &m.AppendEntryRPC{}
+          var appendEntry = &append.AppendEntryRPC{}
           appendEntry.Decode(mess.Payload)
           //TODO Handle append entry
 
         case APPEND_RESPONSE: 
-          var appendResponse = &m.AppendEntryResponse{}
+          var appendResponse = &res_ap.AppendEntryResponse{}
           appendResponse.Decode(mess.Payload)
           // TODO Handle Response
 
@@ -312,20 +316,20 @@ func (s *Server) follower() {
 
     switch mess.Ty {
       case APPEND_ENTRY:
-        var appendEntry = &m.AppendEntryRPC{}
+        var appendEntry = &append.AppendEntryRPC{}
         appendEntry.Decode(mess.Payload)
 			  log.Println("********** Message received ***********", appendEntry)
         s._state.StartElectionTimeout()
         // TODO: Handle append entry
 
       case REQUEST_VOTE:
-        var reqVote = &m.RequestVoteRPC{}
+        var reqVote = &req_vo.RequestVoteRPC{}
         reqVote.Decode(mess.Payload)
         s.other_node_vote_candidature(*reqVote)
         // TODO: Handle request vote
 
       case COPY_STATE:
-        var copyState = &m.CopyStateRPC{}
+        var copyState = &cop_st.CopyStateRPC{}
         copyState.Decode(mess.Payload)
         // TODO: Handle copy state message 
       
@@ -348,22 +352,22 @@ func (s *Server) candidate() {
   case mess := <- s.messageChannel:
     switch mess.Ty {
       case APPEND_ENTRY:
-        var appendEntry = &m.AppendEntryRPC{}
+        var appendEntry = &append.AppendEntryRPC{}
         appendEntry.Decode(mess.Payload)
         // TODO Handle response
 
       case REQUEST_VOTE:
-        var reqVote = &m.RequestVoteRPC{}
+        var reqVote = &req_vo.RequestVoteRPC{}
         reqVote.Decode(mess.Payload)
         // TODO Handle request vote
 
       case VOTE_RESPONSE:
-        var voteResponse = &m.RequestVoteResponse{}
+        var voteResponse = &res_vo.RequestVoteResponse{}
         voteResponse.Decode(mess.Payload)
         // TODO Handle Response vote
 
       case COPY_STATE:
-        var copyState = &m.CopyStateRPC{}
+        var copyState = &cop_st.CopyStateRPC{}
         copyState.Decode(mess.Payload)
         // TODO Handle copy state 
 

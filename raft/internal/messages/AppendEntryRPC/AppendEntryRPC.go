@@ -16,7 +16,7 @@ type AppendEntryRPC struct
 	leaderCommit uint64       
 }
 
-func new_AppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64, 
+func New_AppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64, 
                         prevLogTerm uint64, entries []*p.Entry, 
                         leaderCommit uint64) messages.Rpc{
     return &AppendEntryRPC{

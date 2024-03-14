@@ -13,8 +13,13 @@ type AppendEntryResponse struct
   logIndexError uint64
 }
 
-func new_AppendEntryResponse() messages.Rpc{
-    return &AppendEntryResponse{}
+func new_AppendEntryResponse(success bool, term uint64, 
+                            logIndexError uint64) messages.Rpc{
+    return &AppendEntryResponse{
+        success:success,
+        term:term,
+        logIndexError:logIndexError,
+    }
 }
 
 func (this AppendEntryResponse) GetTerm() uint64{

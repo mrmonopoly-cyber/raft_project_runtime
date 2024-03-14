@@ -14,7 +14,7 @@ type RequestVoteRPC struct
     lastLogTerm uint64
 }
 
-func new_RequestVoteRPC(term uint64, candidateId string, 
+func New_RequestVoteRPC(term uint64, candidateId string, 
                         lastLogIndex uint64, lastLogTerm uint64) messages.Rpc{
     return &RequestVoteRPC{
         term,
@@ -27,6 +27,7 @@ func new_RequestVoteRPC(term uint64, candidateId string,
 func (this RequestVoteRPC) GetTerm() uint64{
     return this.term
 }
+
 func (this RequestVoteRPC) Encode() ([]byte, error){
     reqVote := &p.RequestVote{
         Term: proto.Uint64(this.term),
@@ -57,6 +58,6 @@ func (this RequestVoteRPC) GetCandidateId() string{
 func (this RequestVoteRPC) GetLastLogIndex() uint64{
     return this.lastLogIndex
 }
-func (this RequestVoteRPC) GetPrevLogTerm() uint64{
+func (this RequestVoteRPC) GetLastLogTerm() uint64{
     return this.lastLogTerm
 }
