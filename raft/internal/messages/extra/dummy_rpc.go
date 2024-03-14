@@ -3,6 +3,7 @@ package extra
 import (
     p "raft/pkg/protobuf"
 	"raft/internal/messages"
+	"google.golang.org/protobuf/proto"
 )
 
 type NEW_RPC struct
