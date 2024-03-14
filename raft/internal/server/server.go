@@ -2,7 +2,6 @@ package server
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -14,36 +13,16 @@ import (
     req_vo "raft/internal/messages/RequestVoteRPC"
     res_vo "raft/internal/messages/RequestVoteResponse"
     cop_st "raft/internal/messages/CopyStateRPC"
+    mex "raft/internal/server/message"
 )
 
-type EnumType int
 
-const (
-  APPEND_ENTRY EnumType = iota
-  REQUEST_VOTE 
-  APPEND_RESPONSE
-  VOTE_RESPONSE
-  COPY_STATE
-)
 
-type Message struct {
-  Ty EnumType
-  Payload []byte
-}
-
-func (m *Message) toByte() []byte {
-  result, _ := json.Marshal(m)
-  return result
-}
-
-func (m *Message) toMessage(b []byte) {
-  json.Unmarshal(b, m)
-}
 
 type Server struct {
 	_state raftStateImpl
 	connections        *sync.Map
-	messageChannel chan *Message
+	messageChannel chan *mex.Message
 }
 
 
@@ -51,7 +30,7 @@ func NewServer(term uint64, id string, role Role, serversId []string) *Server {
 	var server = &Server{
     *NewState(term, id, role, serversId),
 		&sync.Map{},
-		make(chan *Message),
+		make(chan *mex.Message),
 	}
 
   return server
@@ -141,8 +120,8 @@ func (s *Server) handleResponse(wg *sync.WaitGroup) {
       
       // for every []byte: decode it to Message type
       if message != "" {
-        var mess Message
-        mess.toMessage([]byte(message))
+        var mess mex.Message
+        mess.ToMessage([]byte(message))
         s.messageChannel <- &mess
       }
 
@@ -182,13 +161,13 @@ func (s *Server) sendHeartbeat() {
   if err != nil {
     log.Println("Error encoding", err)
   } else {
-    mess := Message{
-      Ty: APPEND_ENTRY,
+    mess := mex.Message{
+      Ty: mex.APPEND_ENTRY,
       Payload: enc,
     }
  		log.Println("Send heartbeat...", s._state.id)
 		s._state.StartHearthbeatTimeout()
-		s.sendAll(mess.toByte())
+		s.sendAll(mess.ToByte())
   }
 }
 
@@ -213,11 +192,11 @@ func (s *Server) sendAppendEntryRPC() {
   if err != nil {
     log.Println("Error encoding", err)
   } else {
-    mess := Message{
-      Ty: APPEND_ENTRY,
+    mess := mex.Message{
+      Ty: mex.APPEND_ENTRY,
       Payload: enc,
     }
-	  s.sendAll(mess.toByte())
+	  s.sendAll(mess.ToByte())
   }
 }
 
@@ -238,11 +217,11 @@ func (s *Server) sendRequestVoteRPC() {
   if err!= nil { 
     log.Println("During encoding a request vote: ", err)
   } else {
-    mess := Message {
-      Ty: REQUEST_VOTE,
+    mess := mex.Message {
+      Ty: mex.REQUEST_VOTE,
       Payload: enc,
     }
-    s.sendAll(mess.toByte())
+    s.sendAll(mess.ToByte())
   }
 }
 
@@ -289,12 +268,12 @@ func (s *Server) leader() {
 	select {
     case mess := <- s.messageChannel: 
       switch mess.Ty {
-        case APPEND_ENTRY:
+        case mex.APPEND_ENTRY:
           var appendEntry = &append.AppendEntryRPC{}
           appendEntry.Decode(mess.Payload)
           //TODO Handle append entry
 
-        case APPEND_RESPONSE: 
+        case mex.APPEND_RESPONSE: 
           var appendResponse = &res_ap.AppendEntryResponse{}
           appendResponse.Decode(mess.Payload)
           // TODO Handle Response
@@ -315,20 +294,20 @@ func (s *Server) follower() {
   case mess := <- s.messageChannel:
 
     switch mess.Ty {
-      case APPEND_ENTRY:
+      case mex.APPEND_ENTRY:
         var appendEntry = &append.AppendEntryRPC{}
         appendEntry.Decode(mess.Payload)
 			  log.Println("********** Message received ***********", appendEntry)
         s._state.StartElectionTimeout()
         // TODO: Handle append entry
 
-      case REQUEST_VOTE:
+      case mex.REQUEST_VOTE:
         var reqVote = &req_vo.RequestVoteRPC{}
         reqVote.Decode(mess.Payload)
         s.other_node_vote_candidature(*reqVote)
         // TODO: Handle request vote
 
-      case COPY_STATE:
+      case mex.COPY_STATE:
         var copyState = &cop_st.CopyStateRPC{}
         copyState.Decode(mess.Payload)
         // TODO: Handle copy state message 
@@ -351,22 +330,22 @@ func (s *Server) candidate() {
   select {
   case mess := <- s.messageChannel:
     switch mess.Ty {
-      case APPEND_ENTRY:
+      case mex.APPEND_ENTRY:
         var appendEntry = &append.AppendEntryRPC{}
         appendEntry.Decode(mess.Payload)
         // TODO Handle response
 
-      case REQUEST_VOTE:
+      case mex.REQUEST_VOTE:
         var reqVote = &req_vo.RequestVoteRPC{}
         reqVote.Decode(mess.Payload)
         // TODO Handle request vote
 
-      case VOTE_RESPONSE:
+      case mex.VOTE_RESPONSE:
         var voteResponse = &res_vo.RequestVoteResponse{}
         voteResponse.Decode(mess.Payload)
         // TODO Handle Response vote
 
-      case COPY_STATE:
+      case mex.COPY_STATE:
         var copyState = &cop_st.CopyStateRPC{}
         copyState.Decode(mess.Payload)
         // TODO Handle copy state 
