@@ -21,7 +21,7 @@ type node_address struct
 {
 	sectors [sectors_number]uint8
 	port    uint16
-    connection net.Conn
+    connection *net.Conn
 }
 
 type EnumType int
@@ -57,7 +57,9 @@ func (this node_address) Get_ip() string {
 func (this node_address) Send(mess []byte) error {
     mess_json,_ := json.Marshal(mess)
     log.Println(string(mess_json))
-    fmt.Fprintf(this.connection.(net.Conn), string(mess_json) + "\n")
+    // Access the value pointed to by the connection field
+    conn := this.connection
+    fmt.Fprintf(*conn, string(mess_json) + "\n")
     return nil
 }
 
