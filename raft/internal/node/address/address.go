@@ -1,21 +1,46 @@
 package address
 
 import (
+	"encoding/json"
 	"fmt"
-	"raft/internal/node"
+	"log"
+	"net"
 	"strconv"
 	"strings"
 )
 
 const sectors_number = 4
 
-type Node_address struct {
-	sectors [sectors_number]uint8
-	port    uint16
+type Node_address interface
+{
+    Get_ip() string
+    Send(mess []byte) error 
 }
 
-// Get_ip implements node.Node.
-func (this *Node_address) Get_ip() string {
+type node_address struct
+{
+	sectors [sectors_number]uint8
+	port    uint16
+    connection net.Conn
+}
+
+type EnumType int
+
+const (
+  APPEND_ENTRY EnumType = iota
+  REQUEST_VOTE 
+  APPEND_RESPONSE
+  VOTE_RESPONSE
+  COPY_STATE
+)
+
+type message_typed struct
+{
+  Ty EnumType
+  Payload []byte
+}
+
+func (this node_address) Get_ip() string {
     var ip_addr string = ""
     var num uint8 = this.sectors[0]
     
@@ -29,14 +54,16 @@ func (this *Node_address) Get_ip() string {
 }
 
 
-// send implements node.Node.
-func (this *Node_address) Send() error {
-	panic("not implemented")
+func (this node_address) Send(mess []byte) error {
+    mess_json,_ := json.Marshal(mess)
+    log.Println(string(mess_json))
+    fmt.Fprintf(this.connection.(net.Conn), string(mess_json) + "\n")
+    return nil
 }
 
-func New_node_address(ip_addr string, port uint16) node.Node {
+func New_node_address(ip_addr string, port uint16) Node_address{
 	var sectors_str = strings.Split(ip_addr, ".")
-	var node Node_address
+	var node node_address
 
 	for i := 0; i < sectors_number; i++ {
 		out, err := strconv.Atoi(sectors_str[i])
@@ -48,6 +75,7 @@ func New_node_address(ip_addr string, port uint16) node.Node {
 	}
 
 	node.port = port
+    node.connection = nil
 
 	return &node
 }

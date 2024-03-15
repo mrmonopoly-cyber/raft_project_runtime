@@ -47,3 +47,8 @@ func (this RequestVoteResponse) Decode(b []byte) error{
 func (this RequestVoteResponse) VoteGranted() bool{
     return this.voteGranted
 }
+
+
+func (s RequestVoteResponse) other_node_vote_candidature() {
+    
+}
