@@ -1,63 +1,72 @@
 package RequestVoteRPC
 
 import (
-    p "raft/pkg/protobuf"
-	"raft/internal/messages"
 	"google.golang.org/protobuf/proto"
+	"raft/internal/messages"
+	p "raft/pkg/protobuf"
 )
 
-type RequestVoteRPC struct
-{
-    term uint64
-    candidateId string
-    lastLogIndex uint64
-    lastLogTerm uint64
+type RequestVoteRPC struct {
+	term         uint64
+	candidateId  string
+	lastLogIndex uint64
+	lastLogTerm  uint64
 }
 
-func New_RequestVoteRPC(term uint64, candidateId string, 
-                        lastLogIndex uint64, lastLogTerm uint64) messages.Rpc{
-    return &RequestVoteRPC{
-        term,
-        candidateId,
-        lastLogIndex,
-        lastLogTerm,
-    }
+// ToMessage implements messages.Rpc.
+func (this *RequestVoteRPC) ToMessage() messages.Message {
+	panic("unimplemented")
 }
 
-func (this RequestVoteRPC) GetTerm() uint64{
-    return this.term
+func New_RequestVoteRPC(term uint64, candidateId string,
+	lastLogIndex uint64, lastLogTerm uint64) messages.Rpc {
+	return &RequestVoteRPC{
+		term,
+		candidateId,
+		lastLogIndex,
+		lastLogTerm,
+	}
 }
 
-func (this RequestVoteRPC) Encode() ([]byte, error){
-    reqVote := &p.RequestVote{
-        Term: proto.Uint64(this.term),
-        CandidateId: proto.String(this.candidateId),
-        LastLogIndex: proto.Uint64(this.lastLogIndex),
-        LastLogTerm: proto.Uint64(this.lastLogTerm),
-    }
+// ToString implements messages.Rpc.
+func (this *RequestVoteRPC) ToString() string {
+	return ""
+}
 
-    mess, err := proto.Marshal(reqVote)
-    return mess, err
+func (this RequestVoteRPC) GetTerm() uint64 {
+	return this.term
 }
-func (this RequestVoteRPC) Decode(b []byte) error{
-    pb := new(p.RequestVote)
-    err := proto.Unmarshal(b, pb)
 
-    if err != nil {
-        this.term = pb.GetTerm()
-        this.candidateId = pb.GetCandidateId()
-        this.lastLogTerm = pb.GetLastLogTerm()
-        this.lastLogIndex = pb.GetLastLogIndex()
-    }
+func (this RequestVoteRPC) Encode() ([]byte, error) {
+	reqVote := &p.RequestVote{
+		Term:         proto.Uint64(this.term),
+		CandidateId:  proto.String(this.candidateId),
+		LastLogIndex: proto.Uint64(this.lastLogIndex),
+		LastLogTerm:  proto.Uint64(this.lastLogTerm),
+	}
 
-    return err
+	mess, err := proto.Marshal(reqVote)
+	return mess, err
 }
-func (this RequestVoteRPC) GetCandidateId() string{
-    return this.candidateId
+func (this RequestVoteRPC) Decode(b []byte) error {
+	pb := new(p.RequestVote)
+	err := proto.Unmarshal(b, pb)
+
+	if err != nil {
+		this.term = pb.GetTerm()
+		this.candidateId = pb.GetCandidateId()
+		this.lastLogTerm = pb.GetLastLogTerm()
+		this.lastLogIndex = pb.GetLastLogIndex()
+	}
+
+	return err
 }
-func (this RequestVoteRPC) GetLastLogIndex() uint64{
-    return this.lastLogIndex
+func (this RequestVoteRPC) GetCandidateId() string {
+	return this.candidateId
 }
-func (this RequestVoteRPC) GetLastLogTerm() uint64{
-    return this.lastLogTerm
+func (this RequestVoteRPC) GetLastLogIndex() uint64 {
+	return this.lastLogIndex
+}
+func (this RequestVoteRPC) GetLastLogTerm() uint64 {
+	return this.lastLogTerm
 }

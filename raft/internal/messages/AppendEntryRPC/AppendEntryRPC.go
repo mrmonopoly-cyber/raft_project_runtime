@@ -15,6 +15,16 @@ type AppendEntryRPC struct {
 	leaderCommit uint64
 }
 
+// ToMessage implements messages.Rpc.
+func (this *AppendEntryRPC) ToMessage() messages.Message {
+	panic("unimplemented")
+}
+
+// ToString implements messages.Rpc.
+func (this *AppendEntryRPC) ToString() string {
+	panic("unimplemented")
+}
+
 func New_AppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 	prevLogTerm uint64, entries []*p.Entry,
 	leaderCommit uint64) messages.Rpc {

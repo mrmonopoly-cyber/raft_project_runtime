@@ -8,11 +8,14 @@ import (
 	"net/http"
 	"raft/internal/messages"
 	append "raft/internal/messages/AppendEntryRPC"
+	res_ap "raft/internal/messages/AppendEntryResponse"
+	cop_st "raft/internal/messages/CopyStateRPC"
 	req_vo "raft/internal/messages/RequestVoteRPC"
+	res_vo "raft/internal/messages/RequestVoteResponse"
 	"raft/internal/node"
+	state "raft/internal/raftstate"
 	p "raft/pkg/protobuf"
 	"sync"
-    state "raft/internal/raftstate"
 )
 
 
@@ -119,19 +122,37 @@ func (s *Server) handleResponse(wg *sync.WaitGroup) {
       s.connections.Range(func(k, conn interface{}) bool {
           message, _ := bufio.NewReader(conn.(net.Conn)).ReadString('\n')
 
-          // for every []byte: decode it to Message type
+          // for every []byte: decode it to RPC
           if message != "" {
-              var mess mex.Message
-              mess.ToMessage([]byte(message))
-              s.messageChannel <- &mess
+              var mess *messages.Message = messages.New_message([]byte(message))
+              var rec_rpc messages.Rpc
+              switch {
+              case mess.Mex_type == messages.APPEND_ENTRY:
+                  var rpc append.AppendEntryRPC
+                  rec_rpc = &rpc
+              case mess.Mex_type == messages.APPEND_ENTRY_RESPONSE:
+                  var rpc res_ap.AppendEntryResponse
+                  rec_rpc = &rpc
+              case mess.Mex_type == messages.REQUEST_VOTE:
+                  var rpc req_vo.RequestVoteRPC
+                  rec_rpc = &rpc
+              case mess.Mex_type == messages.REQUEST_VOTE_RESPONSE:
+                  var rpc res_vo.RequestVoteResponse
+                  rec_rpc = &rpc
+              case mess.Mex_type == messages.COPY_STATE:
+                  var rpc cop_st.CopyStateRPC
+                  rec_rpc = &rpc
+              default:
+                  panic("impossible case")
+              }
+              rec_rpc.Decode(mess.Payload)
+              s.messageChannel <- rec_rpc
           }
 
           return true
       })
   }
 }
-
-
 
 /*
  *  Send to every connected server a bunch of bytes
@@ -140,26 +161,9 @@ func (s *Server) sendAll(mex messages.Rpc) {
 
 	s.connections.Range(func(k, conn interface{}) bool {
     log.Println(mex.ToString())
-    fmt.Fprintf(conn.(net.Conn), mex.ToString() + "\n")
+    fmt.Fprintf(conn.(net.Conn), string(mex.ToMessage().ToByte()) + "\n")
 		return true
 	})
-}
-
-/*
- *  Send heartbeats (Empty AppendEntryRPC)
-*/
-func (s *Server) sendHeartbeat() {
-  appendEntry := append.New_AppendEntryRPC (
-    s._state.GetTerm(), 
-    s._state.GetID(), 
-    0, 
-    0, 
-    make([]*p.Entry, 0), 
-    0)
-
-    log.Println("Send heartbeat...", s._state.GetID())
-    s._state.StartHearthbeatTimeout()
-    s.sendAll(appendEntry)
 }
 
 /*
@@ -169,7 +173,6 @@ func (s *Server) sendAppendEntryRPC() {
 
     prevLogIndex := len(s._state.GetEntries())-2
     prevLogTerm := s._state.GetEntries()[prevLogIndex].GetTerm()
-
     appendEntry := append.New_AppendEntryRPC(
         s._state.GetTerm(), 
         s._state.GetID(), 
@@ -194,7 +197,6 @@ func (s *Server) sendRequestVoteRPC() {
     uint64(lastLogIndex), 
     lastLogTerm)
 
-
     s.sendAll(requestVote)
 }
 
@@ -206,10 +208,113 @@ func (s *Server) startElection() {
   //s.sendRequestVoteRPC() 
 }
 
-func (s *Server) run(wg *sync.WaitGroup) {
-    defer wg.Done()
-    for {
-        mess := <- s.messageChannel
-        mess.Manage(s._state)
+/*
+ * Leader behaviour
+*/
+func (s *Server) leader() {
+    select {
+        case mess := <- s.messageChannel: 
+        switch mess.(type) {
+        case *append.AppendEntryRPC:
+            mess.ToString()
+            //TODO Handle append entry
+
+            case *res_ap.AppendEntryResponse: 
+            mess.ToString()
+            // TODO Handle Response
+
+        default:
+            // Do nothing
+        }
+    case <-s._state.HeartbeatTimeout().C:
+        hearthbit := append.New_AppendEntryRPC (
+            s._state.GetTerm(), 
+            s._state.GetID(), 
+            0, 
+            0, 
+            make([]*p.Entry, 0), 
+            0)
+
+            log.Println("Send heartbeat...", s._state.GetID())
+            s._state.StartHearthbeatTimeout()
+            s.sendAll(hearthbit)
+        }	
     }
+
+/*
+ * Followers behaviour
+*/
+func (s *Server) follower() {
+    select {
+    case mess := <- s.messageChannel:
+
+        switch mess.(type) {
+        case *append.AppendEntryRPC:
+            mess.ToString()
+            log.Println("********** Message received ***********", mess.ToString())
+            s._state.StartElectionTimeout()
+            // TODO: Handle append entry
+
+        case *req_vo.RequestVoteRPC:
+            mess.ToString()
+            // TODO: Handle request vote
+
+        case *cop_st.CopyStateRPC:
+            mess.ToString()
+            // TODO: Handle copy state message 
+
+            default: 
+            // default behaviour: do nothing
+        }
+    case <-s._state.ElectionTimeout().C:
+        if s._state.GetRole() != state.LEADER {
+            s._state.SetRole(state.CANDIDATE)
+            s.startElection()
+        }
+    }
+}
+
+/*
+ * Handle candidates
+*/
+func (s *Server) candidate() {
+  select {
+  case mess := <- s.messageChannel:
+    switch mess.(type) {
+      case *append.AppendEntryRPC:
+          mess.ToString()
+        // TODO Handle response
+
+      case *req_vo.RequestVoteRPC:
+        mess.ToString()
+        // TODO Handle request vote
+
+      case *res_vo.RequestVoteResponse:
+        mess.ToString()
+        // TODO Handle Response vote
+
+      case *cop_st.CopyStateRPC:
+        mess.ToString()
+        // TODO Handle copy state 
+
+      default:
+        // default behaviour: do nothing
+    }
+  case <-s._state.ElectionTimeout().C:
+    // TODO Handle election timeout during an election phase
+  }
+}
+
+func (s *Server) run(wg *sync.WaitGroup) {
+  defer wg.Done()
+	for {
+    switch s._state.GetRole() {
+	  case state.LEADER: 
+		  s.leader()
+	  case state.FOLLOWER:
+		  s.follower()
+	  case state.CANDIDATE:
+		  s.candidate()
+	  }
+  }
 }
