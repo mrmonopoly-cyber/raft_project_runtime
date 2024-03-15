@@ -1,10 +1,10 @@
-package server
+package raftstate
 
 import (
 	"log"
+	l "raft/internal/raft_log"
+	p "raft/pkg/protobuf"
 	"time"
-  l "raft/internal/raft_log"
-  p "raft/pkg/protobuf"
 )
 
 type Role int
@@ -21,21 +21,22 @@ const (
 )
 
 type raftStateImpl struct {
-	id   string
-	term uint64
-	leaderId         string
-	role Role
-	voteFor          string
-	voting           bool
+	id        string
+	term      uint64
+	leaderId  string
+	role      Role
+	voteFor   string
+	voting    bool
 	serversID []string
 	//updated_node     []net.IP
 	//updating_node    []net.IP
 	electionTimeout  *time.Timer
 	heartbeatTimeout *time.Timer
-  log              l.Log
+	log              l.Log
 }
 
-type state interface {
+
+type State interface {
 	GetID() string
 	GetTerm() uint64
 	//GetLeaderIP() net.IP
@@ -46,13 +47,12 @@ type state interface {
 	HeartbeatTimeout() *time.Timer
 	ElectionTimeout() *time.Timer
 	GetServersID() []string
-	NewState() state
-  GetVoteFor() string
-  IncrementTerm()
-  VoteFor(id string)
-  GetEntries() []p.Entry
-  GetCommitIndex() uint64
-  SetRole(newRole Role)
+	GetVoteFor() string
+	IncrementTerm()
+	VoteFor(id string)
+	GetEntries() []p.Entry
+	GetCommitIndex() uint64
+	SetRole(newRole Role)
 }
 
 func (_state *raftStateImpl) GetID() string {
@@ -67,16 +67,16 @@ func (_state *raftStateImpl) GetRole() Role {
 	return _state.role
 }
 
-func (_state * raftStateImpl) SetRole(newRole Role) {
-  _state.role = newRole
+func (_state *raftStateImpl) SetRole(newRole Role) {
+	_state.role = newRole
 }
 
 func (_state *raftStateImpl) GetEntries() []p.Entry {
-  return _state.log.GetEntries()
+	return _state.log.GetEntries()
 }
 
 func (_state *raftStateImpl) GetCommitIndex() uint64 {
-  return _state.log.GetCommitIndex()
+	return _state.log.GetCommitIndex()
 }
 
 func (_state *raftStateImpl) StartElectionTimeout() {
@@ -92,8 +92,8 @@ func (_state *raftStateImpl) Leader() bool {
 	return _state.role == LEADER
 }
 
-func (_state *raftStateImpl) CanVote() bool{
-    return _state.voting
+func (_state *raftStateImpl) CanVote() bool {
+	return _state.voting
 }
 
 func (_state *raftStateImpl) HeartbeatTimeout() *time.Timer {
@@ -109,18 +109,18 @@ func (_state *raftStateImpl) GetServersID() []string {
 }
 
 func (_state *raftStateImpl) GetVoteFor() string {
-  return _state.voteFor
+	return _state.voteFor
 }
 
 func (_state *raftStateImpl) IncrementTerm() {
-  _state.term += 1
+	_state.term += 1
 }
 
 func (_state *raftStateImpl) VoteFor(id string) {
-  _state.voteFor = id
+	_state.voteFor = id
 }
 
-func NewState(term uint64, id string, role Role, serversId []string) *raftStateImpl {
+func NewState(term uint64, id string, role Role, serversId []string) State {
 	var s = new(raftStateImpl)
 	s.id = id
 	s.role = role

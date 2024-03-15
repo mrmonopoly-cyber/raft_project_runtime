@@ -12,22 +12,23 @@ import (
 	"raft/internal/node"
 	p "raft/pkg/protobuf"
 	"sync"
+    state "raft/internal/raftstate"
 )
 
 
 
 
 type Server struct {
-	_state raftStateImpl
+	_state state.State
 	connections     *sync.Map
     other_nodes     *node.Node 
     messageChannel chan messages.Rpc
 }
 
 
-func NewServer(term uint64, id string, role Role, serversId []string) *Server {
+func NewServer(term uint64, id string, role state.Role, serversId []string) *Server {
 	var server = &Server{
-    *NewState(term, id, role, serversId),
+    state.NewState(term, id, role, serversId),
 		&sync.Map{},
         nil,
         nil,
@@ -156,7 +157,7 @@ func (s *Server) sendHeartbeat() {
     make([]*p.Entry, 0), 
     0)
 
-    log.Println("Send heartbeat...", s._state.id)
+    log.Println("Send heartbeat...", s._state.GetID())
     s._state.StartHearthbeatTimeout()
     s.sendAll(appendEntry)
 }
@@ -198,7 +199,7 @@ func (s *Server) sendRequestVoteRPC() {
 }
 
 func (s *Server) startElection() {
-	log.Println("/////////////////////////////////////Starting new election...", s._state.id)
+	log.Println("/////////////////////////////////////Starting new election...", s._state.GetID())
   s._state.IncrementTerm()
   s._state.VoteFor(s._state.GetID())
   //s._state.ElectionTimeout()
@@ -209,6 +210,6 @@ func (s *Server) run(wg *sync.WaitGroup) {
     defer wg.Done()
     for {
         mess := <- s.messageChannel
-        mess.Manage()
+        mess.Manage(s._state)
     }
 }
