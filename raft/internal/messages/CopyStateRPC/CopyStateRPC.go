@@ -4,6 +4,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"raft/internal/messages"
 	p "raft/pkg/protobuf"
+  "strconv"
 )
 
 type CopyStateRPC struct {
@@ -15,15 +16,23 @@ type CopyStateRPC struct {
 
 // ToMessage implements messages.Rpc.
 func (this *CopyStateRPC) ToMessage() messages.Message {
-	panic("unimplemented")
+  enc, _ := this.Encode()
+  return messages.Message{
+    Mex_type: messages.COPY_STATE,
+    Payload: enc,
+  }  
 }
 
 // ToString implements messages.Rpc.
-func (this *CopyStateRPC) ToString() string {
-	panic("unimplemented")
+func (this *CopyStateRPC) ToString() string {	
+  var entries string 
+  for _, el := range this.entries {
+    entries += el.String()
+  }
+  return "{term : " + strconv.Itoa(int(this.term)) + ", \nindex: " + strconv.Itoa(int(this.index)) + ",\nvoting: " + strconv.FormatBool(this.voting) + ", \nentries: " + entries + "}"
 }
 
-func new_CopyStateRPC(term uint64, index uint64, voting bool,
+func newCopyStateRPC(term uint64, index uint64, voting bool,
 	entries []*p.Entry) messages.Rpc {
 	return &CopyStateRPC{
 		term:    term,

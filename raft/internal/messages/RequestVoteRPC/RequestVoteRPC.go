@@ -4,6 +4,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"raft/internal/messages"
 	p "raft/pkg/protobuf"
+  "strconv"
 )
 
 type RequestVoteRPC struct {
@@ -15,10 +16,14 @@ type RequestVoteRPC struct {
 
 // ToMessage implements messages.Rpc.
 func (this *RequestVoteRPC) ToMessage() messages.Message {
-	panic("unimplemented")
+	enc, _ := this.Encode()
+  return messages.Message{
+    Mex_type: messages.REQUEST_VOTE,
+    Payload: enc,
+  }  
 }
 
-func New_RequestVoteRPC(term uint64, candidateId string,
+func NewRequestVoteRPC(term uint64, candidateId string,
 	lastLogIndex uint64, lastLogTerm uint64) messages.Rpc {
 	return &RequestVoteRPC{
 		term,
@@ -30,7 +35,8 @@ func New_RequestVoteRPC(term uint64, candidateId string,
 
 // ToString implements messages.Rpc.
 func (this *RequestVoteRPC) ToString() string {
-	return ""
+  return "{term : " + strconv.Itoa(int(this.term)) + ", \nleaderId: " + this.candidateId + ",\nlastLogIndex: " + strconv.Itoa(int(this.lastLogIndex)) + ", \nlastLogTerm: " + strconv.Itoa(int(this.lastLogTerm)) + "}"
+
 }
 
 func (this RequestVoteRPC) GetTerm() uint64 {

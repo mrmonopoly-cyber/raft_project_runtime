@@ -1,8 +1,13 @@
 package messages
 
-import "encoding/json"
+import (
+	p "raft/pkg/protobuf"
 
-type MEX_TYPE uint
+	"google.golang.org/protobuf/proto"
+)
+
+
+type MEX_TYPE int32
 
 const (
     APPEND_ENTRY            MEX_TYPE = 0
@@ -26,12 +31,35 @@ type Message struct{
 }
 
 func (this Message) ToByte() []byte  {
-    mex,_ := json.Marshal(this)
+  var t p.Ty
+
+  switch this.Mex_type {
+    case APPEND_ENTRY:
+      t = p.Ty_APPEND_ENTRY
+    case APPEND_ENTRY_RESPONSE:
+      t = p.Ty_APPEND_RESPONSE
+    case REQUEST_VOTE:
+      t = p.Ty_REQUEST_VOTE
+    case REQUEST_VOTE_RESPONSE:
+      t = p.Ty_VOTE_RESPONSE
+    case COPY_STATE:
+      t = p.Ty_COPY_STATE
+  }
+  
+  mess := &p.Message{
+    Kind: t.Enum(),
+    Payload: this.Payload,
+  } 
+    mex,_ := proto.Marshal(mess)
     return mex
 }
 
-func New_message(data []byte) *Message{
-    var mex Message
-    json.Unmarshal(data,&mex)
-    return &mex
+func NewMessage(data []byte) *Message{
+  mess := new(p.Message)
+  proto.Unmarshal(data,mess)
+    
+  return &Message{
+    Mex_type: MEX_TYPE(*mess.Kind),
+    Payload: mess.Payload,
+  }
 }

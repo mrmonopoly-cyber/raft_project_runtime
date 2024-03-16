@@ -1,9 +1,11 @@
 package RequestVoteResponse
 
 import (
-	"google.golang.org/protobuf/proto"
 	"raft/internal/messages"
 	p "raft/pkg/protobuf"
+	"strconv"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type RequestVoteResponse struct {
@@ -13,15 +15,19 @@ type RequestVoteResponse struct {
 
 // ToMessage implements messages.Rpc.
 func (this *RequestVoteResponse) ToMessage() messages.Message {
-	panic("unimplemented")
+  enc, _ := this.Encode()
+  return messages.Message{
+    Mex_type: messages.REQUEST_VOTE_RESPONSE,
+    Payload: enc,
+  }  
 }
 
 // ToString implements messages.Rpc.
 func (this *RequestVoteResponse) ToString() string {
-	panic("unimplemented")
+  return "{term : " + strconv.Itoa(int(this.term)) + ", \nvoteGranted: " + strconv.FormatBool(this.voteGranted) + "}"
 }
 
-func new_RequestVoteResponse(voteGranted bool, term uint64) messages.Rpc {
+func newRequestVoteResponse(voteGranted bool, term uint64) messages.Rpc {
 	return &RequestVoteResponse{
 		voteGranted: voteGranted,
 		term:        term,
@@ -57,6 +63,6 @@ func (this RequestVoteResponse) VoteGranted() bool {
 	return this.voteGranted
 }
 
-func (s RequestVoteResponse) other_node_vote_candidature() {
+func (s RequestVoteResponse) otherNodeVoteCandidature() {
 
 }

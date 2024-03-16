@@ -7,21 +7,26 @@ import (
 	"net"
 	"strconv"
 	"strings"
+  "bufio"
 )
 
-const sectors_number = 4
+const sectorsNumber = 4
 
-type Node_address interface
+type NodeAddress interface
 {
-    Get_ip() string
-    Send(mess []byte) error 
+    GetIp() string
+    Send(mess []byte) error
+    Receive() ([]byte, error) 
+    HandleConnOut(conn *net.Conn)
+    HandleConnIn(conn *net.Conn)
 }
 
-type node_address struct
+type nodeAddress struct
 {
-	sectors [sectors_number]uint8
+	sectors [sectorsNumber] uint8
 	port    uint16
-    connection *net.Conn
+  connIn *net.Conn
+  connOut *net.Conn
 }
 
 type EnumType int
@@ -34,41 +39,54 @@ const (
   COPY_STATE
 )
 
-type message_typed struct
+type messageTyped struct
 {
   Ty EnumType
   Payload []byte
 }
 
-func (this node_address) Get_ip() string {
-    var ip_addr string = ""
+func (this nodeAddress) GetIp() string {
+    var ipAddr string = ""
     var num uint8 = this.sectors[0]
     
-    for i:= 0;  i< sectors_number-1; i++ {
+    for i:= 0;  i< sectorsNumber-1; i++ {
         num = this.sectors[i]
-        ip_addr += strconv.Itoa(int(num))
-        ip_addr += "."
+        ipAddr += strconv.Itoa(int(num))
+        ipAddr += "."
     }
-    ip_addr += strconv.Itoa(int(num))
-    return ip_addr
+    ipAddr += strconv.Itoa(int(num))
+    return ipAddr
 }
 
 
-func (this node_address) Send(mess []byte) error {
+func (this nodeAddress) Send(mess []byte) error {
     mess_json,_ := json.Marshal(mess)
     log.Println(string(mess_json))
     // Access the value pointed to by the connection field
-    conn := this.connection
+    conn := this.connOut
     fmt.Fprintf(*conn, string(mess_json) + "\n")
     return nil
 }
 
-func New_node_address(ip_addr string, port uint16) Node_address{
-	var sectors_str = strings.Split(ip_addr, ".")
-	var node node_address
+func (this nodeAddress) Receive() ([]byte, error) {
+  mess, err := bufio.NewReader(*this.connIn).ReadString('\n')
+  return []byte(mess), err
+} 
 
-	for i := 0; i < sectors_number; i++ {
-		out, err := strconv.Atoi(sectors_str[i])
+func (this nodeAddress) HandleConnOut(conn *net.Conn) {
+  this.connOut = conn
+}
+
+func (this nodeAddress) HandleConnIn(conn *net.Conn) {
+  this.connIn = conn
+}
+
+func NewNodeAddress(ipAddr string, port uint16) NodeAddress{
+	var sectorsStr = strings.Split(ipAddr, ".")
+	var node nodeAddress
+
+	for i := 0; i < sectorsNumber; i++ {
+		out, err := strconv.Atoi(sectorsStr[i])
 		if err != nil {
 			fmt.Println("Error:", err)
 			return nil
@@ -77,7 +95,8 @@ func New_node_address(ip_addr string, port uint16) Node_address{
 	}
 
 	node.port = port
-    node.connection = nil
+  node.connOut = nil
+  node.connIn = nil
 
 	return &node
 }

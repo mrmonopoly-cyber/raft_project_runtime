@@ -1,9 +1,11 @@
 package AppendEntryRPC
 
 import (
-	"google.golang.org/protobuf/proto"
 	"raft/internal/messages"
 	p "raft/pkg/protobuf"
+	"strconv"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type AppendEntryRPC struct {
@@ -17,15 +19,23 @@ type AppendEntryRPC struct {
 
 // ToMessage implements messages.Rpc.
 func (this *AppendEntryRPC) ToMessage() messages.Message {
-	panic("unimplemented")
+  enc, _ := this.Encode()
+  return messages.Message{
+    Mex_type: messages.APPEND_ENTRY,
+    Payload: enc,
+  }  
 }
 
 // ToString implements messages.Rpc.
 func (this *AppendEntryRPC) ToString() string {
-	panic("unimplemented")
+  var entries string 
+  for _, el := range this.entries {
+    entries += el.String()
+  }
+  return "{term : " + strconv.Itoa(int(this.term)) + ", \nleaderId: " + this.leaderId + ",\nprevLogIndex: " + strconv.Itoa(int(this.prevLogIndex)) + ", \nprevLogTerm: " + strconv.Itoa(int(this.prevLogTerm)) + ", \nentries: " + entries + ", \nleaderCommit: " + strconv.Itoa(int(this.leaderCommit)) + "}"
 }
 
-func New_AppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
+func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 	prevLogTerm uint64, entries []*p.Entry,
 	leaderCommit uint64) messages.Rpc {
 	return &AppendEntryRPC{

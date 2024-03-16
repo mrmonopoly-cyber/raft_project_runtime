@@ -4,6 +4,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"raft/internal/messages"
 	p "raft/pkg/protobuf"
+  "strconv"
 )
 
 type AppendEntryResponse struct {
@@ -14,15 +15,19 @@ type AppendEntryResponse struct {
 
 // ToMessage implements messages.Rpc.
 func (this *AppendEntryResponse) ToMessage() messages.Message {
-	panic("unimplemented")
+  enc, _ := this.Encode()
+  return messages.Message{
+    Mex_type: messages.APPEND_ENTRY_RESPONSE,
+    Payload: enc,
+  }  
 }
 
 // ToString implements messages.Rpc.
 func (this *AppendEntryResponse) ToString() string {
-	panic("unimplemented")
+  return "{term : " + strconv.Itoa(int(this.term)) + ",\nlogIndexError: " + strconv.Itoa(int(this.logIndexError)) + ", \nsuccess: " + strconv.FormatBool(this.success) + "}"
 }
 
-func new_AppendEntryResponse(success bool, term uint64,
+func newAppendEntryResponse(success bool, term uint64,
 	logIndexError uint64) messages.Rpc {
 	return &AppendEntryResponse{
 		success:       success,

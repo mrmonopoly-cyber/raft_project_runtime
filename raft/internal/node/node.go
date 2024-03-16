@@ -1,37 +1,60 @@
 package node
 
 import (
+	"net"
 	"raft/internal/messages"
 	"raft/internal/node/address"
+	"strconv"
+	"strings"
 )
 
 type Node interface {
-	Send_rpc(mex messages.Rpc) error
-	Read_rpc() (messages.Rpc,error)
-	Get_ip() string
+	SendRpc(mex messages.Rpc) error
+	ReadRpc() ([]byte,error)
+	GetIp() string
+  AddConnIn(conn *net.Conn) 
+  AddConnOut(conn *net.Conn)
 }
 
 type node struct {
-	addr address.Node_address
+	addr address.NodeAddress
 }
 
 // Read_rpc implements Node.
-func (this *node) Read_rpc() (messages.Rpc,error) {
-	panic("unimplemented")
+// before: func (this *node) ReadRpc() (messages.Rpc, error) 
+func (this *node) ReadRpc() ([]byte, error) {
+  return this.addr.Receive()
+  // TODO: return messages.Rpc not []byte
 }
 
-func New_node(addr string, port uint16) Node {
+func NewNode(remoteAddr string) (Node, error) {
+  addr := strings.Split(remoteAddr, ":")[0]
+  p := strings.Split(remoteAddr, ":")[1]
+  port, err := strconv.Atoi(p)
+  
+  if err != nil {
+    return nil, err 
+  }
+
 	return &node{
-		addr: address.New_node_address(addr, port),
-	}
+		addr: address.NewNodeAddress(addr, uint16(port)),
+	}, nil
 }
 
-func (this *node) Send_rpc(mex messages.Rpc) error {
-	mex_byte, _ := mex.Encode()
-	this.addr.Send(mex_byte)
+func (this *node) AddConnIn(conn *net.Conn) {
+  this.addr.HandleConnIn(conn)
+}
+
+func (this *node) AddConnOut(conn *net.Conn) {
+  this.addr.HandleConnOut(conn)
+}
+
+func (this *node) SendRpc(mex messages.Rpc) error {
+	mexByte, _ := mex.Encode()
+	this.addr.Send(mexByte)
 	return nil
 }
 
-func (this *node) Get_ip() string {
-	return this.addr.Get_ip()
+func (this *node) GetIp() string {
+	return this.addr.GetIp()
 }
