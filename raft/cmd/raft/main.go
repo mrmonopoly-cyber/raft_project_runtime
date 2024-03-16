@@ -6,8 +6,9 @@ import (
 	//"os"
 	//"strings"
 
-	"sync"
+	"raft/internal/raftstate"
 	ser "raft/internal/server"
+	"sync"
 )
 
 func main() {
@@ -26,8 +27,8 @@ func main() {
     isLeader = ser.LEADER
   }*/
 
-  server1 := ser.NewServer(0, "8080", ser.LEADER, []string{"8080", "8090"})
-  server2 := ser.NewServer(0, "8090", ser.FOLLOWER, []string{"8080", "8090"})
+  server1 := ser.NewServer(0, "8080", raftstate.LEADER, []string{"8080", "8090"})
+  server2 := ser.NewServer(0, "8090", raftstate.FOLLOWER, []string{"8080", "8090"})
 
   var wg sync.WaitGroup
 

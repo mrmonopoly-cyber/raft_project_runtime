@@ -6,34 +6,57 @@ import (
 	"log"
 	"net"
 	"net/http"
+<<<<<<< HEAD
+=======
+	"raft/internal/messages"
+>>>>>>> RaftDev-election
 	append "raft/internal/messages/AppendEntryRPC"
 	res_ap "raft/internal/messages/AppendEntryResponse"
 	cop_st "raft/internal/messages/CopyStateRPC"
 	req_vo "raft/internal/messages/RequestVoteRPC"
 	res_vo "raft/internal/messages/RequestVoteResponse"
+<<<<<<< HEAD
 	p "raft/pkg/protobuf"
 	"sync"
 
 	"google.golang.org/protobuf/proto"
+=======
+	"raft/internal/node"
+	state "raft/internal/raftstate"
+	p "raft/pkg/protobuf"
+	"sync"
+>>>>>>> RaftDev-election
 )
 
 
 
 
 type Server struct {
+<<<<<<< HEAD
 	_state raftStateImpl
 	connIn        *sync.Map
   connOut       *sync.Map
 	messageChannel chan *p.Message
+=======
+	_state state.State
+	connections     *sync.Map
+    other_nodes     *node.Node 
+    messageChannel chan messages.Rpc
+>>>>>>> RaftDev-election
 }
 
 
-func NewServer(term uint64, id string, role Role, serversId []string) *Server {
+func NewServer(term uint64, id string, role state.Role, serversId []string) *Server {
 	var server = &Server{
-    *NewState(term, id, role, serversId),
+    state.NewState(term, id, role, serversId),
 		&sync.Map{},
+<<<<<<< HEAD
     &sync.Map{},
 		make(chan *p.Message),
+=======
+        nil,
+        nil,
+>>>>>>> RaftDev-election
 	}
 
   return server
@@ -70,20 +93,28 @@ func (s *Server) ConnectToServers() {
 
 	for i := 0; i < len(s._state.GetServersID()); i++ {
 		var serverId = s._state.GetServersID()[i]
-		if serverId != s._state.GetID() {
-      var conn, err = net.Dial("tcp", "localhost:" + serverId)
+        if serverId != s._state.GetID() {
+            var conn, err = net.Dial("tcp", "localhost:" + serverId)
 
-			for err != nil {
-        log.Println("Dial error: ", err)
-        log.Println("retrying...")
-        conn, err = net.Dial("tcp", "localhost:" + serverId)
-			}
+            for err != nil {
+                log.Println("Dial error: ", err)
+                log.Println("retrying...")
+                conn, err = net.Dial("tcp", "localhost:" + serverId)
+            }
 
+<<<<<<< HEAD
       if conn != nil {
 			  s.connOut.Store(serverId, conn)
       }
 		}
 	}
+=======
+            if conn != nil {
+                s.connections.Store(serverId, conn)
+            }
+        }
+    }
+>>>>>>> RaftDev-election
 }
 
 func (s *Server) startListen(wg *sync.WaitGroup) net.Listener {
@@ -120,6 +151,7 @@ func (s *Server) acceptIncomingConn(listener net.Listener, wg *sync.WaitGroup) {
 func (s *Server) handleResponse(wg *sync.WaitGroup) {
   defer wg.Done()
   // iterating over the connections map and receive byte messages 
+<<<<<<< HEAD
 	for {
     s.connIn.Range(func(k, conn interface{}) bool {
 		  message, _ := bufio.NewReader(conn.(net.Conn)).ReadString('\n')
@@ -130,27 +162,64 @@ func (s *Server) handleResponse(wg *sync.WaitGroup) {
         proto.Unmarshal([]byte(message), mess)
         s.messageChannel <- mess
       }
+=======
+  for {
+      s.connections.Range(func(k, conn interface{}) bool {
+          message, _ := bufio.NewReader(conn.(net.Conn)).ReadString('\n')
+>>>>>>> RaftDev-election
 
-      return true
-    })
+          // for every []byte: decode it to RPC
+          if message != "" {
+              var mess *messages.Message = messages.New_message([]byte(message))
+              var rec_rpc messages.Rpc
+              switch {
+              case mess.Mex_type == messages.APPEND_ENTRY:
+                  var rpc append.AppendEntryRPC
+                  rec_rpc = &rpc
+              case mess.Mex_type == messages.APPEND_ENTRY_RESPONSE:
+                  var rpc res_ap.AppendEntryResponse
+                  rec_rpc = &rpc
+              case mess.Mex_type == messages.REQUEST_VOTE:
+                  var rpc req_vo.RequestVoteRPC
+                  rec_rpc = &rpc
+              case mess.Mex_type == messages.REQUEST_VOTE_RESPONSE:
+                  var rpc res_vo.RequestVoteResponse
+                  rec_rpc = &rpc
+              case mess.Mex_type == messages.COPY_STATE:
+                  var rpc cop_st.CopyStateRPC
+                  rec_rpc = &rpc
+              default:
+                  panic("impossible case")
+              }
+              rec_rpc.Decode(mess.Payload)
+              s.messageChannel <- rec_rpc
+          }
+
+          return true
+      })
   }
 }
-
-
 
 /*
  *  Send to every connected server a bunch of bytes
 */
-func (s *Server) sendAll(mess []byte) {
+func (s *Server) sendAll(mex messages.Rpc) {
 
+<<<<<<< HEAD
 	s.connOut.Range(func(k, conn interface{}) bool {
     log.Println(string(mess))
     fmt.Fprintf(conn.(net.Conn), string(mess) + "\n")
+=======
+	s.connections.Range(func(k, conn interface{}) bool {
+    log.Println(mex.ToString())
+    fmt.Fprintf(conn.(net.Conn), string(mex.ToMessage().ToByte()) + "\n")
+>>>>>>> RaftDev-election
 		return true
 	})
 }
 
 /*
+<<<<<<< HEAD
  *  Send heartbeats (Empty AppendEntryRPC)
 */
 func (s *Server) sendHeartbeat() {
@@ -179,21 +248,24 @@ func (s *Server) sendHeartbeat() {
 }
 
 /*
+=======
+>>>>>>> RaftDev-election
  *  Send AppendEntry message
 */
 func (s *Server) sendAppendEntryRPC() {
 
-  prevLogIndex := len(s._state.GetEntries())-2
-  prevLogTerm := s._state.GetEntries()[prevLogIndex].GetTerm()
+    prevLogIndex := len(s._state.GetEntries())-2
+    prevLogTerm := s._state.GetEntries()[prevLogIndex].GetTerm()
+    appendEntry := append.New_AppendEntryRPC(
+        s._state.GetTerm(), 
+        s._state.GetID(), 
+        uint64(prevLogIndex), 
+        prevLogTerm, 
+        make([]*p.Entry, 0), 
+        s._state.GetCommitIndex())
 
-  appendEntry := append.New_AppendEntryRPC(
-    s._state.GetTerm(), 
-    s._state.GetID(), 
-    uint64(prevLogIndex), 
-    prevLogTerm, 
-    make([]*p.Entry, 0), 
-    s._state.GetCommitIndex())
 
+<<<<<<< HEAD
   enc, err := appendEntry.Encode()
     
   if err != nil {
@@ -206,6 +278,9 @@ func (s *Server) sendAppendEntryRPC() {
     sending, _ := proto.Marshal(mess)
 	  s.sendAll(sending)
   }
+=======
+    s.sendAll(appendEntry)
+>>>>>>> RaftDev-election
 }
 
 /*
@@ -220,6 +295,7 @@ func (s *Server) sendRequestVoteRPC() {
     uint64(lastLogIndex), 
     lastLogTerm)
 
+<<<<<<< HEAD
   enc, err := requestVote.Encode()
 
   if err!= nil { 
@@ -232,48 +308,24 @@ func (s *Server) sendRequestVoteRPC() {
     sending, _ := proto.Marshal(mess)
     s.sendAll(sending)
   }
+=======
+    s.sendAll(requestVote)
+>>>>>>> RaftDev-election
 }
 
 func (s *Server) startElection() {
-	log.Println("/////////////////////////////////////Starting new election...", s._state.id)
+	log.Println("/////////////////////////////////////Starting new election...", s._state.GetID())
   s._state.IncrementTerm()
   s._state.VoteFor(s._state.GetID())
   //s._state.ElectionTimeout()
   //s.sendRequestVoteRPC() 
 }
 
-func (s *Server) More_recent_log(last_log_index uint64, last_log_term uint64) bool {
-    //TODO implement More recent log
-    return false
-}
-
-func (s *Server) other_node_vote_candidature(mex req_vo.RequestVoteRPC) {
-    if !s._state.CanVote(){
-        return
-    }
-    if mex.GetTerm() < s._state.GetTerm() {
-        
-        //TODO: send response (my_term,false)
-        return
-    }
-    
-    if !s.More_recent_log(mex.GetLastLogIndex(),mex.GetLastLogTerm()) {
-        
-    }else if s._state.voteFor == "" || s._state.voteFor == mex.GetCandidateId(){
-        s._state.voteFor = mex.GetCandidateId()
-        //TODO: send response to sender (my_term, true)
-        return
-    }
-
-    //TODO: send response to server (my_term,false)
-    return
-    
-}
-
 /*
  * Leader behaviour
 */
 func (s *Server) leader() {
+<<<<<<< HEAD
 	select {
     case mess := <- s.messageChannel: 
       switch mess.Kind {
@@ -286,22 +338,45 @@ func (s *Server) leader() {
           var appendResponse = &res_ap.AppendEntryResponse{}
           appendResponse.Decode(mess.Payload)
           // TODO Handle Response
+=======
+    select {
+        case mess := <- s.messageChannel: 
+        switch mess.(type) {
+        case *append.AppendEntryRPC:
+            mess.ToString()
+            //TODO Handle append entry
+
+            case *res_ap.AppendEntryResponse: 
+            mess.ToString()
+            // TODO Handle Response
+>>>>>>> RaftDev-election
 
         default:
-          // Do nothing
-       }
-	  case <-s._state.HeartbeatTimeout().C:
-		  s.sendHeartbeat()
-	}	
-}
+            // Do nothing
+        }
+    case <-s._state.HeartbeatTimeout().C:
+        hearthbit := append.New_AppendEntryRPC (
+            s._state.GetTerm(), 
+            s._state.GetID(), 
+            0, 
+            0, 
+            make([]*p.Entry, 0), 
+            0)
+
+            log.Println("Send heartbeat...", s._state.GetID())
+            s._state.StartHearthbeatTimeout()
+            s.sendAll(hearthbit)
+        }	
+    }
 
 /*
  * Followers behaviour
 */
 func (s *Server) follower() {
-	select {
-  case mess := <- s.messageChannel:
+    select {
+    case mess := <- s.messageChannel:
 
+<<<<<<< HEAD
     switch mess.Kind {
       case p.Ty_APPEND_ENTRY.Enum():
         var appendEntry = &append.AppendEntryRPC{}
@@ -323,13 +398,32 @@ func (s *Server) follower() {
       
       default: 
         // default behaviour: do nothing
+=======
+        switch mess.(type) {
+        case *append.AppendEntryRPC:
+            mess.ToString()
+            log.Println("********** Message received ***********", mess.ToString())
+            s._state.StartElectionTimeout()
+            // TODO: Handle append entry
+
+        case *req_vo.RequestVoteRPC:
+            mess.ToString()
+            // TODO: Handle request vote
+
+        case *cop_st.CopyStateRPC:
+            mess.ToString()
+            // TODO: Handle copy state message 
+
+            default: 
+            // default behaviour: do nothing
+        }
+    case <-s._state.ElectionTimeout().C:
+        if s._state.GetRole() != state.LEADER {
+            s._state.SetRole(state.CANDIDATE)
+            s.startElection()
+        }
+>>>>>>> RaftDev-election
     }
-	case <-s._state.ElectionTimeout().C:
-		if s._state.GetRole() != LEADER {
-      s._state.SetRole(CANDIDATE)
-			s.startElection()
-		}
-  }
 }
 
 /*
@@ -338,6 +432,7 @@ func (s *Server) follower() {
 func (s *Server) candidate() {
   select {
   case mess := <- s.messageChannel:
+<<<<<<< HEAD
     switch mess.Kind {
       case p.Ty_APPEND_ENTRY.Enum():
         var appendEntry = &append.AppendEntryRPC{}
@@ -357,6 +452,23 @@ func (s *Server) candidate() {
       case p.Ty_COPY_STATE.Enum():
         var copyState = &cop_st.CopyStateRPC{}
         copyState.Decode(mess.Payload)
+=======
+    switch mess.(type) {
+      case *append.AppendEntryRPC:
+          mess.ToString()
+        // TODO Handle response
+
+      case *req_vo.RequestVoteRPC:
+        mess.ToString()
+        // TODO Handle request vote
+
+      case *res_vo.RequestVoteResponse:
+        mess.ToString()
+        // TODO Handle Response vote
+
+      case *cop_st.CopyStateRPC:
+        mess.ToString()
+>>>>>>> RaftDev-election
         // TODO Handle copy state 
 
       default:
@@ -371,11 +483,11 @@ func (s *Server) run(wg *sync.WaitGroup) {
   defer wg.Done()
 	for {
     switch s._state.GetRole() {
-	  case LEADER: 
+	  case state.LEADER: 
 		  s.leader()
-	  case FOLLOWER:
+	  case state.FOLLOWER:
 		  s.follower()
-	  case CANDIDATE:
+	  case state.CANDIDATE:
 		  s.candidate()
 	  }
   }
