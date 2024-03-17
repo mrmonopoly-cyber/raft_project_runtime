@@ -25,7 +25,7 @@ sudo usermod  -aG libvirt $first_user
 # sudo cp ./raft_live_install.iso /var/lib/libvirt/images/
 
 echo "creating iso"
-sudo mkarchiso -A raft_install.sh  -w work -o out -v -r  baseline
+sudo mkarchiso -A raft_install.sh  -w work -o out -v -r ./iso_creation 
 sudo cp ./raft_live_install*.iso /var/lib/libvirt/images/raft_live_install.iso
 sudo rm ./out/*
 
