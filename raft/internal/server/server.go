@@ -128,7 +128,7 @@ func (s *Server) acceptIncomingConn() {
         }
 
         var newConncetionIp string = tcpAddr.IP.String()
-        var newConncetionPort string = string(tcpAddr.Port)
+        var newConncetionPort string = string(rune(tcpAddr.Port))
         var id_node string = generateID(newConncetionIp)
         var value , found  = s.otherNodes.Load(id_node)
 
