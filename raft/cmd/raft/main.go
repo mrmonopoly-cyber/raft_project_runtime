@@ -29,8 +29,9 @@ func main() {
     isLeader = ser.LEADER
   }*/
 
-  var fileMyIp, _ = os.ReadFile("my_ip")
-  var fileOthersIp, _ = os.ReadFile("others_ip")
+  var workDir = "/root/raft_project_runtimet/"
+  var fileMyIp, _ = os.ReadFile(workDir + "my_ip")
+  var fileOthersIp, _ = os.ReadFile(workDir + "others_ip")
   var stringMyIp = string(fileMyIp)
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
