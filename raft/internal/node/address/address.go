@@ -15,6 +15,7 @@ const sectorsNumber = 4
 type NodeAddress interface
 {
     GetIp() string
+    GetPort() string
     Send(mess []byte) error
     Receive() ([]byte, error) 
     HandleConnOut(conn *net.Conn)
@@ -58,6 +59,9 @@ func (this nodeAddress) GetIp() string {
     return ipAddr
 }
 
+func (this nodeAddress) GetPort() string {
+    return string(rune(this.port))
+}
 
 func (this nodeAddress) Send(mess []byte) error {
     mess_json,_ := json.Marshal(mess)
@@ -81,22 +85,23 @@ func (this nodeAddress) HandleConnIn(conn *net.Conn) {
   this.connIn = conn
 }
 
-func NewNodeAddress(ipAddr string, port uint16) NodeAddress{
-	var sectorsStr = strings.Split(ipAddr, ".")
-	var node nodeAddress
+func NewNodeAddress(ipAddr string, port string) NodeAddress{
+    var sectorsStr = strings.Split(ipAddr, ".")
+    var node nodeAddress
 
-	for i := 0; i < sectorsNumber; i++ {
-		out, err := strconv.Atoi(sectorsStr[i])
-		if err != nil {
-			fmt.Println("Error:", err)
-			return nil
-		}
-		node.sectors[i] = uint8(out)
-	}
+    for i := 0; i < sectorsNumber; i++ {
+        out, err := strconv.Atoi(sectorsStr[i])
+        if err != nil {
+            fmt.Println("Error:", err)
+            return nil
+        }
+        node.sectors[i] = uint8(out)
+    }
 
-	node.port = port
-  node.connOut = nil
-  node.connIn = nil
+    var port_int, _ = strconv.Atoi(port)
+    node.port = uint16(port_int)
+    node.connOut = nil
+    node.connIn = nil
 
-	return &node
+    return &node
 }

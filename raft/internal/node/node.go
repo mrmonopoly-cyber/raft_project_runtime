@@ -4,20 +4,21 @@ import (
 	"net"
 	"raft/internal/messages"
 	"raft/internal/node/address"
-	"strconv"
-	"strings"
 )
 
 type Node interface {
 	SendRpc(mex messages.Rpc) error
 	ReadRpc() ([]byte,error)
 	GetIp() string
-  AddConnIn(conn *net.Conn) 
-  AddConnOut(conn *net.Conn)
+	GetPort() string
+    AddConnIn(conn *net.Conn) 
+    AddConnOut(conn *net.Conn)
 }
 
 type node struct {
 	addr address.NodeAddress
+    recv net.Conn
+    send net.Conn
 }
 
 // Read_rpc implements Node.
@@ -27,17 +28,9 @@ func (this *node) ReadRpc() ([]byte, error) {
   // TODO: return messages.Rpc not []byte
 }
 
-func NewNode(remoteAddr string) (Node, error) {
-  addr := strings.Split(remoteAddr, ":")[0]
-  p := strings.Split(remoteAddr, ":")[1]
-  port, err := strconv.Atoi(p)
-  
-  if err != nil {
-    return nil, err 
-  }
-
+func NewNode(remoteAddr string, remotePort string) (Node, error) {
 	return &node{
-		addr: address.NewNodeAddress(addr, uint16(port)),
+		addr: address.NewNodeAddress(remoteAddr, remotePort),
 	}, nil
 }
 
@@ -57,4 +50,8 @@ func (this *node) SendRpc(mex messages.Rpc) error {
 
 func (this *node) GetIp() string {
 	return this.addr.GetIp()
+}
+
+func (this *node) GetPort() string{
+    return this.addr.GetPort()
 }

@@ -27,7 +27,7 @@ type raftStateImpl struct {
 	role      Role
 	voteFor   string
 	voting    bool
-	serversID []string
+	// serversIP []string
 	//updated_node     []net.IP
 	//updating_node    []net.IP
 	electionTimeout  *time.Timer
@@ -46,7 +46,7 @@ type State interface {
 	Leader() bool
 	HeartbeatTimeout() *time.Timer
 	ElectionTimeout() *time.Timer
-	GetServersID() []string
+	// GetServersID() []string
 	GetVoteFor() string
 	IncrementTerm()
 	VoteFor(id string)
@@ -104,9 +104,9 @@ func (_state *raftStateImpl) ElectionTimeout() *time.Timer {
 	return _state.electionTimeout
 }
 
-func (_state *raftStateImpl) GetServersID() []string {
-	return _state.serversID
-}
+// func (_state *raftStateImpl) GetServersID() []string {
+// 	return _state.serversIP
+// }
 
 func (_state *raftStateImpl) GetVoteFor() string {
 	return _state.voteFor
@@ -120,12 +120,12 @@ func (_state *raftStateImpl) VoteFor(id string) {
 	_state.voteFor = id
 }
 
-func NewState(term uint64, id string, role Role, serversId []string) State {
+func NewState(term uint64, id string, role Role) State {
 	var s = new(raftStateImpl)
 	s.id = id
 	s.role = role
 	s.term = term
-	s.serversID = serversId
+	// s.serversIP = serversIp
 	s.electionTimeout = time.NewTimer(ELECTION_TIMEOUT)
 	s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)
 

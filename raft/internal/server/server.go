@@ -1,6 +1,9 @@
 package server
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"log"
 	"net"
 	messages "raft/internal/messages"
@@ -9,11 +12,13 @@ import (
 	cop_st "raft/internal/messages/CopyStateRPC"
 	req_vo "raft/internal/messages/RequestVoteRPC"
 	res_vo "raft/internal/messages/RequestVoteResponse"
+	"reflect"
+
 	//"raft/internal/node/address"
-	p "raft/pkg/protobuf"
-	"sync"
 	"raft/internal/node"
 	state "raft/internal/raftstate"
+	p "raft/pkg/protobuf"
+	"sync"
 )
 
 type Server struct {
@@ -24,19 +29,41 @@ type Server struct {
 	wg             sync.WaitGroup
 }
 
-func NewServer(term uint64, id string, role state.Role, serversId []string) *Server {
-	listener, err := net.Listen("tcp", "localhost:"+id)
+func generateID(input string) string {
+    // Create a new SHA256 hasher
+    hasher := sha256.New()
+
+    // Write the input string to the hasher
+    hasher.Write([]byte(input))
+
+    // Get the hashed bytes
+    hashedBytes := hasher.Sum(nil)
+
+    // Convert the hashed bytes to a hexadecimal string
+    id := hex.EncodeToString(hashedBytes)
+
+    return id
+}
+
+
+func NewServer(term uint64,ip_addr string, port string, role state.Role, serversIp []string) *Server {
+	listener, err := net.Listen("tcp", ip_addr + ":" + port)
 
 	if err != nil {
-		log.Fatalf("Failed to listen on port %s: %s", id, err)
+		log.Fatalf("Failed to listen on port %s: %s", port, err)
 	}
 
 	var server = &Server{
-		_state:         state.NewState(term, id, role, serversId),
+		_state:         state.NewState(term, port, role),
 		otherNodes:     &sync.Map{},
 		messageChannel: make(chan messages.Rpc),
 		listener:       listener,
 	}
+
+    for i :=0; i< len(serversIp) -2; i++{
+        var new_node,_= node.NewNode(serversIp[i],port)
+        server.otherNodes.Store(generateID(serversIp[i]),new_node)
+    }
 
 	return server
 }
@@ -65,59 +92,54 @@ func (s *Server) Start() {
  * Create a connection between this server to all the others and populate the map containing these connections
  */
 func (s *Server) connectToServers() {
-	for i := 0; i < len(s._state.GetServersID()); i++ {
-		var serverId = s._state.GetServersID()[i]
-		if serverId != s._state.GetID() {
-			var conn, err = net.Dial("tcp", "localhost:"+serverId)
-
-			for err != nil {
-				log.Println("Dial error: ", err)
-				log.Println("retrying...")
-				conn, err = net.Dial("tcp", "localhost:"+serverId)
-			}
-
-			if conn != nil {
-				newNode, err := node.NewNode(conn.RemoteAddr().String())
-				if err != nil {
-					log.Println("Error in conversion: ", err)
-					return
-				}
-				newNode.AddConnOut(&conn)
-
-				value, ok := s.otherNodes.Load(newNode.GetIp())
-				if ok {
-					value.(node.Node).AddConnOut(&conn)
-					s.otherNodes.Swap(newNode.GetIp(), value)
-				} else {
-					s.otherNodes.Store(newNode.GetIp(), newNode)
-				}
-			}
-		}
-	}
+    s.otherNodes.Range(func (key any, value interface{}) bool{
+        var nodeEle,errEl = value.(node.Node)
+        if errEl == false{
+            log.Println("invalid object in otherNodes map: ", reflect.TypeOf(nodeEle))
+            return false
+        }
+        var ipAddr string = nodeEle.GetIp()
+        var port string = nodeEle.GetPort()
+		var conn, err = net.Dial("tcp",ipAddr + ":" + port)
+        for err != nil {
+            log.Println("Dial error: ", err)
+            return false
+        }
+        if conn != nil {
+            nodeEle.AddConnOut(&conn)
+        }
+        return true
+    })
 }
 
 func (s *Server) acceptIncomingConn() {
 	defer s.wg.Done()
 	for {
 		conn, err := s.listener.Accept()
-		if err != nil {
-			log.Println("Failed on accept: ", err)
-			continue
-		}
+        if err != nil {
+            log.Println("Failed on accept: ", err)
+            continue
+        }
 
-		newNode, err := node.NewNode(conn.RemoteAddr().String())
-		if err != nil {
-			log.Println("Error during conversion: ", err)
-		}
-		newNode.AddConnIn(&conn)
+        tcpAddr, ok := conn.RemoteAddr().(*net.TCPAddr)
+        if !ok {
+            fmt.Println("Connection is not using TCP")
+            continue
+        }
 
-		value, ok := s.otherNodes.Load(newNode.GetIp())
-		if ok {
-			value.(node.Node).AddConnIn(&conn)
-			s.otherNodes.Swap(newNode.GetIp(), value)
-		} else {
-			s.otherNodes.Store(newNode.GetIp(), newNode)
-		}
+        var newConncetionIp string = tcpAddr.IP.String()
+        var newConncetionPort string = string(tcpAddr.Port)
+        var id_node string = generateID(newConncetionIp)
+        var value , found  = s.otherNodes.Load(id_node)
+
+        if found {
+            var connectedNode node.Node = value.(node.Node)
+            connectedNode.AddConnIn(&conn)
+        }else {
+            var new_node,_= node.NewNode(newConncetionIp, newConncetionPort)        
+            new_node.AddConnIn(&conn)
+            s.otherNodes.Store(id_node,new_node)
+        }
 	}
 }
 
