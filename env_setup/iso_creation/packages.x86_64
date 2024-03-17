@@ -1,0 +1,10 @@
+base
+linux
+mkinitcpio
+mkinitcpio-archiso
+openssh
+pv
+syslinux
+git
+nmap
+vim
