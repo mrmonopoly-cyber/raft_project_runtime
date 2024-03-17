@@ -2,7 +2,6 @@ package address
 
 import (
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
 )

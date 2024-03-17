@@ -2,8 +2,10 @@ package RequestVoteResponse
 
 import (
 	"raft/internal/messages"
+	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
 	"strconv"
+	"sync"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -13,18 +15,14 @@ type RequestVoteResponse struct {
 	term        uint64
 }
 
-// ToMessage implements messages.Rpc.
-func (this *RequestVoteResponse) ToMessage() messages.Message {
-  enc, _ := this.Encode()
-  return messages.Message{
-    Mex_type: messages.REQUEST_VOTE_RESPONSE,
-    Payload: enc,
-  }  
+// Manage implements messages.Rpc.
+func (this *RequestVoteResponse) Execute(n *sync.Map, state raftstate.State) {
+	panic("unimplemented")
 }
 
 // ToString implements messages.Rpc.
 func (this *RequestVoteResponse) ToString() string {
-  return "{term : " + strconv.Itoa(int(this.term)) + ", \nvoteGranted: " + strconv.FormatBool(this.voteGranted) + "}"
+	return "{term : " + strconv.Itoa(int(this.term)) + ", \nvoteGranted: " + strconv.FormatBool(this.voteGranted) + "}"
 }
 
 func newRequestVoteResponse(voteGranted bool, term uint64) messages.Rpc {

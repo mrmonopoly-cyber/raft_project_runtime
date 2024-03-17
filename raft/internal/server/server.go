@@ -7,17 +7,10 @@ import (
 	"log"
 	"net"
 	messages "raft/internal/messages"
-	append "raft/internal/messages/AppendEntryRPC"
-	res_ap "raft/internal/messages/AppendEntryResponse"
-	cop_st "raft/internal/messages/CopyStateRPC"
-	req_vo "raft/internal/messages/RequestVoteRPC"
-	res_vo "raft/internal/messages/RequestVoteResponse"
+    cutom_mex "raft/internal/node/message"
 	"reflect"
-
-	//"raft/internal/node/address"
 	"raft/internal/node"
 	state "raft/internal/raftstate"
-	p "raft/pkg/protobuf"
 	"sync"
 )
 
@@ -46,7 +39,7 @@ func generateID(input string) string {
 }
 
 
-func NewServer(term uint64,ip_addr string, port string, role state.Role, serversIp []string) *Server {
+func NewServer(term uint64,ip_addr string, port string, serversIp []string) *Server {
 	listener, err := net.Listen("tcp", ip_addr + ":" + port)
 
 	if err != nil {
@@ -54,17 +47,22 @@ func NewServer(term uint64,ip_addr string, port string, role state.Role, servers
 	}
 
 	var server = &Server{
-		_state:         state.NewState(term, port, role),
+		_state:         state.NewState(term, port, state.FOLLOWER),
 		otherNodes:     &sync.Map{},
 		messageChannel: make(chan messages.Rpc),
 		listener:       listener,
 	}
 
     for i :=0; i< len(serversIp) -2; i++{
-        var new_node,_= node.NewNode(serversIp[i],port)
+        var new_node node.Node
+        var err error
+        new_node,err= node.NewNode(serversIp[i],port)
+        if err != nil {
+            println("error in creating new node: %v", err)
+            continue
+        }
         server.otherNodes.Store(generateID(serversIp[i]),new_node)
     }
-
 	return server
 }
 
@@ -93,8 +91,10 @@ func (s *Server) Start() {
  */
 func (s *Server) connectToServers() {
     s.otherNodes.Range(func (key any, value interface{}) bool{
-        var nodeEle,errEl = value.(node.Node)
-        if errEl == false{
+        var nodeEle node.Node
+        var errEl bool
+        nodeEle,errEl = value.(node.Node)
+        if !errEl {
             log.Println("invalid object in otherNodes map: ", reflect.TypeOf(nodeEle))
             return false
         }
@@ -151,177 +151,23 @@ func (s *Server) handleResponse() {
 	// iterating over the connections map and receive byte message
 	for {
 		s.otherNodes.Range(func(k, conn interface{}) bool {
-            var message *messages.Rpc
+            var message string
             var errMes error
-			message, errMes = conn.(node.Node).ReadRpc()
+			message, errMes = conn.(node.Node).Recv()
             if errMes != nil {
                 fmt.Printf("error in reading from node %v with error %v", 
                     conn.(node.Node).GetIp(), errMes)
+                return false
             }
-			s.messageChannel <- *message
+			s.messageChannel <- *cutom_mex.NewMessage([]byte(message)).ToRpc()
 			return true
 		})
 	}
 }
 
-/*
- *  Send to every connected server a bunch of bytes
- */
-func (s *Server) sendAll(mex messages.Rpc) {
-	s.otherNodes.Range(func(k, conn interface{}) bool {
-		log.Println(mex.ToString())
-		conn.(node.Node).SendRpc(mex)
-		return true
-	})
-}
-
-/*
- *  Send AppendEntry message
- */
-func (s *Server) sendAppendEntryRPC() {
-
-	prevLogIndex := len(s._state.GetEntries()) - 2
-	prevLogTerm := s._state.GetEntries()[prevLogIndex].GetTerm()
-	appendEntry := append.NewAppendEntryRPC(
-		s._state.GetTerm(),
-		s._state.GetID(),
-		uint64(prevLogIndex),
-		prevLogTerm,
-		make([]*p.Entry, 0),
-		s._state.GetCommitIndex())
-
-	s.sendAll(appendEntry)
-}
-
-/*
- *  Send RequestVote messages
- */
-func (s *Server) sendRequestVoteRPC() {
-	lastLogIndex := len(s._state.GetEntries()) - 1
-	lastLogTerm := s._state.GetEntries()[lastLogIndex].GetTerm()
-	requestVote := req_vo.NewRequestVoteRPC(
-		s._state.GetTerm(),
-		s._state.GetID(),
-		uint64(lastLogIndex),
-		lastLogTerm)
-
-	s.sendAll(requestVote)
-}
-
-func (s *Server) startElection() {
-	log.Println("/////////////////////////////////////Starting new election...", s._state.GetID())
-	s._state.IncrementTerm()
-	s._state.VoteFor(s._state.GetID())
-	//s._state.ElectionTimeout()
-	//s.sendRequestVoteRPC()
-}
-
-/*
- * Leader behaviour
- */
-func (s *Server) leader() {
-	select {
-	case mess := <-s.messageChannel:
-		switch mess.(type) {
-		case *append.AppendEntryRPC:
-			mess.ToString()
-		//TODO Handle append entry
-
-		case *res_ap.AppendEntryResponse:
-			mess.ToString()
-			// TODO Handle Response
-
-		default:
-			// Do nothing
-		}
-	case <-s._state.HeartbeatTimeout().C:
-		hearthbit := append.NewAppendEntryRPC(
-			s._state.GetTerm(),
-			s._state.GetID(),
-			0,
-			0,
-			make([]*p.Entry, 0),
-			0)
-
-		log.Println("Send heartbeat...", s._state.GetID())
-		s._state.StartHearthbeatTimeout()
-		s.sendAll(hearthbit)
-	}
-}
-
-/*
- * Followers behaviour
- */
-func (s *Server) follower() {
-	select {
-	case mess := <-s.messageChannel:
-		switch mess.(type) {
-		case *append.AppendEntryRPC:
-			mess.ToString()
-			log.Println("********** Message received ***********", mess.ToString())
-			s._state.StartElectionTimeout()
-			// TODO: Handle append entry
-
-		case *req_vo.RequestVoteRPC:
-			mess.ToString()
-			// TODO: Handle request vote
-
-		case *cop_st.CopyStateRPC:
-			mess.ToString()
-		// TODO: Handle copy state message
-
-		default:
-			// default behaviour: do nothing
-		}
-	case <-s._state.ElectionTimeout().C:
-		if s._state.GetRole() != state.LEADER {
-			s._state.SetRole(state.CANDIDATE)
-			s.startElection()
-		}
-	}
-}
-
-/*
- * Handle candidates
- */
-func (s *Server) candidate() {
-	select {
-	case mess := <-s.messageChannel:
-		switch mess.(type) {
-		case *append.AppendEntryRPC:
-			mess.ToString()
-			// TODO Handle response
-
-		case *req_vo.RequestVoteRPC:
-			mess.ToString()
-			// TODO Handle request vote
-
-		case *res_vo.RequestVoteResponse:
-			mess.ToString()
-			// TODO Handle Response vote
-
-		case *cop_st.CopyStateRPC:
-			mess.ToString()
-			// TODO Handle copy state
-
-		default:
-			// default behaviour: do nothing
-		}
-	case <-s._state.ElectionTimeout().C:
-		// TODO Handle election timeout during an election phase
-	}
-}
 
 func (s *Server) run() {
-	defer s.wg.Done()
-	for {
-		switch s._state.GetRole() {
-		case state.LEADER:
-			s.leader()
-		case state.FOLLOWER:
-			s.follower()
-		case state.CANDIDATE:
-			s.candidate()
-		}
-	}
+    var mess messages.Rpc
+	mess =  <- s.messageChannel
+    mess.Execute(s.otherNodes,s._state)
 }

@@ -1,10 +1,13 @@
 package AppendEntryResponse
 
 import (
-	"google.golang.org/protobuf/proto"
 	"raft/internal/messages"
+	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
-  "strconv"
+	"strconv"
+	"sync"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type AppendEntryResponse struct {
@@ -13,18 +16,14 @@ type AppendEntryResponse struct {
 	logIndexError uint64
 }
 
-// ToMessage implements messages.Rpc.
-func (this *AppendEntryResponse) ToMessage() messages.Message {
-  enc, _ := this.Encode()
-  return messages.Message{
-    Mex_type: messages.APPEND_ENTRY_RESPONSE,
-    Payload: enc,
-  }  
+// Manage implements messages.Rpc.
+func (this *AppendEntryResponse) Execute(n *sync.Map, state raftstate.State) {
+	panic("unimplemented")
 }
 
 // ToString implements messages.Rpc.
 func (this *AppendEntryResponse) ToString() string {
-  return "{term : " + strconv.Itoa(int(this.term)) + ",\nlogIndexError: " + strconv.Itoa(int(this.logIndexError)) + ", \nsuccess: " + strconv.FormatBool(this.success) + "}"
+	return "{term : " + strconv.Itoa(int(this.term)) + ",\nlogIndexError: " + strconv.Itoa(int(this.logIndexError)) + ", \nsuccess: " + strconv.FormatBool(this.success) + "}"
 }
 
 func newAppendEntryResponse(success bool, term uint64,

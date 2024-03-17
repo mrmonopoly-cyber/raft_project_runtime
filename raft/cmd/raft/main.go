@@ -8,26 +8,11 @@ import (
 
 	//"strings"
 
-	"raft/internal/raftstate"
 	ser "raft/internal/server"
 	"sync"
 )
 
 func main() {
-
-  /*file, _ := os.ReadFile("others_ip")
-  fileMyIp, _ := os.ReadFile("my_ip")
-  stringMyIp := string(fileMyIp[:])
-  serversId := strings.Split(string(file[:]), "\n")*/
-
-  /*lFlag := flag.Bool("leader", false, "decide if leader or not")
-  flag.Parse()
-
-  var isLeader = ser.FOLLOWER
-
-  if (*lFlag == true) {
-    isLeader = ser.LEADER
-  }*/
 
   var workDir = "/root/raft_project_runtimet/"
   var fileMyIp, _ = os.ReadFile(workDir + "my_ip")
@@ -36,22 +21,16 @@ func main() {
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
 
-  var server1 *ser.Server = ser.NewServer(0,stringMyIp, "8080", raftstate.FOLLOWER, addresses)
-  // server2 := ser.NewServer(0,"localhost", "8090", raftstate.FOLLOWER, []string{"8080", "8090"})
+  var server1 *ser.Server = ser.NewServer(0,stringMyIp, "8080", addresses)
 
   var wg sync.WaitGroup
 
-  wg.Add(1)
 
   go func() {
+    wg.Add(1)
     defer wg.Done()
     server1.Start()
   } ()
-
-  // go func() {
-  //   defer wg.Done()
-  //   server2.Start()
-  // } ()
   
   wg.Wait()
   

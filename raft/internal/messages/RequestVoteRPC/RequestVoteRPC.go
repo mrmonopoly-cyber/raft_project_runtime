@@ -1,10 +1,13 @@
 package RequestVoteRPC
 
 import (
-	"google.golang.org/protobuf/proto"
 	"raft/internal/messages"
+	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
-  "strconv"
+	"strconv"
+	"sync"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type RequestVoteRPC struct {
@@ -14,13 +17,9 @@ type RequestVoteRPC struct {
 	lastLogTerm  uint64
 }
 
-// ToMessage implements messages.Rpc.
-func (this *RequestVoteRPC) ToMessage() messages.Message {
-	enc, _ := this.Encode()
-  return messages.Message{
-    Mex_type: messages.REQUEST_VOTE,
-    Payload: enc,
-  }  
+// Manage implements messages.Rpc.
+func (this *RequestVoteRPC) Execute(n *sync.Map, state raftstate.State) {
+	panic("unimplemented")
 }
 
 func NewRequestVoteRPC(term uint64, candidateId string,
@@ -35,7 +34,7 @@ func NewRequestVoteRPC(term uint64, candidateId string,
 
 // ToString implements messages.Rpc.
 func (this *RequestVoteRPC) ToString() string {
-  return "{term : " + strconv.Itoa(int(this.term)) + ", \nleaderId: " + this.candidateId + ",\nlastLogIndex: " + strconv.Itoa(int(this.lastLogIndex)) + ", \nlastLogTerm: " + strconv.Itoa(int(this.lastLogTerm)) + "}"
+	return "{term : " + strconv.Itoa(int(this.term)) + ", \nleaderId: " + this.candidateId + ",\nlastLogIndex: " + strconv.Itoa(int(this.lastLogIndex)) + ", \nlastLogTerm: " + strconv.Itoa(int(this.lastLogTerm)) + "}"
 
 }
 

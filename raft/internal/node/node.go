@@ -3,20 +3,15 @@ package node
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
-	"raft/internal/messages"
-	"raft/internal/messages/AppendEntryRPC"
-	"raft/internal/messages/AppendEntryResponse"
-	"raft/internal/messages/CopyStateRPC"
-	"raft/internal/messages/RequestVoteRPC"
-	"raft/internal/messages/RequestVoteResponse"
 	"raft/internal/node/address"
 	"sync"
 )
 
 type Node interface {
-	SendRpc(mex messages.Rpc) error
-	ReadRpc() (*messages.Rpc,error)
+	Send(mex []byte) error
+	Recv() (string,error)
 	GetIp() string
 	GetPort() string
     AddConnIn(conn *net.Conn) 
@@ -36,8 +31,8 @@ type node struct {
 }
 
 // Read_rpc implements Node.
-// before: func (this *node) ReadRpc() (*messages.Rpc, error) 
-func (this *node) ReadRpc() (*messages.Rpc, error) {
+// before: func (this *node) Recv() (*messages.Rpc, error) 
+func (this *node) Recv() (string, error) {
     
     var raw_mex string
     var errMex error 
@@ -45,36 +40,12 @@ func (this *node) ReadRpc() (*messages.Rpc, error) {
     raw_mex, errMex = bufio.NewReader(this.recv.conn).ReadString('\n')
     this.recv.mu.Unlock()
 
-
     if errMex != nil {
-        return nil,errMex
+        return "",errMex
     }
 
-    var mess *messages.Message = messages.NewMessage([]byte(raw_mex))
+    return raw_mex,errMex
 
-    var recRpc messages.Rpc
-    switch mess.Mex_type {
-    case messages.APPEND_ENTRY:
-        var rpc AppendEntryRPC.AppendEntryRPC
-        recRpc = &rpc
-    case messages.APPEND_ENTRY_RESPONSE:
-        var rpc AppendEntryResponse.AppendEntryResponse 
-        recRpc = &rpc
-    case messages.REQUEST_VOTE:
-        var rpc RequestVoteRPC.RequestVoteRPC
-        recRpc = &rpc
-    case messages.REQUEST_VOTE_RESPONSE:
-        var rpc RequestVoteResponse.RequestVoteResponse
-        recRpc = &rpc
-    case messages.COPY_STATE:
-        var rpc CopyStateRPC.CopyStateRPC
-        recRpc = &rpc
-    default:
-        panic("impossible case invalid type RPC " + string(mess.Mex_type))
-    }
-    recRpc.Decode(mess.Payload)
-
-    return &recRpc,errMex
 }
 
 func NewNode(remoteAddr string, remotePort string) (Node, error) {
@@ -84,23 +55,23 @@ func NewNode(remoteAddr string, remotePort string) (Node, error) {
 }
 
 func (this *node) AddConnIn(conn *net.Conn) {
-    this.send.conn = *conn
-}
-
-func (this *node) AddConnOut(conn *net.Conn) {
     this.recv.conn = *conn
 }
 
-func (this *node) SendRpc(mex messages.Rpc) error {
-    var mexByte []byte
-    var err error
-	mexByte, err = mex.Encode()
-    if err != nil {
-        println("fail to send message to %v", this.GetIp())
-        return err
-    }
+func (this *node) AddConnOut(conn *net.Conn) {
+    this.send.conn = *conn
+}
+
+func (this *node) Send(mex []byte) error {
+ //    var mexByte []byte
+ //    var err error
+	// mexByte, err = mex.Encode()
+ //    if err != nil {
+ //        println("fail to send message to %v", this.GetIp())
+ //        return err
+ //    }
     this.send.mu.Lock()
-    fmt.Fprintf(this.send.conn,string(mexByte))
+    fmt.Fprintf(this.send.conn,string(mex))
     this.send.mu.Unlock()
 	return nil
 }
@@ -111,4 +82,23 @@ func (this *node) GetIp() string {
 
 func (this *node) GetPort() string{
     return this.addr.GetPort()
+}
+
+/*
+ *  Send to every connected server a bunch of bytes
+ */
+func sendAll(nodes *sync.Map, mex []byte) {
+	nodes.Range(func(k, conn interface{}) bool {
+        // conn.(node.Node)
+        var nodeConv Node
+        var err bool 
+        if !err {
+		    log.Println("invalid node in othersNode")
+            return false
+        }
+        nodeConv, err = conn.(Node)
+		log.Println(string(mex))
+		nodeConv.Send(mex)
+		return true
+	})
 }

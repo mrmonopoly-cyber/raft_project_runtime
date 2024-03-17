@@ -4,7 +4,7 @@ extra_dir=./extra
 
 if [[ $# -lt 1 ]]; 
 then
-    echo "invalid input, give at least one name"
+    echo "invalid input, give one name"
     exit 1
 fi
 

@@ -1,10 +1,13 @@
 package CopyStateRPC
 
 import (
-	"google.golang.org/protobuf/proto"
 	"raft/internal/messages"
+	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
-  "strconv"
+	"strconv"
+	"sync"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type CopyStateRPC struct {
@@ -14,22 +17,18 @@ type CopyStateRPC struct {
 	entries []*p.Entry
 }
 
-// ToMessage implements messages.Rpc.
-func (this *CopyStateRPC) ToMessage() messages.Message {
-  enc, _ := this.Encode()
-  return messages.Message{
-    Mex_type: messages.COPY_STATE,
-    Payload: enc,
-  }  
+// Manage implements messages.Rpc.
+func (this *CopyStateRPC) Execute(n *sync.Map, state raftstate.State) {
+	panic("unimplemented")
 }
 
 // ToString implements messages.Rpc.
-func (this *CopyStateRPC) ToString() string {	
-  var entries string 
-  for _, el := range this.entries {
-    entries += el.String()
-  }
-  return "{term : " + strconv.Itoa(int(this.term)) + ", \nindex: " + strconv.Itoa(int(this.index)) + ",\nvoting: " + strconv.FormatBool(this.voting) + ", \nentries: " + entries + "}"
+func (this *CopyStateRPC) ToString() string {
+	var entries string
+	for _, el := range this.entries {
+		entries += el.String()
+	}
+	return "{term : " + strconv.Itoa(int(this.term)) + ", \nindex: " + strconv.Itoa(int(this.index)) + ",\nvoting: " + strconv.FormatBool(this.voting) + ", \nentries: " + entries + "}"
 }
 
 func newCopyStateRPC(term uint64, index uint64, voting bool,

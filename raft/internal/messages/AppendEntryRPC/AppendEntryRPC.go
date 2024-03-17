@@ -2,8 +2,10 @@ package AppendEntryRPC
 
 import (
 	"raft/internal/messages"
+	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
 	"strconv"
+	"sync"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -17,22 +19,18 @@ type AppendEntryRPC struct {
 	leaderCommit uint64
 }
 
-// ToMessage implements messages.Rpc.
-func (this *AppendEntryRPC) ToMessage() messages.Message {
-  enc, _ := this.Encode()
-  return messages.Message{
-    Mex_type: messages.APPEND_ENTRY,
-    Payload: enc,
-  }  
+// Manage implements messages.Rpc.
+func (this *AppendEntryRPC) Execute(n *sync.Map, state raftstate.State) {
+	panic("unimplemented")
 }
 
 // ToString implements messages.Rpc.
 func (this *AppendEntryRPC) ToString() string {
-  var entries string 
-  for _, el := range this.entries {
-    entries += el.String()
-  }
-  return "{term : " + strconv.Itoa(int(this.term)) + ", \nleaderId: " + this.leaderId + ",\nprevLogIndex: " + strconv.Itoa(int(this.prevLogIndex)) + ", \nprevLogTerm: " + strconv.Itoa(int(this.prevLogTerm)) + ", \nentries: " + entries + ", \nleaderCommit: " + strconv.Itoa(int(this.leaderCommit)) + "}"
+	var entries string
+	for _, el := range this.entries {
+		entries += el.String()
+	}
+	return "{term : " + strconv.Itoa(int(this.term)) + ", \nleaderId: " + this.leaderId + ",\nprevLogIndex: " + strconv.Itoa(int(this.prevLogIndex)) + ", \nprevLogTerm: " + strconv.Itoa(int(this.prevLogTerm)) + ", \nentries: " + entries + ", \nleaderCommit: " + strconv.Itoa(int(this.leaderCommit)) + "}"
 }
 
 func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
