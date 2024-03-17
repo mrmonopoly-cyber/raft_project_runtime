@@ -151,33 +151,14 @@ func (s *Server) handleResponse() {
 	// iterating over the connections map and receive byte message
 	for {
 		s.otherNodes.Range(func(k, conn interface{}) bool {
-			message, _ := conn.(node.Node).ReadRpc()
-
-			// for every []byte: decode it to RPC
-			var mess *messages.Message = messages.NewMessage([]byte(message))
-			var recRpc messages.Rpc
-			switch mess.Mex_type {
-			case messages.APPEND_ENTRY:
-				var rpc append.AppendEntryRPC
-				recRpc = &rpc
-			case messages.APPEND_ENTRY_RESPONSE:
-				var rpc res_ap.AppendEntryResponse
-				recRpc = &rpc
-			case messages.REQUEST_VOTE:
-				var rpc req_vo.RequestVoteRPC
-				recRpc = &rpc
-			case messages.REQUEST_VOTE_RESPONSE:
-				var rpc res_vo.RequestVoteResponse
-				recRpc = &rpc
-			case messages.COPY_STATE:
-				var rpc cop_st.CopyStateRPC
-				recRpc = &rpc
-			default:
-				panic("impossible case")
-			}
-			recRpc.Decode(mess.Payload)
-			s.messageChannel <- recRpc
-
+            var message *messages.Rpc
+            var errMes error
+			message, errMes = conn.(node.Node).ReadRpc()
+            if errMes != nil {
+                fmt.Printf("error in reading from node %v with error %v", 
+                    conn.(node.Node).GetIp(), errMes)
+            }
+			s.messageChannel <- *message
 			return true
 		})
 	}

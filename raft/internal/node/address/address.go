@@ -1,13 +1,10 @@
 package address
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"strconv"
 	"strings"
-  "bufio"
 )
 
 const sectorsNumber = 4
@@ -16,18 +13,12 @@ type NodeAddress interface
 {
     GetIp() string
     GetPort() string
-    Send(mess []byte) error
-    Receive() ([]byte, error) 
-    HandleConnOut(conn *net.Conn)
-    HandleConnIn(conn *net.Conn)
 }
 
 type nodeAddress struct
 {
-	sectors [sectorsNumber] uint8
-	port    uint16
-  connIn *net.Conn
-  connOut *net.Conn
+    sectors [sectorsNumber] uint8
+    port    uint16
 }
 
 type EnumType int
@@ -63,28 +54,6 @@ func (this nodeAddress) GetPort() string {
     return string(rune(this.port))
 }
 
-func (this nodeAddress) Send(mess []byte) error {
-    mess_json,_ := json.Marshal(mess)
-    log.Println(string(mess_json))
-    // Access the value pointed to by the connection field
-    conn := this.connOut
-    fmt.Fprintf(*conn, string(mess_json) + "\n")
-    return nil
-}
-
-func (this nodeAddress) Receive() ([]byte, error) {
-  mess, err := bufio.NewReader(*this.connIn).ReadString('\n')
-  return []byte(mess), err
-} 
-
-func (this nodeAddress) HandleConnOut(conn *net.Conn) {
-  this.connOut = conn
-}
-
-func (this nodeAddress) HandleConnIn(conn *net.Conn) {
-  this.connIn = conn
-}
-
 func NewNodeAddress(ipAddr string, port string) NodeAddress{
     var sectorsStr = strings.Split(ipAddr, ".")
     var node nodeAddress
@@ -100,8 +69,6 @@ func NewNodeAddress(ipAddr string, port string) NodeAddress{
 
     var port_int, _ = strconv.Atoi(port)
     node.port = uint16(port_int)
-    node.connOut = nil
-    node.connIn = nil
 
     return &node
 }
