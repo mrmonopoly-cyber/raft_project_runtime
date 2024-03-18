@@ -12,7 +12,7 @@ fi
 
 
 echo "installing the correct packages"
-sudo pacman -Sy libvirt virt-manager iptables-nft dnsmasq virt-viewer dmidecode openbsd-netcat qemu-full
+sudo pacman -Sy libvirt virt-manager iptables-nft dnsmasq virt-viewer dmidecode openbsd-netcat qemu-full archiso
 
 echo "enabling the deamon for libvirtd"
 sudo systemctl enable --now libvirtd
