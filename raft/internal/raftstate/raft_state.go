@@ -45,10 +45,15 @@ type State interface {
 	GetEntries() []p.Entry
 	GetCommitIndex() uint64
 	SetRole(newRole Role)
+  SetTerm(newTerm uint64)
 }
 
 func (_state *raftStateImpl) GetTerm() uint64 {
 	return _state.term
+}
+
+func (_state *raftStateImpl) SetTerm(newTerm uint64) {
+  _state.term = newTerm
 }
 
 func (_state *raftStateImpl) GetRole() Role {

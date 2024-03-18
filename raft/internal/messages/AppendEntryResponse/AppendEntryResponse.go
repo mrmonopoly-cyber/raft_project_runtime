@@ -26,7 +26,7 @@ func (this *AppendEntryResponse) ToString() string {
 	return "{term : " + strconv.Itoa(int(this.term)) + ",\nlogIndexError: " + strconv.Itoa(int(this.logIndexError)) + ", \nsuccess: " + strconv.FormatBool(this.success) + "}"
 }
 
-func newAppendEntryResponse(success bool, term uint64,
+func NewAppendEntryResponse(success bool, term uint64,
 	logIndexError uint64) messages.Rpc {
 	return &AppendEntryResponse{
 		success:       success,

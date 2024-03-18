@@ -2,6 +2,9 @@ package AppendEntryRPC
 
 import (
 	"raft/internal/messages"
+	appendEntryResponse "raft/internal/messages/AppendEntryResponse"
+	"raft/internal/node"
+	m "raft/internal/node/message"
 	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
 	"strconv"
@@ -19,9 +22,35 @@ type AppendEntryRPC struct {
 	leaderCommit uint64
 }
 
+func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, state raftstate.State) bool {
+  return state.GetEntries()[prevLogIndex].GetTerm() == prevLogTerm
+}
+
 // Manage implements messages.Rpc.
 func (this *AppendEntryRPC) Execute(n *sync.Map, state raftstate.State) {
-	panic("unimplemented")
+  
+	if (state.GetRole() != raftstate.FOLLOWER) {
+    state.SetRole(raftstate.FOLLOWER)
+  }
+
+  var appendEntryResp appendEntryResponse.AppendEntryResponse
+  var message m.Message
+
+  if (this.term < state.GetTerm()) || !checkConsistency(this.prevLogIndex, this.prevLogTerm, state) { 
+    appendEntryResp = appendEntryResponse.NewAppendEntryResponse(false, state.GetTerm(), uint64(len(state.GetEntries()) - 1))
+    var resp []byte 
+    var err error
+    resp, err = appendEntryResp.Encode()
+    if err != nil {
+
+    }
+    message = *m.NewMessage(resp)
+    node.SendAll(n, message.ToByte()) 
+  } else {
+
+  }
+
+    
 }
 
 // ToString implements messages.Rpc.

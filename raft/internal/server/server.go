@@ -167,7 +167,16 @@ func (s *Server) handleResponse() {
 
 
 func (s *Server) run() {
+  defer s.wg.Done()
+  for {
     var mess messages.Rpc
-	mess =  <- s.messageChannel
-    mess.Execute(s.otherNodes,s._state)
+    select {
+    case mess = <- s.messageChannel:
+      mess.Execute(s.otherNodes, &s._state)
+
+    case <- s._state.HeartbeatTimeout().C:
+      node.SendAll(s.otherNodes, mex []byte)  
+    case <- s._state.ElectionTimeout().C:
+    }
+  }
 }
