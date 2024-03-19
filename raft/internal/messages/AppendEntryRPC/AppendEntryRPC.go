@@ -3,12 +3,11 @@ package AppendEntryRPC
 import (
 	"raft/internal/messages"
 	appendEntryResponse "raft/internal/messages/AppendEntryResponse"
-	"raft/internal/node"
-	m "raft/internal/node/message"
+	//"raft/internal/node"
 	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
 	"strconv"
-	"sync"
+	//"sync"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -27,25 +26,19 @@ func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, state raftstate.S
 }
 
 // Manage implements messages.Rpc.
-func (this *AppendEntryRPC) Execute(n *sync.Map, state raftstate.State) {
-  
-	if (state.GetRole() != raftstate.FOLLOWER) {
-    state.SetRole(raftstate.FOLLOWER)
+func (this *AppendEntryRPC) Execute(state *raftstate.State, resp *messages.Rpc) {
+
+	if ((*state).GetRole() != raftstate.FOLLOWER) {
+    (*state).SetRole(raftstate.FOLLOWER)
   }
 
-  var appendEntryResp appendEntryResponse.AppendEntryResponse
-  var message m.Message
+  var appendEntryResp messages.Rpc
 
-  if (this.term < state.GetTerm()) || !checkConsistency(this.prevLogIndex, this.prevLogTerm, state) { 
-    appendEntryResp = appendEntryResponse.NewAppendEntryResponse(false, state.GetTerm(), uint64(len(state.GetEntries()) - 1))
-    var resp []byte 
-    var err error
-    resp, err = appendEntryResp.Encode()
-    if err != nil {
-
-    }
-    message = *m.NewMessage(resp)
-    node.SendAll(n, message.ToByte()) 
+  if (this.term < (*state).GetTerm()) || !checkConsistency(this.prevLogIndex, this.prevLogTerm, *state) { 
+    appendEntryResp = appendEntryResponse.NewAppendEntryResponse(false, 
+      (*state).GetTerm(), 
+      uint64(len((*state).GetEntries()) - 1))
+    resp = &appendEntryResp
   } else {
 
   }
@@ -73,6 +66,10 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 		entries,
 		leaderCommit,
 	}
+}
+
+func (this AppendEntryRPC) GetId() string {
+  return this.leaderId
 }
 
 func (this AppendEntryRPC) GetTerm() uint64 {

@@ -5,8 +5,9 @@ option go_package = "protobuf/";
 import "entry.proto";
 
 message CopyState {
-  required uint64 Term = 1;
-  required uint64 Index = 2;
-  required bool Voting = 3;
-  repeated Entry Entries = 4;
+  required string Id = 1;
+  required uint64 Term = 2;
+  required uint64 Index = 3;
+  required bool Voting = 4;
+  repeated Entry Entries = 5;
 }

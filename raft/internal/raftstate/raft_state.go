@@ -20,6 +20,7 @@ const (
 )
 
 type raftStateImpl struct {
+  id        string
 	term      uint64
 	leaderId  string
 	role      Role
@@ -32,6 +33,7 @@ type raftStateImpl struct {
 
 
 type State interface {
+  GetId() string
 	GetTerm() uint64
 	GetRole() Role
 	StartElectionTimeout()
@@ -46,6 +48,10 @@ type State interface {
 	GetCommitIndex() uint64
 	SetRole(newRole Role)
   SetTerm(newTerm uint64)
+}
+
+func (_state *raftStateImpl) GetId() string {
+  return _state.id
 }
 
 func (_state *raftStateImpl) GetTerm() uint64 {
@@ -112,6 +118,7 @@ func NewState(term uint64, id string, role Role) State {
 	var s = new(raftStateImpl)
 	s.role = role
 	s.term = term
+  s.id = id
 	// s.serversIP = serversIp
 	s.electionTimeout = time.NewTimer(ELECTION_TIMEOUT)
 	s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)

@@ -5,18 +5,18 @@ import (
 	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
 	"strconv"
-	"sync"
 
 	"google.golang.org/protobuf/proto"
 )
 
 type RequestVoteResponse struct {
+	id          string
 	voteGranted bool
 	term        uint64
 }
 
 // Manage implements messages.Rpc.
-func (this *RequestVoteResponse) Execute(n *sync.Map, state raftstate.State) {
+func (this *RequestVoteResponse) Execute(state *raftstate.State, resp *messages.Rpc) {
 	panic("unimplemented")
 }
 
@@ -25,11 +25,16 @@ func (this *RequestVoteResponse) ToString() string {
 	return "{term : " + strconv.Itoa(int(this.term)) + ", \nvoteGranted: " + strconv.FormatBool(this.voteGranted) + "}"
 }
 
-func newRequestVoteResponse(voteGranted bool, term uint64) messages.Rpc {
+func newRequestVoteResponse(id string, voteGranted bool, term uint64) messages.Rpc {
 	return &RequestVoteResponse{
+		id:          id,
 		voteGranted: voteGranted,
 		term:        term,
 	}
+}
+
+func (this RequestVoteResponse) GetId() string {
+	return this.id
 }
 
 func (this RequestVoteResponse) GetTerm() uint64 {

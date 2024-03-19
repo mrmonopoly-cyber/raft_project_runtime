@@ -3,7 +3,8 @@ package protobuf;
 option go_package = "protobuf/";
 
 message AppendEntryResponse {
-  required bool Success = 1;
-  required uint64 Term = 2;
-  optional uint64 LogIndexError = 3;
+  required string Id = 1;
+  required bool Success = 2;
+  required uint64 Term = 3;
+  optional uint64 LogIndexError = 4;
 }

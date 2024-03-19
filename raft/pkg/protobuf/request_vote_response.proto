@@ -3,6 +3,7 @@ package protobuf;
 option go_package ="protobuf/";
 
 message RequestVoteResponse {
-  required bool voteGranted = 1;
-  required uint64 Term = 2;
+  required string Id = 1;
+  required bool VoteGranted = 2;
+  required uint64 Term = 3;
 }

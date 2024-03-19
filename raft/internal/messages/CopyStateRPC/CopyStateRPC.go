@@ -5,12 +5,12 @@ import (
 	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
 	"strconv"
-	"sync"
 
 	"google.golang.org/protobuf/proto"
 )
 
 type CopyStateRPC struct {
+	id      string
 	term    uint64
 	index   uint64
 	voting  bool
@@ -18,7 +18,7 @@ type CopyStateRPC struct {
 }
 
 // Manage implements messages.Rpc.
-func (this *CopyStateRPC) Execute(n *sync.Map, state raftstate.State) {
+func (this *CopyStateRPC) Execute(state *raftstate.State, resp *messages.Rpc) {
 	panic("unimplemented")
 }
 
@@ -31,14 +31,19 @@ func (this *CopyStateRPC) ToString() string {
 	return "{term : " + strconv.Itoa(int(this.term)) + ", \nindex: " + strconv.Itoa(int(this.index)) + ",\nvoting: " + strconv.FormatBool(this.voting) + ", \nentries: " + entries + "}"
 }
 
-func newCopyStateRPC(term uint64, index uint64, voting bool,
+func newCopyStateRPC(id string, term uint64, index uint64, voting bool,
 	entries []*p.Entry) messages.Rpc {
 	return &CopyStateRPC{
+		id:      id,
 		term:    term,
 		index:   index,
 		voting:  voting,
 		entries: entries,
 	}
+}
+
+func (this CopyStateRPC) GetId() string {
+	return this.id
 }
 
 func (this CopyStateRPC) GetTerm() uint64 {

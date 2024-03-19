@@ -5,7 +5,6 @@ import (
 	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
 	"strconv"
-	"sync"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -18,7 +17,7 @@ type RequestVoteRPC struct {
 }
 
 // Manage implements messages.Rpc.
-func (this *RequestVoteRPC) Execute(n *sync.Map, state raftstate.State) {
+func (this *RequestVoteRPC) Execute(state *raftstate.State, resp *messages.Rpc) {
 	panic("unimplemented")
 }
 
@@ -30,6 +29,10 @@ func NewRequestVoteRPC(term uint64, candidateId string,
 		lastLogIndex,
 		lastLogTerm,
 	}
+}
+
+func (this RequestVoteRPC) GetId() string {
+  return this.candidateId
 }
 
 // ToString implements messages.Rpc.
