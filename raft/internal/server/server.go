@@ -4,12 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"go/types"
 	"log"
 	"net"
 	messages "raft/internal/messages"
-	app_entry "raft/internal/messages/AppendEntryRPC"
-	"raft/internal/messages/AppendEntryResponse"
 	"raft/internal/node"
 	cutom_mex "raft/internal/node/message"
 	state "raft/internal/raftstate"
@@ -17,9 +14,14 @@ import (
 	"sync"
 )
 
+type pairMex struct{
+    payload messages.Rpc
+    sender string
+}
+
 type Server struct {
 	_state         state.State
-	messageChannel chan messages.Rpc
+	messageChannel chan pairMex
 	otherNodes     *sync.Map
 	listener       net.Listener
 	wg             sync.WaitGroup
@@ -51,7 +53,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 	var server = &Server{
 		_state:         state.NewState(term, ip_addr, state.FOLLOWER),
 		otherNodes:     &sync.Map{},
-		messageChannel: make(chan messages.Rpc),
+		messageChannel: make(chan pairMex),
 		listener:       listener,
 	}
 
@@ -153,15 +155,17 @@ func (s *Server) handleResponse() {
 	// iterating over the connections map and receive byte message
 	for {
 		s.otherNodes.Range(func(k, conn interface{}) bool {
+            var node node.Node = conn.(node.Node)
 			var message string
 			var errMes error
-			message, errMes = conn.(node.Node).Recv()
+			message, errMes = node.Recv()
 			if errMes != nil {
 				fmt.Printf("error in reading from node %v with error %v",
-					conn.(node.Node).GetIp(), errMes)
+					node.GetIp(), errMes)
 				return false
 			}
-			s.messageChannel <- *cutom_mex.NewMessage([]byte(message)).ToRpc()
+			s.messageChannel <- 
+                pairMex{*cutom_mex.NewMessage([]byte(message)).ToRpc(),node.GetIp()}
 			return true
 		})
 	}
@@ -170,21 +174,25 @@ func (s *Server) handleResponse() {
 func (s *Server) run() {
 	defer s.wg.Done()
 	for {
-		var mess messages.Rpc
+		var mess pairMex
+        var rpcCall messages.Rpc
+        var sender string
 		select {
 		case mess = <-s.messageChannel:
-			var resp messages.Rpc
+			var resp *messages.Rpc
 			var mex cutom_mex.Message
-			mess.Execute(&s._state, &resp)
+            rpcCall = mess.payload
+            sender = mess.sender
+			resp = rpcCall.Execute(&s._state)
 			
       if resp != nil {
-				mex = cutom_mex.FromRpc(resp)
+				mex = cutom_mex.FromRpc(*resp)
 				var f any
 				var ok bool
-				f, ok = s.otherNodes.Load(generateID(mess.GetId()))
+				f, ok = s.otherNodes.Load(generateID(sender))
 
 				if !ok {
-					log.Printf("Node %s not found", mess.GetId())
+					log.Printf("Node %s not found", sender)
 					continue
 				}
 

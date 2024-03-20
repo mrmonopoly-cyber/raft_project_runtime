@@ -17,7 +17,7 @@ type RequestVoteRPC struct {
 }
 
 // Manage implements messages.Rpc.
-func (this *RequestVoteRPC) Execute(state *raftstate.State, resp *messages.Rpc) {
+func (this *RequestVoteRPC) Execute(state *raftstate.State) *messages.Rpc{
 	panic("unimplemented")
 }
 

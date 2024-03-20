@@ -26,24 +26,22 @@ func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, state raftstate.S
 }
 
 // Manage implements messages.Rpc.
-func (this *AppendEntryRPC) Execute(state *raftstate.State, resp *messages.Rpc) {
+func (this *AppendEntryRPC) Execute(state *raftstate.State) *messages.Rpc{
 
-	if ((*state).GetRole() != raftstate.FOLLOWER) {
-    (*state).SetRole(raftstate.FOLLOWER)
-  }
+    if ((*state).GetRole() != raftstate.FOLLOWER) {
+        (*state).SetRole(raftstate.FOLLOWER)
+    }
 
-  var appendEntryResp messages.Rpc
+    var appendEntryResp messages.Rpc
 
-  if (this.term < (*state).GetTerm()) || !checkConsistency(this.prevLogIndex, this.prevLogTerm, *state) { 
-    appendEntryResp = appendEntryResponse.NewAppendEntryResponse(false, 
-      (*state).GetTerm(), 
-      uint64(len((*state).GetEntries()) - 1))
-    resp = &appendEntryResp
-  } else {
+    if (this.term < (*state).GetTerm()) || !checkConsistency(this.prevLogIndex, this.prevLogTerm, *state) { 
+        appendEntryResp = appendEntryResponse.NewAppendEntryResponse(false, 
+        (*state).GetTerm(), 
+        uint64(len((*state).GetEntries()) - 1))
+    } else {
 
-  }
-
-    
+    }
+    return &appendEntryResp
 }
 
 // ToString implements messages.Rpc.

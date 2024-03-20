@@ -10,17 +10,23 @@ import (
 )
 
 type NEW_RPC struct {
-	term          uint64
+	term uint64
 }
 
-func NewAppendEntryRPC(term uint64) messages.Rpc {
+func NewNEW_RPCRPC(term uint64) messages.Rpc {
     return &NEW_RPC{
-        term:0,
+        term: 0,
     }
 }
 
+// GetId implements messages.Rpc.
+func (this *NEW_RPC) GetId() string {
+	panic("unimplemented")
+}
+
+
 // Manage implements messages.Rpc.
-func (this *NEW_RPC) Execute(n *sync.Map, state raftstate.State) {
+func (this *NEW_RPC) Execute(state *raftstate.State) *messages.Rpc {
 	panic("unimplemented")
 }
 
@@ -35,7 +41,7 @@ func (this NEW_RPC) GetTerm() uint64 {
 
 func (this NEW_RPC) Encode() ([]byte, error) {
 	appendEntry := &p.NEW_RPC{
-		Term:         proto.Uint64(this.term),
+		Term: proto.Uint64(this.term),
 	}
 
 	mess, err := proto.Marshal(appendEntry)
