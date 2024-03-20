@@ -183,7 +183,7 @@ func (s *Server) run() {
 			var mex cutom_mex.Message
             rpcCall = mess.payload
             sender = mess.sender
-			resp = rpcCall.Execute(&s._state)
+			resp = rpcCall.Execute(&s._state,&sender)
 			
       if resp != nil {
 				mex = cutom_mex.FromRpc(*resp)
