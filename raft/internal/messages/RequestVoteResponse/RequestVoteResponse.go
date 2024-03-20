@@ -15,8 +15,16 @@ type RequestVoteResponse struct {
 	term        uint64
 }
 
+func NewRequestVoteResponse(id string, voteGranted bool, term uint64) messages.Rpc {
+	return &RequestVoteResponse{
+		id:          id,
+		voteGranted: voteGranted,
+		term:        term,
+	}
+}
+
 // Manage implements messages.Rpc.
-func (this *RequestVoteResponse) Execute(state *raftstate.State) *messages.Rpc {
+func (this *RequestVoteResponse) Execute(state *raftstate.State, sender *string) *messages.Rpc {
 	panic("unimplemented")
 }
 
@@ -25,13 +33,6 @@ func (this *RequestVoteResponse) ToString() string {
 	return "{term : " + strconv.Itoa(int(this.term)) + ", \nvoteGranted: " + strconv.FormatBool(this.voteGranted) + "}"
 }
 
-func newRequestVoteResponse(id string, voteGranted bool, term uint64) messages.Rpc {
-	return &RequestVoteResponse{
-		id:          id,
-		voteGranted: voteGranted,
-		term:        term,
-	}
-}
 
 func (this RequestVoteResponse) GetId() string {
 	return this.id

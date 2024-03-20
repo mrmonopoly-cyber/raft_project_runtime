@@ -20,12 +20,12 @@ const (
 )
 
 type raftStateImpl struct {
-  id        string
-	term      uint64
-	leaderId  string
-	role      Role
-	voteFor   string
-	voting    bool
+	id               string
+	term             uint64
+	leaderId         string
+	role             Role
+	voteFor          string
+	voting           bool
 	electionTimeout  *time.Timer
 	heartbeatTimeout *time.Timer
 	log              l.Log
@@ -33,7 +33,7 @@ type raftStateImpl struct {
 
 
 type State interface {
-  GetId() string
+	GetId() string
 	GetTerm() uint64
 	GetRole() Role
 	StartElectionTimeout()
@@ -44,14 +44,16 @@ type State interface {
 	GetVoteFor() string
 	IncrementTerm()
 	VoteFor(id string)
+	CanVote() bool
 	GetEntries() []p.Entry
 	GetCommitIndex() uint64
 	SetRole(newRole Role)
-  SetTerm(newTerm uint64)
+	SetTerm(newTerm uint64)
+	MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool
 }
 
 func (_state *raftStateImpl) GetId() string {
-  return _state.id
+	return _state.id
 }
 
 func (_state *raftStateImpl) GetTerm() uint64 {
@@ -59,7 +61,7 @@ func (_state *raftStateImpl) GetTerm() uint64 {
 }
 
 func (_state *raftStateImpl) SetTerm(newTerm uint64) {
-  _state.term = newTerm
+	_state.term = newTerm
 }
 
 func (_state *raftStateImpl) GetRole() Role {
@@ -114,11 +116,16 @@ func (_state *raftStateImpl) VoteFor(id string) {
 	_state.voteFor = id
 }
 
+// MoreRecentLog implements State.
+func (_state *raftStateImpl) MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool {
+    return _state.MoreRecentLog(lastLogIndex,lastLogTerm)
+}
+
 func NewState(term uint64, id string, role Role) State {
 	var s = new(raftStateImpl)
 	s.role = role
 	s.term = term
-  s.id = id
+	s.id = id
 	// s.serversIP = serversIp
 	s.electionTimeout = time.NewTimer(ELECTION_TIMEOUT)
 	s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)

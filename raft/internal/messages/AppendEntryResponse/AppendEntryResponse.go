@@ -17,7 +17,7 @@ type AppendEntryResponse struct {
 }
 
 // Manage implements messages.Rpc.
-func (this *AppendEntryResponse) Execute(state *raftstate.State) *messages.Rpc {
+func (this *AppendEntryResponse) Execute(state *raftstate.State, sender *string) *messages.Rpc {
 	if !this.success {
 
 	} 

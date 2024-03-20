@@ -2,6 +2,7 @@ package RequestVoteRPC
 
 import (
 	"raft/internal/messages"
+	"raft/internal/messages/RequestVoteResponse"
 	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
 	"strconv"
@@ -87,5 +88,26 @@ func (this RequestVoteRPC) GetLastLogTerm() uint64 {
 
 // Manage implements messages.Rpc.
 func (this *RequestVoteRPC) Execute(state *raftstate.State, sender *string) *messages.Rpc{
-    panic("unimplemented")
+    var myVote string = (*state).GetVoteFor()
+
+    if ! (*state).CanVote(){
+        return nil
+    }
+    if this.term < (*state).GetTerm() {
+        return this.respondeVote(state, sender, false)
+    }
+
+    if ! (*state).MoreRecentLog(this.GetLastLogIndex(), this.GetLastLogTerm()) {
+        return this.respondeVote(state, sender,false)
+    }else if myVote == "" || myVote == *sender {
+        this.respondeVote(state,sender,true)
+        (*state).VoteFor(*sender)
+    }
+
+    return this.respondeVote(state,sender,false)
+}
+
+func (this *RequestVoteRPC) respondeVote(state *raftstate.State, sender *string, vote bool) *messages.Rpc{
+        var resp = RequestVoteResponse.NewRequestVoteResponse(*sender,vote,(*state).GetTerm())
+        return &resp
 }

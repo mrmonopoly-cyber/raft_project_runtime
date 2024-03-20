@@ -18,7 +18,7 @@ type CopyStateRPC struct {
 }
 
 // Manage implements messages.Rpc.
-func (this *CopyStateRPC) Execute(state *raftstate.State) *messages.Rpc{
+func (this *CopyStateRPC) Execute(state *raftstate.State, sender *string) *messages.Rpc{
 	panic("unimplemented")
 }
 
