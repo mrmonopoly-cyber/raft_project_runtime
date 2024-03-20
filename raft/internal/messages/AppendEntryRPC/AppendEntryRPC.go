@@ -26,7 +26,7 @@ func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, state raftstate.S
 }
 
 // Manage implements messages.Rpc.
-func (this *AppendEntryRPC) Execute(state *raftstate.State, sender *string) *messages.Rpc{
+func (this *AppendEntryRPC) Execute(state *raftstate.State) *messages.Rpc{
 
     if ((*state).GetRole() != raftstate.FOLLOWER) {
         (*state).SetRole(raftstate.FOLLOWER)

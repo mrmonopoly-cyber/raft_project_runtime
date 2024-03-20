@@ -24,7 +24,7 @@ func NewRequestVoteResponse(id string, voteGranted bool, term uint64) messages.R
 }
 
 // Manage implements messages.Rpc.
-func (this *RequestVoteResponse) Execute(state *raftstate.State, sender *string) *messages.Rpc {
+func (this *RequestVoteResponse) Execute(state *raftstate.State) *messages.Rpc {
 	panic("unimplemented")
 }
 

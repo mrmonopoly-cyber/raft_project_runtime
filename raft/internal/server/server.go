@@ -177,30 +177,30 @@ func (s *Server) run() {
 		var mess pairMex
         var rpcCall messages.Rpc
         var sender string
-		select {
-		case mess = <-s.messageChannel:
-			var resp *messages.Rpc
-			var mex cutom_mex.Message
+        select {
+        case mess = <-s.messageChannel:
+            var resp *messages.Rpc
+            var mex cutom_mex.Message
             rpcCall = mess.payload
             sender = mess.sender
-			resp = rpcCall.Execute(&s._state,&sender)
-			
-      if resp != nil {
-				mex = cutom_mex.FromRpc(*resp)
-				var f any
-				var ok bool
-				f, ok = s.otherNodes.Load(generateID(sender))
+            resp = rpcCall.Execute(&s._state)
 
-				if !ok {
-					log.Printf("Node %s not found", sender)
-					continue
-				}
+            if resp != nil {
+                mex = cutom_mex.FromRpc(*resp)
+                var f any
+                var ok bool
+                f, ok = s.otherNodes.Load(generateID(sender))
 
-				f.(node.Node).Send(mex.ToByte())
-			}
-		case <-s._state.HeartbeatTimeout().C:
-			//node.SendAll(s.otherNodes)
-		case <-s._state.ElectionTimeout().C:
-		}
+                if !ok {
+                    log.Printf("Node %s not found", sender)
+                    continue
+                }
+
+                f.(node.Node).Send(mex.ToByte())
+            }
+        case <-s._state.HeartbeatTimeout().C:
+            //node.SendAll(s.otherNodes)
+        case <-s._state.ElectionTimeout().C:
+        }
 	}
 }
