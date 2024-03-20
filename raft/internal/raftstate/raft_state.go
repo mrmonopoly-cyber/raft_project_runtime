@@ -118,7 +118,7 @@ func (_state *raftStateImpl) VoteFor(id string) {
 
 // MoreRecentLog implements State.
 func (_state *raftStateImpl) MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool {
-    return _state.MoreRecentLog(lastLogIndex,lastLogTerm)
+    return _state.log.More_recent_log(lastLogIndex,lastLogTerm)
 }
 
 func NewState(term uint64, id string, role Role) State {

@@ -7,11 +7,13 @@ import (
 	"log"
 	"net"
 	messages "raft/internal/messages"
+	"raft/internal/messages/RequestVoteRPC"
 	"raft/internal/node"
 	cutom_mex "raft/internal/node/message"
 	state "raft/internal/raftstate"
 	"reflect"
 	"sync"
+    p "raft/pkg/protobuf"
 )
 
 type pairMex struct{
@@ -201,6 +203,29 @@ func (s *Server) run() {
         case <-s._state.HeartbeatTimeout().C:
             //node.SendAll(s.otherNodes)
         case <-s._state.ElectionTimeout().C:
+            s.startNewElection()
         }
 	}
+}
+
+func (s *Server) startNewElection(){
+    s.otherNodes.Range(func(key, value any) bool {
+        var node node.Node = value.(node.Node)
+        var entries []p.Entry = s._state.GetEntries()
+        var len_ent = len(entries) -1
+        var mex cutom_mex.Message
+        var raw_data []byte
+        var voteRequest messages.Rpc
+
+        voteRequest = RequestVoteRPC.NewRequestVoteRPC(
+            s._state.GetTerm(),
+            s._state.GetId(),
+            uint64(len_ent),
+            entries[len_ent].GetTerm())
+        mex = cutom_mex.FromRpc(voteRequest)
+        raw_data = mex.ToByte()
+        node.Send(raw_data)
+        
+        return true
+    })
 }
