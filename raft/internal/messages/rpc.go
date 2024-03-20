@@ -10,7 +10,7 @@ type Rpc interface {
   Encode() ([]byte, error)
   Decode(b []byte) error
   ToString() string
-  Execute(state *raftstate.State, resp *Rpc) 
+  Execute(state *raftstate.State) *Rpc 
 }
 
 
