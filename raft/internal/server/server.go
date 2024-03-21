@@ -79,7 +79,7 @@ func (s *Server) Start() {
 
 	go s.acceptIncomingConn()
 
-	//s.connectToServers()
+	s.connectToServers()
 
 	s._state.StartElectionTimeout()
 
@@ -99,6 +99,9 @@ func (s *Server) Start() {
  */
 func (s *Server) connectToServers() {
     log.Fatalln("connecting to list of nodes")
+    if s.otherNodes == nil {
+        panic("Map of Node not allocated")
+    }
 	s.otherNodes.Range(func(key any, value interface{}) bool {
         log.Fatalln("connecting to a node")
 		var nodeEle node.Node
