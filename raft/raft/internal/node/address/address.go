@@ -36,7 +36,8 @@ func (this nodeAddress) GetIp() string {
 
 func (this nodeAddress) GetPort() string {
     log.Println("returning port: ", this.port)
-    return strconv.FormatUint(uint64(this.port),10)
+    // return strconv.FormatUint(uint64(this.port),10)
+    return "8080"
 }
 
 func NewNodeAddress(ipAddr string, port string) NodeAddress{
