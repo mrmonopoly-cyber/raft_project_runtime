@@ -22,12 +22,14 @@ type nodeAddress struct {
 func (this nodeAddress) GetIp() string {
 	var ipAddr string = ""
 	var num uint8 = this.sectors[0]
+    var i =0
 
-	for i := 0; i < sectorsNumber-1; i++ {
+	for i = 0; i < sectorsNumber-1; i++ {
 		num = this.sectors[i]
 		ipAddr += strconv.Itoa(int(num))
 		ipAddr += "."
 	}
+	num = this.sectors[i]
 	ipAddr += strconv.Itoa(int(num))
 	return ipAddr
 }
