@@ -83,7 +83,7 @@ func (s *Server) Start() {
 	go s.acceptIncomingConn()
 
     log.Println("connect To other Servers")
-	// s.connectToServers()
+	s.connectToServers()
 
     log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
@@ -121,7 +121,8 @@ func (s *Server) connectToServers() {
 			return false
 		}
 		var ipAddr string = nodeEle.GetIp()
-		var port string = nodeEle.GetPort()
+		// var port string = nodeEle.GetPort()
+		var port string = "8080"
         log.Println("connecting to: " + ipAddr + ":" + port)
 		var conn, err = net.Dial("tcp", ipAddr+":"+port)
 		for err != nil {
