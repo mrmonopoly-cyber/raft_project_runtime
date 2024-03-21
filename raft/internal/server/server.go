@@ -99,6 +99,7 @@ func (s *Server) Start() {
  */
 func (s *Server) connectToServers() {
 	s.otherNodes.Range(func(key any, value interface{}) bool {
+        log.Fatalln("connecting to a node")
 		var nodeEle node.Node
 		var errEl bool
 		nodeEle, errEl = value.(node.Node)
@@ -115,7 +116,6 @@ func (s *Server) connectToServers() {
 		}
 		if conn != nil {
 			nodeEle.AddConnOut(&conn)
-            s._state.AddNondeInCluster()
 		}
 		return true
 	})
