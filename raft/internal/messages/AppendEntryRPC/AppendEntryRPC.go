@@ -1,12 +1,15 @@
 package AppendEntryRPC
 
 import (
+	"log"
 	"raft/internal/messages"
 	appendEntryResponse "raft/internal/messages/AppendEntryResponse"
+
 	//"raft/internal/node"
 	"raft/internal/raftstate"
 	p "raft/pkg/protobuf"
 	"strconv"
+
 	//"sync"
 
 	"google.golang.org/protobuf/proto"
@@ -68,16 +71,26 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 
 func GenerateHearthbeat(state raftstate.State) messages.Rpc {
 	entries := state.GetEntries()
-	prevLogIndex := len(entries) - 2
-	prevLogTerm := entries[prevLogIndex].GetTerm()
-  return &AppendEntryRPC{
-		term:         state.GetTerm(),
-		leaderId:     state.GetId(),
-		prevLogIndex: uint64(prevLogIndex),
-		prevLogTerm:  prevLogTerm,
-		entries:      make([]*p.Entry, 0),
-		leaderCommit: state.GetCommitIndex(),
-	}
+	prevLogIndex := len(entries)
+    var prevLogTerm  uint64 = 0
+    if prevLogIndex > 0 {
+        prevLogIndex-=2
+        prevLogTerm = entries[prevLogIndex].GetTerm()
+    }
+
+    var app = &AppendEntryRPC{
+        term:         state.GetTerm(),
+        leaderId:     state.GetId(),
+        prevLogIndex: uint64(prevLogIndex),
+        prevLogTerm:  prevLogTerm,
+        entries:      make([]*p.Entry, 0),
+        leaderCommit: state.GetCommitIndex(),
+    }
+
+    log.Print("hearthbit from ", state.GetId())
+    log.Println(" : ", app.ToString())
+
+    return app
 }
 
 
