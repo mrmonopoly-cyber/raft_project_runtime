@@ -48,6 +48,7 @@ func NewNodeAddress(ipAddr string, port string) NodeAddress {
 			fmt.Println("Error:", err)
 			return nil
 		}
+        log.Println("sector: ", out)
 		node.sectors[i] = uint8(out)
 	}
 
