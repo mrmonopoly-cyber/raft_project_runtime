@@ -33,7 +33,6 @@ func (this nodeAddress) GetIp() string {
 }
 
 func (this nodeAddress) GetPort() string {
-	log.Println("returning port: ", this.port)
 	return strconv.Itoa(int(this.port))
 }
 
