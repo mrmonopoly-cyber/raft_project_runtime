@@ -79,7 +79,7 @@ func (s *Server) Start() {
 
 	go s.acceptIncomingConn()
 
-	s.connectToServers()
+	//s.connectToServers()
 
 	s._state.StartElectionTimeout()
 
