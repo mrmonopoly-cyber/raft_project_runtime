@@ -279,8 +279,8 @@ func (s *Server) leaderHearthBit(){
             hearthBit = AppendEntryRPC.GenerateHearthbeat(s._state)
             log.Println("sending hearthbit")
             s.sendAll(&hearthBit)
+            s._state.StartHearthbeatTimeout()
         }
     }
     log.Println("no longer LEADER, stop sending hearthbit")
-    s._state.StartHearthbeatTimeout()
 }
