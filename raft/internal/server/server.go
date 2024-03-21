@@ -10,7 +10,7 @@ import (
 	"raft/internal/messages/AppendEntryRPC"
 	"raft/internal/messages/RequestVoteRPC"
 	"raft/internal/node"
-	cutom_mex "raft/internal/node/message"
+	custom_mex "raft/internal/node/message"
 	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
 	p "raft/pkg/protobuf"
@@ -19,7 +19,7 @@ import (
 )
 
 type pairMex struct{
-    payload messages.Rpc
+    payload *messages.Rpc
     sender string
 }
 
@@ -186,8 +186,11 @@ func (s *Server) handleResponse() {
 					node.GetIp(), errMes)
 				return false
 			}
+            if message == "" {
+                panic("empty string as message")
+            }
 			s.messageChannel <- 
-                pairMex{*cutom_mex.NewMessage([]byte(message)).ToRpc(),node.GetIp()}
+                pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),node.GetIp()}
 			return true
 		})
 	}
@@ -196,10 +199,10 @@ func (s *Server) handleResponse() {
 func (s *Server) sendAll(rpc *messages.Rpc){
     s.otherNodes.Range(func(key, value any) bool {
         var node node.Node = value.(node.Node)
-        var mex cutom_mex.Message
+        var mex custom_mex.Message
         var raw_mex []byte
 
-        mex = cutom_mex.FromRpc(*rpc)
+        mex = custom_mex.FromRpc(*rpc)
         raw_mex = mex.ToByte()
         node.Send(raw_mex)
         return true
@@ -213,21 +216,21 @@ func (s *Server) run() {
 
         select {
         case mess = <-s.messageChannel:
-            var rpcCall messages.Rpc
+            var rpcCall *messages.Rpc
             var sender string
             var oldRole raftstate.Role
             var newRole raftstate.Role
             var resp *messages.Rpc
-            var mex cutom_mex.Message
+            var mex custom_mex.Message
 
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
             sender = mess.sender
-            resp = rpcCall.Execute(&s._state)
+            resp = (*rpcCall).Execute(&s._state)
             newRole = s._state.GetRole()
 
             if resp != nil {
-                mex = cutom_mex.FromRpc(*resp)
+                mex = custom_mex.FromRpc(*resp)
                 var f any
                 var ok bool
                 f, ok = s.otherNodes.Load(generateID(sender))
