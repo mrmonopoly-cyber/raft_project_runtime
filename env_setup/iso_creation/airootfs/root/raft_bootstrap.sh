@@ -40,7 +40,7 @@ echo "setted ips"
 ##start main program of raft
 
 echo "started execution of raft"
-$raft_dir/raft/bin/$raft_executable
+$raft_dir/raft/raft/bin/raft
 
 echo "exiting"
 exit 1
