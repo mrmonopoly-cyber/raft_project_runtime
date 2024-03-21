@@ -186,11 +186,10 @@ func (s *Server) handleResponse() {
 					node.GetIp(), errMes)
 				return false
 			}
-            if message == "" {
-                panic("empty string as message")
-            }
-			s.messageChannel <- 
+            if message != "" {
+                s.messageChannel <- 
                 pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),node.GetIp()}
+            }
 			return true
 		})
 	}
