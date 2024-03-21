@@ -7,13 +7,15 @@ import (
 	"log"
 	"net"
 	messages "raft/internal/messages"
+	"raft/internal/messages/AppendEntryRPC"
 	"raft/internal/messages/RequestVoteRPC"
 	"raft/internal/node"
 	cutom_mex "raft/internal/node/message"
+	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
+	p "raft/pkg/protobuf"
 	"reflect"
 	"sync"
-    p "raft/pkg/protobuf"
 )
 
 type pairMex struct{
@@ -190,15 +192,21 @@ func (s *Server) run() {
 	defer s.wg.Done()
 	for {
 		var mess pairMex
-        var rpcCall messages.Rpc
-        var sender string
+
         select {
         case mess = <-s.messageChannel:
+            var rpcCall messages.Rpc
+            var sender string
+            var oldRole raftstate.Role
+            var newRole raftstate.Role
             var resp *messages.Rpc
             var mex cutom_mex.Message
+
+            oldRole = s._state.GetRole()
             rpcCall = mess.payload
             sender = mess.sender
             resp = rpcCall.Execute(&s._state)
+            newRole = s._state.GetRole()
 
             if resp != nil {
                 mex = cutom_mex.FromRpc(*resp)
@@ -213,8 +221,11 @@ func (s *Server) run() {
 
                 f.(node.Node).Send(mex.ToByte())
             }
-        case <-s._state.HeartbeatTimeout().C:
-            //node.SendAll(s.otherNodes)
+
+            if newRole == state.LEADER && oldRole != newRole {
+                go s.leaderHearthBit()
+            }
+
         case <-s._state.ElectionTimeout().C:
             s.startNewElection()
         }
@@ -237,5 +248,22 @@ func (s *Server) startNewElection(){
         entries[len_ent].GetTerm())
 
     s.sendAll(&voteRequest)
+}
 
+//TODO: finish creation of hearthBit Rpc, the current field are wrong and only for testing purpose
+func (s *Server) leaderHearthBit(){
+    for s._state.GetRole() == state.LEADER{
+        select{
+        case <- s._state.HeartbeatTimeout().C:
+            var hearthBit messages.Rpc = AppendEntryRPC.NewAppendEntryRPC(
+                s._state.GetTerm(),
+                s._state.GetId(),
+                0,
+                0,
+                nil,
+                0,
+            )
+            s.sendAll(&hearthBit)
+        }
+    }
 }

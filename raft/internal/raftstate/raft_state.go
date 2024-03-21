@@ -29,7 +29,11 @@ type raftStateImpl struct {
 	electionTimeout  *time.Timer
 	heartbeatTimeout *time.Timer
 	log              l.Log
+	nSupporting      uint64
+	nNotSupporting   uint64
+	nNodeInCluster   uint64
 }
+
 
 
 type State interface {
@@ -50,6 +54,13 @@ type State interface {
 	SetRole(newRole Role)
 	SetTerm(newTerm uint64)
 	MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool
+	IncreaseSupporters()
+	IncreaseNotSupporters()
+	IncreaseNodeInCluster()
+	GetNumSupporters() uint64
+	GetNumNotSupporters() uint64
+	GetNumNodeInCluster() uint64
+    ResetElection()
 }
 
 func (_state *raftStateImpl) GetId() string {
@@ -118,7 +129,42 @@ func (_state *raftStateImpl) VoteFor(id string) {
 
 // MoreRecentLog implements State.
 func (_state *raftStateImpl) MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool {
-    return _state.log.More_recent_log(lastLogIndex,lastLogTerm)
+	return _state.log.More_recent_log(lastLogIndex, lastLogTerm)
+}
+
+// GetNumSupporters implements State.
+func (_state *raftStateImpl) GetNumSupporters() uint64 {
+	return _state.nSupporting
+}
+
+// IncreaseNotSupporters implements State.
+func (_state *raftStateImpl) IncreaseNotSupporters() {
+	_state.nNotSupporting++
+}
+
+// IncreaseSupporters implements State.
+func (_state *raftStateImpl) IncreaseSupporters() {
+	_state.nSupporting++
+}
+
+// GetNumNotSupporters implements State.
+func (_state *raftStateImpl) GetNumNotSupporters() uint64 {
+	return _state.nNotSupporting
+}
+
+// GetNumNodeInCluster implements State.
+func (_state *raftStateImpl) GetNumNodeInCluster() uint64 {
+	return _state.nNodeInCluster
+}
+
+// IncreaseNodeInCluster implements State.
+func (_state *raftStateImpl) IncreaseNodeInCluster() {
+	_state.nNodeInCluster++
+}
+
+func (_state *raftStateImpl) ResetElection(){
+    _state.nSupporting = 0
+    _state.nNotSupporting = 0
 }
 
 func NewState(term uint64, id string, role Role) State {
@@ -129,6 +175,8 @@ func NewState(term uint64, id string, role Role) State {
 	// s.serversIP = serversIp
 	s.electionTimeout = time.NewTimer(ELECTION_TIMEOUT)
 	s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)
+	s.nNotSupporting = 0
+	s.nSupporting = 0
 
 	return s
 }

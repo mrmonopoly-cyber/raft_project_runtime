@@ -82,24 +82,3 @@ func (this *node) GetIp() string {
 func (this *node) GetPort() string {
 	return this.addr.GetPort()
 }
-
-/*
- *  Send to every connected server a bunch of bytes
- */
-func SendAll(nodes *sync.Map, mex []byte) {
-	nodes.Range(func(k, conn interface{}) bool {
-		// conn.(node.Node)
-		var nodeConv Node
-		var err bool
-		nodeConv, err = conn.(Node)
-
-		if !err {
-			log.Println("invalid node in othersNode")
-			return false
-		}
-
-		log.Println(string(mex))
-		nodeConv.Send(mex)
-		return true
-	})
-}
