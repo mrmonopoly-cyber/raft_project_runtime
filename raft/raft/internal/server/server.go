@@ -98,6 +98,7 @@ func (s *Server) Start() {
  * Create a connection between this server to all the others and populate the map containing these connections
  */
 func (s *Server) connectToServers() {
+    log.Fatalln("connecting to list of nodes")
 	s.otherNodes.Range(func(key any, value interface{}) bool {
         log.Fatalln("connecting to a node")
 		var nodeEle node.Node
