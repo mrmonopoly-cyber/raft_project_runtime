@@ -38,7 +38,7 @@ touch $my_ip_pos
 echo "$my_ip" > $my_ip_pos
 echo "setted ips"
 
-while [[ ! -e $others_ip_pos ]]; do
+while [[ ! -f $others_ip_pos ]]; do
     sleep 1
 done
 
@@ -48,4 +48,4 @@ echo "started execution of raft"
 $raft_dir/raft/raft/bin/raft
 
 echo "exiting"
-exit 1
+exit 0
