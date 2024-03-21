@@ -25,7 +25,7 @@ const (
 )
 
 type Message struct {
-	Ty      EnumType
+	Kind      p.Ty
 	Payload []byte
 }
 
@@ -36,16 +36,16 @@ func (m *Message) ToMessage(b []byte) {
 func (this *Message) ToByte() []byte {
 	var t p.Ty
 
-	switch this.Ty {
-	case APPEND_ENTRY:
+	switch this.Kind {
+	case p.Ty_APPEND_ENTRY:
 		t = p.Ty_APPEND_ENTRY
-	case APPEND_RESPONSE:
+	case p.Ty_APPEND_RESPONSE:
 		t = p.Ty_APPEND_RESPONSE
-	case REQUEST_VOTE:
+	case p.Ty_REQUEST_VOTE:
 		t = p.Ty_REQUEST_VOTE
-	case VOTE_RESPONSE:
+	case p.Ty_VOTE_RESPONSE:
 		t = p.Ty_VOTE_RESPONSE
-	case COPY_STATE:
+	case p.Ty_COPY_STATE:
 		t = p.Ty_COPY_STATE
 	}
 
@@ -58,28 +58,28 @@ func (this *Message) ToByte() []byte {
 }
 
 func NewMessage(data []byte) *Message {
-	mess := new(p.Message)
-	proto.Unmarshal(data, mess)
+	var mess p.Message= *new(p.Message)
+	proto.Unmarshal(data, &mess)
 
 	return &Message{
-		Ty:      EnumType(*mess.Kind),
+		Kind:      *mess.Kind,
 		Payload: mess.Payload,
 	}
 }
 
 func FromRpc(rpc messages.Rpc) Message {
-	var ty EnumType
+	var ty p.Ty 
 	switch rpc.(type) {
 	case *AppendEntryRPC.AppendEntryRPC:
-		ty = APPEND_ENTRY
+		ty = p.Ty_APPEND_ENTRY
 	case *RequestVoteRPC.RequestVoteRPC:
-		ty = REQUEST_VOTE
+		ty = p.Ty_REQUEST_VOTE
 	case *AppendEntryResponse.AppendEntryResponse:
-		ty = APPEND_RESPONSE
+		ty = p.Ty_APPEND_RESPONSE
 	case *RequestVoteResponse.RequestVoteResponse:
-		ty = VOTE_RESPONSE
+		ty = p.Ty_VOTE_RESPONSE
 	case *CopyStateRPC.CopyStateRPC:
-		ty = COPY_STATE
+		ty = p.Ty_COPY_STATE
 	}
 
 	var enc []byte
@@ -91,7 +91,7 @@ func FromRpc(rpc messages.Rpc) Message {
 	}
 
 	return Message{
-		Ty:      ty,
+		Kind:    ty,
 		Payload: enc,
 	}
 }
@@ -99,24 +99,24 @@ func FromRpc(rpc messages.Rpc) Message {
 func (this *Message) ToRpc() *messages.Rpc {
 
 	var recRpc messages.Rpc
-	switch this.Ty {
-	case APPEND_ENTRY:
+	switch this.Kind {
+	case p.Ty_APPEND_ENTRY:
 		var rpc AppendEntryRPC.AppendEntryRPC
 		recRpc = &rpc
-	case APPEND_RESPONSE:
+	case p.Ty_APPEND_RESPONSE:
 		var rpc AppendEntryResponse.AppendEntryResponse
 		recRpc = &rpc
-	case REQUEST_VOTE:
+	case p.Ty_REQUEST_VOTE:
 		var rpc RequestVoteRPC.RequestVoteRPC
 		recRpc = &rpc
-	case VOTE_RESPONSE:
+	case p.Ty_VOTE_RESPONSE:
 		var rpc RequestVoteResponse.RequestVoteResponse
 		recRpc = &rpc
-	case COPY_STATE:
+	case p.Ty_COPY_STATE:
 		var rpc CopyStateRPC.CopyStateRPC
 		recRpc = &rpc
 	default:
-		panic("impossible case invalid type RPC " + string(rune(this.Ty)))
+		panic("impossible case invalid type RPC " + string(rune(this.Kind)))
 	}
 	recRpc.Decode(this.Payload)
 
