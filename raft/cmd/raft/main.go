@@ -31,11 +31,11 @@ func main() {
 
   log.Println("list of other nodes: ", stringOthersIp)
 
-  var randomPort = rand.Intn(10)
+  var randomPort = strconv.Itoa(8080 + rand.Intn(10))
 
-  log.Println("listening on port: " + strconv.Itoa(8080 + randomPort))
+  log.Println("listening on port: " + randomPort)
 
-  var server1 *ser.Server = ser.NewServer(0,stringMyIp, "8080", addresses)
+  var server1 *ser.Server = ser.NewServer(0, stringMyIp, randomPort, addresses)
 
   var wg sync.WaitGroup
 
