@@ -106,7 +106,7 @@ func (s *Server) Start() {
  * Create a connection between this server to all the others and populate the map containing these connections
  */
 func (s *Server) connectToServers() {
-    log.Fatalln("connecting to list of nodes")
+    log.Println("connecting to list of nodes")
     if s.otherNodes == nil {
         panic("Map of Node not allocated")
     }
