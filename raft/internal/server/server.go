@@ -241,7 +241,7 @@ func (s *Server) startNewElection(){
 
     entries = s._state.GetEntries()
     len_ent = len(entries)
-    if len_ent < 0 {
+    if len_ent == -1 {
         len_ent=0
     }
 
