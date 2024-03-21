@@ -122,7 +122,6 @@ func (s *Server) connectToServers() {
 		}
 		var ipAddr string = nodeEle.GetIp()
 		var port string = nodeEle.GetPort()
-		// var port string = "8080"
         log.Println("connecting to: " + ipAddr + ":" + port)
 		var conn, err = net.Dial("tcp", ipAddr+":"+port)
 		for err != nil {
