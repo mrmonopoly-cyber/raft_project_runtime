@@ -61,7 +61,10 @@ func NewMessage(data []byte) *Message {
 	var mess p.Message
     var mex_type p.Ty 
 
-    proto.Unmarshal(data, &mess)
+    var err error =proto.Unmarshal(data, &mess)
+    if err != nil {
+        log.Panic("error Unmarshal", err)
+    }
     mex_type = *mess.Kind
 
     log.Println("mex type :", mex_type)
