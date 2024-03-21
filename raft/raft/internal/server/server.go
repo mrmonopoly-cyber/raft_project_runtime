@@ -94,7 +94,7 @@ func (s *Server) Start() {
 	// }
 
     log.Println("start main run")
-	go s.run()
+	// go s.run()
 
     log.Println("start handle response")
 	// go s.handleResponse()
