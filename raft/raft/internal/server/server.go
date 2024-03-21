@@ -140,6 +140,8 @@ func (s *Server) acceptIncomingConn() {
 		var newConncetionPort string = string(rune(tcpAddr.Port))
 		var id_node string = generateID(newConncetionIp)
 		var value, found = s.otherNodes.Load(id_node)
+        
+        log.Println("enstablish connection with node: ", id_node)
 
 		if found {
 			var connectedNode node.Node = value.(node.Node)
