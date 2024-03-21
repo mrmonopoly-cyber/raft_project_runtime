@@ -223,6 +223,7 @@ func (s *Server) run() {
             }
 
             if newRole == state.LEADER && oldRole != newRole {
+                log.Println("it's time to be leader")
                 go s.leaderHearthBit()
             }
 
@@ -256,6 +257,7 @@ func (s *Server) startNewElection(){
         entryTerm)
 
     s.sendAll(&voteRequest)
+    s._state.IncreaseSupporters()
 }
 
 //TODO: finish creation of hearthBit Rpc, the current field are wrong and only for testing purpose
