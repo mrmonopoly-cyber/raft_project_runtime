@@ -71,7 +71,9 @@ func (this *node) Send(mex []byte) error {
 	//        return err
 	//    }
 	this.send.mu.Lock()
-	fmt.Fprintf(this.send.conn, string(mex))
+    if this.send.conn != nil {
+        fmt.Fprintf(this.send.conn, string(mex))
+    }
 	this.send.mu.Unlock()
 	return nil
 }
