@@ -1,6 +1,7 @@
 package raftstate
 
 import (
+	"log"
 	l "raft/internal/raft_log"
 	p "raft/pkg/protobuf"
 	"time"
@@ -108,6 +109,7 @@ func (_state *raftStateImpl) CanVote() bool {
 }
 
 func (_state *raftStateImpl) HeartbeatTimeout() *time.Timer {
+    log.Println("timeout hearthbit")
 	return _state.heartbeatTimeout
 }
 
