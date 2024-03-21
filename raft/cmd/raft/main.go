@@ -3,7 +3,9 @@ package main
 import (
 	//"flag"
 	"log"
+	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 
 	//"strings"
@@ -29,7 +31,10 @@ func main() {
 
   log.Println("list of other nodes: ", stringOthersIp)
 
-  var server1 *ser.Server = ser.NewServer(0,stringMyIp, "8080", addresses)
+  var port = 8080 + rand.Intn(10)
+  log.Println("listening on port: ", port)
+
+  var server1 *ser.Server = ser.NewServer(0,stringMyIp, strconv.Itoa(port), addresses)
 
   var wg sync.WaitGroup
 
