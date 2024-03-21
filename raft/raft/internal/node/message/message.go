@@ -58,11 +58,10 @@ func (this *Message) ToByte() []byte {
 }
 
 func NewMessage(data []byte) *Message {
-	var mess *p.Message
+	var mess p.Message
     var mex_type p.Ty 
 
-    mess = new(p.Message)
-    proto.Unmarshal(data, mess)
+    proto.Unmarshal(data, &mess)
     mex_type = *mess.Kind
 
     log.Println("mex type :", mex_type)
