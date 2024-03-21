@@ -38,7 +38,8 @@ pwd_conv=$(echo $pwd\/.work | sed 's/\//\\\//g')
 
 virsh --connect=qemu:///system vol-create-as default $disk_prefix$RAFT_NODE.qcow2  10G --format qcow2
 
-pwd_conv=$(echo /var/lib/libvirt/images/$disk_prefix$RAFT_NODE.qcow2 | sed 's/\//\\\//g')
+
+pwd_conv=$(echo /var/lib/libvirt/images/${disk_prefix}${RAFT_NODE}.qcow2 | sed 's/\//\\\//g')
 
 sed -i "s/$subs_expr_disk/$pwd_conv/" $temp_xml_vm
 sed -i "s/$subs_expr_vm_name/VM_RAFT_$RAFT_NODE/" $temp_xml_vm

@@ -1,4 +1,4 @@
-<domain type='kvm' id='1'>
+<domain type='kvm' id='1'>vm
   <name>RAFT_NODE_NAME</name>
   <metadata>
     <libosinfo:libosinfo xmlns:libosinfo="http://libosinfo.org/xmlns/libvirt/domain/1.0">
