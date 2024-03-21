@@ -99,6 +99,7 @@ func (s *Server) Start() {
  */
 func (s *Server) connectToServers() {
     log.Fatalln("connecting to list of nodes")
+    return
 	s.otherNodes.Range(func(key any, value interface{}) bool {
         log.Fatalln("connecting to a node")
 		var nodeEle node.Node
