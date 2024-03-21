@@ -62,7 +62,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 	}
 
     log.Println("number of others ip: ", len(serversIp))
-	for i := 0; i < len(serversIp)-2; i++ {
+	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
 		var err error
 		new_node, err = node.NewNode(serversIp[i], port)
