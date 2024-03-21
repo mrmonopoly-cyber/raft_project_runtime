@@ -238,13 +238,15 @@ func (s *Server) startNewElection(){
     var voteRequest messages.Rpc
 
     s._state.IncrementTerm()
+
+    entries = s._state.GetEntries()
     len_ent = len(entries)
     if len_ent < 0 {
         len_ent=0
     }
+
     log.Println("len entries:", len_ent)
     log.Println("entries: ", entries)
-    entries = s._state.GetEntries()
 
     voteRequest = RequestVoteRPC.NewRequestVoteRPC(
         s._state.GetTerm(),
