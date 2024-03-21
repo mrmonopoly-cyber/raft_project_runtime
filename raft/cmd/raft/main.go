@@ -29,7 +29,7 @@ func main() {
 
   log.Println("list of other nodes: ", stringOthersIp)
 
-  var server1 *ser.Server = ser.NewServer(0,stringMyIp, "8080", addresses)
+  var server1 *ser.Server = ser.NewServer(0,stringMyIp, "8888", addresses)
 
   var wg sync.WaitGroup
 
