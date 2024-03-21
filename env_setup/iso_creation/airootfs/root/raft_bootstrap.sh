@@ -2,7 +2,7 @@
 
 work_dir=/root
 mount_p=$work_dir/mount
-raft_dir=$mount_p/raft/raft
+raft_dir=$mount_p/raft
 my_ip_pos=$raft_dir/my_ip
 raft_executable=raft
 raft_branch=raft_executables 
@@ -40,8 +40,7 @@ echo "setted ips"
 ##start main program of raft
 
 echo "started execution of raft"
-$raft_dir/build.sh
-$raft_dir/bin/$raft_executable
+$raft_dir/raft/bin/$raft_executable
 
 echo "exiting"
-exit 0
+exit 1

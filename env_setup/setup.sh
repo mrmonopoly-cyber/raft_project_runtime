@@ -21,8 +21,7 @@ sudo usermod  -aG libvirt $first_user
 
 echo "creating iso"
 sudo mkarchiso -A raft_install.sh  -w work -o out -v -r ./iso_creation 
-sudo cp ./raft_live_install*.iso /var/lib/libvirt/images/raft_live_install.iso
-sudo rm ./out/*
+sudo mv ./out/* /var/lib/libvirt/images/raft_live_install.iso
 
 echo "installing ssh"
 sudo pacman -Sy openssh 
