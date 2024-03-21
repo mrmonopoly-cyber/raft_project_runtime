@@ -2,6 +2,7 @@ package address
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -38,6 +39,8 @@ func (this nodeAddress) GetPort() string {
 func NewNodeAddress(ipAddr string, port string) NodeAddress {
 	var sectorsStr = strings.Split(ipAddr, ".")
 	var node nodeAddress
+
+    log.Println("creating new address from: ", ipAddr)
 
 	for i := 0; i < sectorsNumber; i++ {
 		out, err := strconv.Atoi(sectorsStr[i])
