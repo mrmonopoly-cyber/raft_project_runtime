@@ -14,7 +14,7 @@ import (
 
 func main() {
 
-  var workDir = "/root/raft_project_runtimet/"
+  var workDir = "/root/mount/raft/"
   var fileMyIp, _ = os.ReadFile(workDir + "my_ip")
   var fileOthersIp, _ = os.ReadFile(workDir + "others_ip")
   var stringMyIp = string(fileMyIp)
