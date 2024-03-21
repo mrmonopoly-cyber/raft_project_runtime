@@ -2,9 +2,9 @@
 
 work_dir=/root
 mount_p=$work_dir/mount
-raft_dir=$mount_p/raft
+raft_dir=$mount_p/raft/raft
 my_ip_pos=$raft_dir/my_ip
-raft_executable=raft_main
+raft_executable=raft
 raft_branch=raft_executables 
 raft_url=https://github.com/mrmonopoly-cyber/raft_project_runtime.git 
 my_ip=""
@@ -40,7 +40,8 @@ echo "setted ips"
 ##start main program of raft
 
 echo "started execution of raft"
-$raft_dir/$raft_executable
+$raft_dir/build.sh
+$raft_dir/bin/$raft_executable
 
 echo "exiting"
 exit 0
