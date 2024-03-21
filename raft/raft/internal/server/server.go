@@ -48,7 +48,7 @@ func generateID(input string) string {
 }
 
 func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Server {
-	listener, err := net.Listen("tcp", ip_addr+":"+port)
+	listener, err := net.Listen("tcp", ":"+port)
 
 	if err != nil {
 		log.Fatalf("Failed to listen on port %s: %s", port, err)
