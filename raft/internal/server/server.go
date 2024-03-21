@@ -106,7 +106,7 @@ func (s *Server) connectToServers() {
 		nodeEle, errEl = value.(node.Node)
 		if !errEl {
 			log.Println("invalid object in otherNodes map: ", reflect.TypeOf(nodeEle))
-			return false
+			return true
 		}
 		var ipAddr string = nodeEle.GetIp()
 		var port string = nodeEle.GetPort()
