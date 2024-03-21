@@ -79,6 +79,5 @@ func (this *node) GetIp() string {
 }
 
 func (this *node) GetPort() string {
-	// return this.addr.GetPort()
-    return "8080"
+	return this.addr.GetPort()
 }
