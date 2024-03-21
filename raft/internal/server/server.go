@@ -83,7 +83,7 @@ func (s *Server) Start() {
 	go s.acceptIncomingConn()
 
     log.Println("connect To other Servers")
-	s.connectToServers()
+	// s.connectToServers()
 
     log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
