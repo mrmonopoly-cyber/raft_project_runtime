@@ -58,11 +58,18 @@ func (this *Message) ToByte() []byte {
 }
 
 func NewMessage(data []byte) *Message {
-	var mess p.Message= *new(p.Message)
-	proto.Unmarshal(data, &mess)
+	var mess *p.Message
+    var mex_type p.Ty 
+
+    mess = new(p.Message)
+    proto.Unmarshal(data, mess)
+    mex_type = *mess.Kind
+
+    log.Println("mex type :", mex_type)
+    log.Println("mex payload:", mess.Payload)
 
 	return &Message{
-		Kind:      *mess.Kind,
+		Kind:       mex_type,
 		Payload: mess.Payload,
 	}
 }
