@@ -32,10 +32,12 @@ type node struct {
 // before: func (this *node) Recv() (*messages.Rpc, error)
 func (this *node) Recv() (string, error) {
 
-	var raw_mex string
+	var raw_mex string = ""
 	var errMex error
 	this.recv.mu.Lock()
-	raw_mex, errMex = bufio.NewReader(this.recv.conn).ReadString('\n')
+    if this.recv.conn != nil {
+        raw_mex, errMex = bufio.NewReader(this.recv.conn).ReadString('\n')
+    }
 	this.recv.mu.Unlock()
 
 	if errMex != nil {
