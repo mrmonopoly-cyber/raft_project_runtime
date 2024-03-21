@@ -14,7 +14,7 @@ import (
 	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
 	p "raft/pkg/protobuf"
-	// "reflect"
+	"reflect"
 	"sync"
 )
 
@@ -110,27 +110,27 @@ func (s *Server) connectToServers() {
     if s.otherNodes == nil {
         panic("Map of Node not allocated")
     }
-	// s.otherNodes.Range(func(key any, value interface{}) bool {
- //        log.Println("connecting to a node")
-	// 	var nodeEle node.Node
-	// 	var errEl bool
-	// 	nodeEle, errEl = value.(node.Node)
-	// 	if !errEl {
-	// 		log.Println("invalid object in otherNodes map: ", reflect.TypeOf(nodeEle))
-	// 		return false
-	// 	}
-	// 	var ipAddr string = nodeEle.GetIp()
-	// 	var port string = nodeEle.GetPort()
-	// 	var conn, err = net.Dial("tcp", ipAddr+":"+port)
-	// 	for err != nil {
-	// 		log.Println("Dial error: ", err)
-	// 		return false
-	// 	}
-	// 	if conn != nil {
-	// 		nodeEle.AddConnOut(&conn)
-	// 	}
-	// 	return true
-	// })
+	s.otherNodes.Range(func(key any, value interface{}) bool {
+        log.Println("connecting to a node")
+		var nodeEle node.Node
+		var errEl bool
+		nodeEle, errEl = value.(node.Node)
+		if !errEl {
+			log.Println("invalid object in otherNodes map: ", reflect.TypeOf(nodeEle))
+			return false
+		}
+		var ipAddr string = nodeEle.GetIp()
+		var port string = nodeEle.GetPort()
+		var conn, err = net.Dial("tcp", ipAddr+":"+port)
+		for err != nil {
+			log.Println("Dial error: ", err)
+			return false
+		}
+		if conn != nil {
+			nodeEle.AddConnOut(&conn)
+		}
+		return true
+	})
 }
 
 func (s *Server) acceptIncomingConn() {
