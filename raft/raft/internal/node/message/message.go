@@ -67,9 +67,6 @@ func NewMessage(data []byte) *Message {
     }
     mex_type = *mess.Kind
 
-    log.Println("mex type :", mex_type)
-    log.Println("mex payload:", mess.Payload)
-
 	return &Message{
 		Kind:       mex_type,
 		Payload: mess.Payload,
