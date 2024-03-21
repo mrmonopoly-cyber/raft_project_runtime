@@ -77,20 +77,28 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 func (s *Server) Start() {
 	s.wg.Add(3)
 
+
+    log.Println("Start accepting connections")
 	go s.acceptIncomingConn()
 
+    log.Println("connect To other Servers")
 	s.connectToServers()
 
+    log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
 
-	if s._state.Leader() {
-		s._state.StartHearthbeatTimeout()
-	}
+    // log.Println("if")
+	// if s._state.Leader() {
+	// 	s._state.StartHearthbeatTimeout()
+	// }
 
+    log.Println("start main run")
 	go s.run()
 
+    log.Println("start handle response")
 	go s.handleResponse()
 
+    log.Println("wait to finish")
 	s.wg.Wait()
 }
 
