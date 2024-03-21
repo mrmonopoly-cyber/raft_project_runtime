@@ -11,7 +11,7 @@ fi
 
 
 echo "installing the correct packages"
-sudo pacman -Sy libvirt virt-manager iptables-nft dnsmasq virt-viewer dmidecode openbsd-netcat qemu-full archiso
+sudo pacman -Sy libvirt virt-manager iptables-nft dnsmasq virt-viewer dmidecode openbsd-netcat qemu-full archiso openssh 
 
 echo "enabling the deamon for libvirtd"
 sudo systemctl enable --now libvirtd
@@ -22,9 +22,6 @@ sudo usermod  -aG libvirt $first_user
 echo "creating iso"
 sudo mkarchiso -A raft_install.sh  -w work -o out -v -r ./iso_creation 
 sudo mv ./out/* /var/lib/libvirt/images/raft_live_install.iso
-
-echo "installing ssh"
-sudo pacman -Sy openssh 
 
 echo "coping ssh key for remote node access"
 cp ./raft_node_key ~/.ssh
