@@ -17,8 +17,7 @@ repo=$(git remote get-url origin)
 
 if [[ -n $exist ]]; then
     echo "cleaning"
-    rm -rf ./raft/*
-    rm -rf ./raft/.*
+    rm -rf ./raft
     echo "cloning"
     git clone --depth=1 --branch $branch $repo ./raft/
     rm ./raft/.git*
