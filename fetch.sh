@@ -21,6 +21,7 @@ if [[ -n $exist ]]; then
     rm -rf ./raft/.*
     echo "cloning"
     git clone --depth=1 --branch $branch $repo ./raft/
+    rm ./raft/.git*
     cd ./raft/raft
     echo "building"
     ./build.sh
