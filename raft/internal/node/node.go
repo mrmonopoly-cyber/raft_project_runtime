@@ -2,6 +2,7 @@ package node
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"net"
 	"raft/internal/node/address"
@@ -62,20 +63,15 @@ func (this *node) AddConnOut(conn *net.Conn) {
 	this.send.conn = *conn
 }
 
-func (this *node) Send(mex []byte) error {
-	//    var mexByte []byte
-	//    var err error
-	// mexByte, err = mex.Encode()
-	//    if err != nil {
-	//        println("fail to send message to %v", this.GetIp())
-	//        return err
-	//    }
-	this.send.mu.Lock()
-    if this.send.conn != nil {
-        fmt.Fprintf(this.send.conn, string(mex))
+func (this *node) Send(mex []byte) error{
+    if this.send.conn == nil {
+        return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
     }
+	this.send.mu.Lock()
+    fmt.Fprintf(this.send.conn, string(mex))
 	this.send.mu.Unlock()
-	return nil
+    return nil
+	
 }
 
 func (this *node) GetIp() string {
