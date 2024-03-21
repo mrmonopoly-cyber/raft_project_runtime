@@ -60,7 +60,6 @@ type State interface {
 	GetNumSupporters() uint64
 	GetNumNotSupporters() uint64
 	GetNumNodeInCluster() uint64
-	AddNondeInCluster()
 	ResetElection()
 }
 
@@ -167,11 +166,6 @@ func (_state *raftStateImpl) IncreaseNodeInCluster() {
 func (_state *raftStateImpl) ResetElection() {
 	_state.nSupporting = 0
 	_state.nNotSupporting = 0
-}
-
-// AddNondeInCluster implements State.
-func (_state *raftStateImpl) AddNondeInCluster() {
-	_state.nNodeInCluster++
 }
 
 func NewState(term uint64, id string, role Role) State {

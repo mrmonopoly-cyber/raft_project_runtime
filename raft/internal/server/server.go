@@ -163,7 +163,7 @@ func (s *Server) acceptIncomingConn() {
 			var new_node, _ = node.NewNode(newConncetionIp, newConncetionPort)
 			new_node.AddConnIn(&conn)
 			s.otherNodes.Store(id_node, new_node)
-            s._state.AddNondeInCluster()
+            s._state.IncreaseNodeInCluster()
 		}
         log.Println("finish accepting new connections")
 	}
