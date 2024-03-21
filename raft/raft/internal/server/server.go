@@ -15,7 +15,6 @@ import (
 	state "raft/internal/raftstate"
 	p "raft/pkg/protobuf"
 	"reflect"
-	"strconv"
 	"sync"
 )
 
@@ -84,7 +83,7 @@ func (s *Server) Start() {
 	go s.acceptIncomingConn()
 
     log.Println("connect To other Servers")
-	s.connectToServers()
+	// s.connectToServers()
 
     log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
@@ -268,8 +267,6 @@ func (s *Server) startNewElection(){
         entryTerm = entries[len_ent].GetTerm()
     }
 
-    log.Println("len entries:", len_ent)
-    log.Println("entries: ", entries)
 
     voteRequest = RequestVoteRPC.NewRequestVoteRPC(
         s._state.GetTerm(),
