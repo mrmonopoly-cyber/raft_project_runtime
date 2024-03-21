@@ -3,7 +3,6 @@
 first_user=$(whoami)
 wiki_libvirt="https://wiki.archlinux.org/title/libvirt"
 wiki_virt_manager="https://wiki.archlinux.org/title/Virt-manager"
-link_iso=$(cat ./link_download_live)
 
 if [[ $first_user == "root" ]]; then
     echo "you must not be root to execute this program"
@@ -19,10 +18,6 @@ sudo systemctl enable --now libvirtd
 
 echo "adding libvirt group to user $first_user"
 sudo usermod  -aG libvirt $first_user
-
-# echo "getting and coping the install iso in the dir /var/lib/libvirt/images/"
-# wget $link_iso
-# sudo cp ./raft_live_install.iso /var/lib/libvirt/images/
 
 echo "creating iso"
 sudo mkarchiso -A raft_install.sh  -w work -o out -v -r ./iso_creation 
