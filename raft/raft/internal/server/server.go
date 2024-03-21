@@ -281,6 +281,7 @@ func (s *Server) leaderHearthBit(){
                 nil,
                 0,
             )
+            log.Println("sending hearthbit")
             s.sendAll(&hearthBit)
         }
     }
