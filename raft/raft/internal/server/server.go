@@ -148,6 +148,7 @@ func (s *Server) acceptIncomingConn() {
 			var new_node, _ = node.NewNode(newConncetionIp, newConncetionPort)
 			new_node.AddConnIn(&conn)
 			s.otherNodes.Store(id_node, new_node)
+            s._state.AddNondeInCluster()
 		}
 	}
 }
@@ -281,4 +282,5 @@ func (s *Server) leaderHearthBit(){
         }
     }
     log.Println("no longer LEADER, stop sending hearthbit")
+    s._state.StartHearthbeatTimeout()
 }
