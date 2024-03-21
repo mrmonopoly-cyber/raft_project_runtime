@@ -42,7 +42,6 @@ func NewNodeAddress(ipAddr string, port string) NodeAddress {
 	var sectorsStr = strings.Split(ipAddr, ".")
 	var node nodeAddress
 
-    log.Println("creating new address from: ", ipAddr)
 
 	for i := 0; i < sectorsNumber; i++ {
 		out, err := strconv.Atoi(sectorsStr[i])
@@ -50,7 +49,6 @@ func NewNodeAddress(ipAddr string, port string) NodeAddress {
 			fmt.Println("Error:", err)
 			return nil
 		}
-        log.Println("sector: ", out)
 		node.sectors[i] = uint8(out)
 	}
 
