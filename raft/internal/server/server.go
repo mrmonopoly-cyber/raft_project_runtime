@@ -259,6 +259,7 @@ func (s *Server) startNewElection(){
     s._state.IncreaseSupporters()
     log.Println("node in cluster: ",s._state.GetNumNodeInCluster())
     if s._state.GetNumNodeInCluster() == 1 {
+        log.Println("became leader: ",s._state.GetRole())
         s._state.SetRole(raftstate.LEADER)
         s._state.ResetElection()
         go s.leaderHearthBit()
