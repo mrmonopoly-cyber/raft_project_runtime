@@ -53,7 +53,7 @@ func (this *AppendEntryRPC) ToString() string {
 	for _, el := range this.entries {
 		entries += el.String()
 	}
-	return "{term : " + strconv.Itoa(int(this.term)) + ", \nleaderId: " + this.leaderId + ",\nprevLogIndex: " + strconv.Itoa(int(this.prevLogIndex)) + ", \nprevLogTerm: " + strconv.Itoa(int(this.prevLogTerm)) + ", \nentries: " + entries + ", \nleaderCommit: " + strconv.Itoa(int(this.leaderCommit)) + "}"
+	return "{term : " + strconv.Itoa(int(this.term)) + ", leaderId: " + this.leaderId + ", prevLogIndex: " + strconv.Itoa(int(this.prevLogIndex)) + ", prevLogTerm: " + strconv.Itoa(int(this.prevLogTerm)) + ", entries: " + entries + ", leaderCommit: " + strconv.Itoa(int(this.leaderCommit)) + "}"
 }
 
 func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
