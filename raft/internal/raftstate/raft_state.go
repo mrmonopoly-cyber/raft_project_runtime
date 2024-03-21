@@ -35,7 +35,6 @@ type raftStateImpl struct {
 }
 
 
-
 type State interface {
 	GetId() string
 	GetTerm() uint64
@@ -60,7 +59,8 @@ type State interface {
 	GetNumSupporters() uint64
 	GetNumNotSupporters() uint64
 	GetNumNodeInCluster() uint64
-    ResetElection()
+	AddNondeInCluster()
+	ResetElection()
 }
 
 func (_state *raftStateImpl) GetId() string {
@@ -162,9 +162,14 @@ func (_state *raftStateImpl) IncreaseNodeInCluster() {
 	_state.nNodeInCluster++
 }
 
-func (_state *raftStateImpl) ResetElection(){
-    _state.nSupporting = 0
-    _state.nNotSupporting = 0
+func (_state *raftStateImpl) ResetElection() {
+	_state.nSupporting = 0
+	_state.nNotSupporting = 0
+}
+
+// AddNondeInCluster implements State.
+func (_state *raftStateImpl) AddNondeInCluster() {
+	_state.nNodeInCluster++
 }
 
 func NewState(term uint64, id string, role Role) State {
@@ -177,6 +182,7 @@ func NewState(term uint64, id string, role Role) State {
 	s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)
 	s.nNotSupporting = 0
 	s.nSupporting = 0
+	s.nNodeInCluster = 1
 
 	return s
 }

@@ -115,6 +115,7 @@ func (s *Server) connectToServers() {
 		}
 		if conn != nil {
 			nodeEle.AddConnOut(&conn)
+            s._state.AddNondeInCluster()
 		}
 		return true
 	})
@@ -255,7 +256,14 @@ func (s *Server) startNewElection(){
         uint64(len_ent),
         entryTerm)
 
-    s.sendAll(&voteRequest)
+    s._state.IncreaseSupporters()
+    if s._state.GetNumNodeInCluster() == 1 {
+        s._state.SetRole(raftstate.LEADER)
+        s._state.ResetElection()
+        go s.leaderHearthBit()
+    }else {
+        s.sendAll(&voteRequest)
+    }
 }
 
 //TODO: finish creation of hearthBit Rpc, the current field are wrong and only for testing purpose
