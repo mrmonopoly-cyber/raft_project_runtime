@@ -2,6 +2,7 @@ package address
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -20,22 +21,6 @@ type nodeAddress struct
     port    uint16
 }
 
-type EnumType int
-
-const (
-  APPEND_ENTRY EnumType = iota
-  REQUEST_VOTE 
-  APPEND_RESPONSE
-  VOTE_RESPONSE
-  COPY_STATE
-)
-
-type messageTyped struct
-{
-  Ty EnumType
-  Payload []byte
-}
-
 func (this nodeAddress) GetIp() string {
     var ipAddr string = ""
     var num uint8 = this.sectors[0]
@@ -50,7 +35,8 @@ func (this nodeAddress) GetIp() string {
 }
 
 func (this nodeAddress) GetPort() string {
-    return string(rune(this.port))
+    log.Println("returning port: ", this.port)
+    return strconv.FormatUint(uint64(this.port),10)
 }
 
 func NewNodeAddress(ipAddr string, port string) NodeAddress{
