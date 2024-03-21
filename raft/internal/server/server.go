@@ -80,7 +80,7 @@ func (s *Server) Start() {
 
 
     log.Println("Start accepting connections")
-	go s.acceptIncomingConn()
+	// go s.acceptIncomingConn()
 
     log.Println("connect To other Servers")
 	// s.connectToServers()
