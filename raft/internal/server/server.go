@@ -103,7 +103,7 @@ func (s *Server) connectToServers() {
         panic("Map of Node not allocated")
     }
 	s.otherNodes.Range(func(key any, value interface{}) bool {
-        log.Fatalln("connecting to a node")
+        log.Println("connecting to a node")
 		var nodeEle node.Node
 		var errEl bool
 		nodeEle, errEl = value.(node.Node)
