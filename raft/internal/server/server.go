@@ -70,6 +70,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 			println("error in creating new node: %v", err)
 			continue
 		}
+        log.Println("storing new node with ip :", serversIp[i])
 		server.otherNodes.Store(generateID(serversIp[i]), new_node)
 	}
 	return server
