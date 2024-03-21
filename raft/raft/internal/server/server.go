@@ -164,6 +164,7 @@ func (s *Server) acceptIncomingConn() {
 			s.otherNodes.Store(id_node, new_node)
             s._state.AddNondeInCluster()
 		}
+        log.Println("finish accepting new connections")
 	}
 }
 
