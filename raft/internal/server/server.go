@@ -79,7 +79,7 @@ func (s *Server) Start() {
 
 	go s.acceptIncomingConn()
 
-	s.connectToServers()
+	//s.connectToServers()
 
 	s._state.StartElectionTimeout()
 
@@ -99,7 +99,6 @@ func (s *Server) Start() {
  */
 func (s *Server) connectToServers() {
     log.Fatalln("connecting to list of nodes")
-    return
 	s.otherNodes.Range(func(key any, value interface{}) bool {
         log.Fatalln("connecting to a node")
 		var nodeEle node.Node
@@ -107,7 +106,7 @@ func (s *Server) connectToServers() {
 		nodeEle, errEl = value.(node.Node)
 		if !errEl {
 			log.Println("invalid object in otherNodes map: ", reflect.TypeOf(nodeEle))
-			return true
+			return false
 		}
 		var ipAddr string = nodeEle.GetIp()
 		var port string = nodeEle.GetPort()
