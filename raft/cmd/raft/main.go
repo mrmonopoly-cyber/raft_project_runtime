@@ -3,7 +3,9 @@ package main
 import (
 	//"flag"
 	"log"
+	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 
 	//"strings"
@@ -29,7 +31,9 @@ func main() {
 
   log.Println("list of other nodes: ", stringOthersIp)
 
-  log.Println("listening on port: ", "8080")
+  var randomPort = rand.Intn(10)
+
+  log.Println("listening on port: " + strconv.Itoa(8080 + randomPort))
 
   var server1 *ser.Server = ser.NewServer(0,stringMyIp, "8080", addresses)
 
