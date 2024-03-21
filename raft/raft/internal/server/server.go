@@ -269,6 +269,7 @@ func (s *Server) startNewElection(){
 }
 
 func (s *Server) leaderHearthBit(){
+    log.Println("start sending hearthbit")
     for s._state.Leader(){
         select{
         case <- s._state.HeartbeatTimeout().C:
@@ -279,4 +280,5 @@ func (s *Server) leaderHearthBit(){
             s.sendAll(&hearthBit)
         }
     }
+    log.Println("no longer LEADER, stop sending hearthbit")
 }
