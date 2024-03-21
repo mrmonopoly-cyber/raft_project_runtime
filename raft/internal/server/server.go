@@ -80,13 +80,13 @@ func (s *Server) Start() {
 
 
     log.Println("Start accepting connections")
-	go s.acceptIncomingConn()
+	// go s.acceptIncomingConn()
 
     log.Println("connect To other Servers")
-	s.connectToServers()
+	// s.connectToServers()
 
     log.Println("Start election Timeout")
-	s._state.StartElectionTimeout()
+	// s._state.StartElectionTimeout()
 
     // log.Println("if")
 	// if s._state.Leader() {
@@ -97,7 +97,7 @@ func (s *Server) Start() {
 	go s.run()
 
     log.Println("start handle response")
-	go s.handleResponse()
+	// go s.handleResponse()
 
     log.Println("wait to finish")
 	s.wg.Wait()
