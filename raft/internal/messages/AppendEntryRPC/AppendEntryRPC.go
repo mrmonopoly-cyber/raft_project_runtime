@@ -35,7 +35,7 @@ func (this *AppendEntryRPC) Execute(state *raftstate.State) *messages.Rpc{
     var appendEntryResp messages.Rpc
 
     if (this.term < (*state).GetTerm()) || !checkConsistency(this.prevLogIndex, this.prevLogTerm, *state) { 
-        appendEntryResp = appendEntryResponse.NewAppendEntryResponse(false, 
+        appendEntryResp = appendEntryResponse.NewAppendEntryResponse("",false, 
         (*state).GetTerm(), 
         uint64(len((*state).GetEntries()) - 1))
     } else {
