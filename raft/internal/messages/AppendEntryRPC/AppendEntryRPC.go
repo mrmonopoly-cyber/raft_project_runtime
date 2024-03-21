@@ -66,6 +66,21 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 	}
 }
 
+func GenerateHearthbeat(state raftstate.State) messages.Rpc {
+	entries := state.GetEntries()
+	prevLogIndex := len(entries) - 2
+	prevLogTerm := entries[prevLogIndex].GetTerm()
+  return &AppendEntryRPC{
+		term:         state.GetTerm(),
+		leaderId:     state.GetId(),
+		prevLogIndex: uint64(prevLogIndex),
+		prevLogTerm:  prevLogTerm,
+		entries:      make([]*p.Entry, 0),
+		leaderCommit: state.GetCommitIndex(),
+	}
+}
+
+
 func (this AppendEntryRPC) GetId() string {
   return this.leaderId
 }

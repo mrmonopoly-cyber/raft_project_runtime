@@ -223,7 +223,7 @@ func (s *Server) run() {
                 f.(node.Node).Send(mex.ToByte())
             }
 
-            if newRole == state.LEADER && oldRole != newRole {
+            if newRole == state.LEADER && oldRole != state.LEADER{
                 go s.leaderHearthBit()
             }
 
@@ -268,19 +268,13 @@ func (s *Server) startNewElection(){
     }
 }
 
-//TODO: finish creation of hearthBit Rpc, the current field are wrong and only for testing purpose
 func (s *Server) leaderHearthBit(){
-    for s._state.GetRole() == state.LEADER{
+    for s._state.Leader(){
         select{
         case <- s._state.HeartbeatTimeout().C:
-            var hearthBit messages.Rpc = AppendEntryRPC.NewAppendEntryRPC(
-                s._state.GetTerm(),
-                s._state.GetId(),
-                0,
-                0,
-                nil,
-                0,
-            )
+            var hearthBit messages.Rpc
+
+            hearthBit = AppendEntryRPC.GenerateHearthbeat(s._state)
             log.Println("sending hearthbit")
             s.sendAll(&hearthBit)
         }
