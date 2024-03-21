@@ -15,8 +15,14 @@ import (
 func main() {
 
   var workDir = "/root/mount/raft/"
-  var fileMyIp, _ = os.ReadFile(workDir + "my_ip")
-  var fileOthersIp, _ = os.ReadFile(workDir + "others_ip")
+  var fileMyIp, errm = os.ReadFile(workDir + "my_ip")
+  if errm != nil {
+    panic("could not find my ip")
+  }
+  var fileOthersIp, erro = os.ReadFile(workDir + "others_ip")
+  if erro != nil {
+    panic("could not find other ips")
+  }
   var stringMyIp = string(fileMyIp)
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
