@@ -21,7 +21,7 @@ func main() {
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
 
-  log.Println("list of other nodes: ", addresses)
+  log.Println("list of other nodes: ", stringOthersIp)
 
   var server1 *ser.Server = ser.NewServer(0,stringMyIp, "8080", addresses)
 
