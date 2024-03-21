@@ -173,6 +173,19 @@ func (s *Server) handleResponse() {
 	}
 }
 
+func (s *Server) sendAll(rpc *messages.Rpc){
+    s.otherNodes.Range(func(key, value any) bool {
+        var node node.Node = value.(node.Node)
+        var mex cutom_mex.Message
+        var raw_mex []byte
+
+        mex = cutom_mex.FromRpc(*rpc)
+        raw_mex = mex.ToByte()
+        node.Send(raw_mex)
+        return true
+    })
+}
+
 func (s *Server) run() {
 	defer s.wg.Done()
 	for {
@@ -209,23 +222,20 @@ func (s *Server) run() {
 }
 
 func (s *Server) startNewElection(){
-    s.otherNodes.Range(func(key, value any) bool {
-        var node node.Node = value.(node.Node)
-        var entries []p.Entry = s._state.GetEntries()
-        var len_ent = len(entries) -1
-        var mex cutom_mex.Message
-        var raw_data []byte
-        var voteRequest messages.Rpc
+    var entries []p.Entry
+    var len_ent int
+    var voteRequest messages.Rpc
 
-        voteRequest = RequestVoteRPC.NewRequestVoteRPC(
-            s._state.GetTerm(),
-            s._state.GetId(),
-            uint64(len_ent),
-            entries[len_ent].GetTerm())
-        mex = cutom_mex.FromRpc(voteRequest)
-        raw_data = mex.ToByte()
-        node.Send(raw_data)
-        
-        return true
-    })
+    s._state.IncrementTerm()
+    len_ent = len(entries) -1
+    entries = s._state.GetEntries()
+
+    voteRequest = RequestVoteRPC.NewRequestVoteRPC(
+        s._state.GetTerm(),
+        s._state.GetId(),
+        uint64(len_ent),
+        entries[len_ent].GetTerm())
+
+    s.sendAll(&voteRequest)
+
 }
