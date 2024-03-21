@@ -257,6 +257,7 @@ func (s *Server) startNewElection(){
         entryTerm)
 
     s._state.IncreaseSupporters()
+    log.Println("node in cluster: ",s._state.GetNumNodeInCluster())
     if s._state.GetNumNodeInCluster() == 1 {
         s._state.SetRole(raftstate.LEADER)
         s._state.ResetElection()
