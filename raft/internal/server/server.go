@@ -236,13 +236,14 @@ func (s *Server) startNewElection(){
     var entries []p.Entry
     var len_ent int
     var voteRequest messages.Rpc
+    var entryTerm uint64 = 0
 
     s._state.IncrementTerm()
 
     entries = s._state.GetEntries()
     len_ent = len(entries)
-    if len_ent == -1 {
-        len_ent=0
+    if len_ent > 0{
+        entryTerm = entries[len_ent].GetTerm()
     }
 
     log.Println("len entries:", len_ent)
@@ -252,7 +253,7 @@ func (s *Server) startNewElection(){
         s._state.GetTerm(),
         s._state.GetId(),
         uint64(len_ent),
-        entries[len_ent].GetTerm())
+        entryTerm)
 
     s.sendAll(&voteRequest)
 }
