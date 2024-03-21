@@ -239,9 +239,9 @@ func (s *Server) startNewElection(){
 
     s._state.IncrementTerm()
     len_ent = len(entries)
-    // if len_ent > 0 {
-    //     len_ent-=1
-    // }
+    if len_ent < 0 {
+        len_ent=0
+    }
     log.Println("len entries:", len_ent)
     log.Println("entries: ", entries)
     entries = s._state.GetEntries()
