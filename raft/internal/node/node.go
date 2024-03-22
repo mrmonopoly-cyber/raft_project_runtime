@@ -3,6 +3,7 @@ package node
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"raft/internal/node/address"
@@ -71,7 +72,8 @@ func (this *node) Send(mex []byte) error{
     }
     log.Printf("start sending message to %v", this.GetIp())
 	this.safeConn.mu.Lock()
-    (*this.safeConn.conn).Write([]byte("hello\n"))
+    // (*this.safeConn.conn).Write([]byte("hello\n"))
+    fmt.Fprint((*this.safeConn.conn),"hello\n")
 	this.safeConn.mu.Unlock()
     log.Printf("message sended to %v", this.GetIp())
     return nil
