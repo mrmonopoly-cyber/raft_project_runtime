@@ -66,7 +66,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
 		new_node = node.NewNode(serversIp[i], port)
-        log.Println("connecting to the server: ", serversIp[i])
+        log.Printf("connecting to the server: %v\n", serversIp[i])
         var nodeConn net.Conn
         var erroConn error
         var nodeId string
