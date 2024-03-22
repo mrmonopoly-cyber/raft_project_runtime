@@ -68,9 +68,11 @@ func (this *node) Send(mex []byte) error{
     if this.safeConn.conn == nil {
         return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
     }
+    log.Printf("start sending message to %v", this.GetIp())
 	this.safeConn.mu.Lock()
     (*this.safeConn.conn).Write(mex)
 	this.safeConn.mu.Unlock()
+    log.Printf("message sended to %v", this.GetIp())
     return nil
 	
 }
