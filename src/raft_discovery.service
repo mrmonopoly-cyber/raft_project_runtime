@@ -3,7 +3,7 @@ Description=raft bootstrap node
 
 [Service]
 Type=forking
-ExecStart=/bin/sh /root/raft_project_runtime/nmap_discover.sh
+ExecStart=/bin/sh /root/nmap_discover.sh
 RemainAfterExit=no
 Restart=always
 RestartSec=30s

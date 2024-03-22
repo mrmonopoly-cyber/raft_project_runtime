@@ -2,10 +2,10 @@
 Description=raft bootstrap node
 
 [Service]
-Type=forking
-ExecStart=/bin/sh /root/raft_project_runtime/raft_bootstrap.sh
+Type=simple
+ExecStart=/bin/sh /root/raft_bootstrap.sh &
 RemainAfterExit=no
-Restart=on-failure
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
