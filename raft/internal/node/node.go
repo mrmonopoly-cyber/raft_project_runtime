@@ -59,16 +59,16 @@ func (this *node) AddConnIn(conn *net.Conn) {
 }
 
 func (this *node) AddConnOut(conn *net.Conn) {
-	this.send.conn = *conn
+	this.recv.conn = *conn
 }
 
 func (this *node) Send(mex []byte) error{
     if this.send.conn == nil {
         return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
     }
-	this.send.mu.Lock()
-    fmt.Fprintf(this.send.conn, string(mex))
-	this.send.mu.Unlock()
+	this.recv.mu.Lock()
+    fmt.Fprintf(this.recv.conn, string(mex))
+	this.recv.mu.Unlock()
     return nil
 	
 }
