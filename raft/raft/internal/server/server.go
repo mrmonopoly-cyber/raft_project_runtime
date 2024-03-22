@@ -72,6 +72,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 		}
         log.Println("storing new node with ip :", serversIp[i])
 		server.otherNodes.Store(generateID(serversIp[i]), new_node)
+        server._state.IncreaseNodeInCluster()
 	}
 	return server
 }
@@ -245,6 +246,7 @@ func (s *Server) run() {
             }
 
             if newRole == state.LEADER && oldRole != state.LEADER{
+                s._state.IncrementTerm()
                 go s.leaderHearthBit()
             }
 
