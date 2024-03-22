@@ -220,6 +220,7 @@ func (s *Server) run() {
 
         select {
         case mess = <-s.messageChannel:
+            log.Println("processing message: ", (*mess.payload).ToString())
             var rpcCall *messages.Rpc
             var sender string
             var oldRole raftstate.Role
@@ -235,6 +236,7 @@ func (s *Server) run() {
 
             if resp != nil {
                 mex = custom_mex.FromRpc(*resp)
+                log.Println("reponse to send to: ", sender)
                 var f any
                 var ok bool
                 f, ok = s.otherNodes.Load(generateID(sender))
@@ -244,6 +246,7 @@ func (s *Server) run() {
                     continue
                 }
 
+                log.Println("sending mex to: ",sender)
                 f.(node.Node).Send(mex.ToByte())
             }
 
@@ -252,6 +255,7 @@ func (s *Server) run() {
                 go s.leaderHearthBit()
             }
 
+            log.Println("rpc processed")
         case <-s._state.ElectionTimeout().C:
             s.startNewElection()
         }
