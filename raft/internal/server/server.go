@@ -164,8 +164,6 @@ func (s *Server) acceptIncomingConn() {
 		if found {
 			var connectedNode node.Node = value.(node.Node)
 			connectedNode.AddConnIn(&conn)
-            s.otherNodes.Delete(generateID(connectedNode.GetIp()))
-			s.otherNodes.Store(id_node, connectedNode)
 		} else {
 			var new_node, _ = node.NewNode(newConncetionIp, newConncetionPort)
 			new_node.AddConnIn(&conn)
