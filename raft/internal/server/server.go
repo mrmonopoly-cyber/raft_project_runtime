@@ -69,6 +69,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
         log.Println("connecting to the server: ", serversIp[i])
         var nodeConn net.Conn
         var erroConn error
+        var nodeId string
 
         nodeConn,erroConn = net.Dial("tcp",serversIp[i]+":"+port)
         if erroConn != nil {
@@ -77,7 +78,8 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
         }
         new_node.AddConnIn(&nodeConn)
         log.Println("storing new node with ip :", serversIp[i])
-        server.otherNodes.Store(generateID(serversIp[i]), new_node)
+        nodeId = generateID(serversIp[i])
+        server.otherNodes.Store(nodeId, new_node)
         server._state.IncreaseNodeInCluster()
 
 	}
@@ -186,23 +188,23 @@ func (s *Server) handleResponse() {
 	// iterating over the connections map and receive byte message
 	for {
 		s.otherNodes.Range(func(k, conn interface{}) bool {
-            var node node.Node = conn.(node.Node)
+            var node *node.Node = conn.(*node.Node)
 			var message string
 			var errMes error
-			message, errMes = node.Recv()
+			message, errMes = (*node).Recv()
             if errMes == errors.New("connection not instantiated"){
                 return false
             }
 			if errMes != nil {
 				fmt.Printf("error in reading from node %v with error %v",
-					node.GetIp(), errMes)
+					(*node).GetIp(), errMes)
 				return false
 			}
             if message != "" {
-                log.Println("received message from: " + node.GetIp())
+                log.Println("received message from: " + (*node).GetIp())
                 log.Println("data of message: " + message )
                 s.messageChannel <- 
-                pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),node.GetIp()}
+                pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),(*node).GetIp()}
             }
 			return true
 		})
