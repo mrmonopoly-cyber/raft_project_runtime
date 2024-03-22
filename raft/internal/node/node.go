@@ -2,7 +2,6 @@ package node
 
 import (
 	"errors"
-	"io"
 	"log"
 	"net"
 	"raft/internal/node/address"
