@@ -72,11 +72,13 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 
         nodeConn,erroConn = net.Dial("tcp",serversIp[i]+":"+port)
         if erroConn != nil {
-            new_node.AddConnIn(&nodeConn)
-            log.Println("storing new node with ip :", serversIp[i])
-            server.otherNodes.Store(generateID(serversIp[i]), new_node)
-            server._state.IncreaseNodeInCluster()
+            log.Println("Failed to connect to node: ", serversIp[i])
+            continue
         }
+        new_node.AddConnIn(&nodeConn)
+        log.Println("storing new node with ip :", serversIp[i])
+        server.otherNodes.Store(generateID(serversIp[i]), new_node)
+        server._state.IncreaseNodeInCluster()
 
 	}
 	return server
