@@ -190,7 +190,7 @@ func (s *Server) handleResponse() {
 				return false
 			}
             if message != "" {
-                log.Println("received message from: " + node.GetIp() + ":" + " " + message )
+                log.Println("received message from: " + node.GetIp()) //+ ":" + " " + message )
                 s.messageChannel <- 
                 pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),node.GetIp()}
             }
