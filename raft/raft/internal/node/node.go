@@ -37,7 +37,8 @@ func (this *node) Recv() (string, error) {
 	var raw_mex string = ""
 	var errMex error
     if this.recv.conn == nil {
-        return "", errors.New("connection not instantiated")
+        // return "", errors.New("connection not instantiated")
+        return "", nil
     }
 	this.recv.mu.Lock()
     log.Println("want to read")
