@@ -13,19 +13,17 @@ type Node interface {
 	Recv() (string, error)
 	GetIp() string
 	GetPort() string
-	AddConnIn(conn *net.Conn)
-	AddConnOut(conn *net.Conn)
+	AddConn(conn *net.Conn)
 }
 
 type safeConn struct {
 	mu   sync.Mutex
-	conn net.Conn
+	conn *net.Conn
 }
 
 type node struct {
 	addr address.NodeAddress
-	recv safeConn
-	send safeConn
+	safeConn safeConn
 }
 
 
@@ -38,15 +36,15 @@ func (this *node) Recv() (string, error) {
 	var byteRead int = -1
 	var errMex error
     var buffer []byte = make([]byte, bufferSize)
-    if this.recv.conn == nil {
+    if this.safeConn.conn == nil {
         // return "", errors.New("connection not instantiated")
         return "", nil
     }
-	this.recv.mu.Lock()
+	this.safeConn.mu.Lock()
     log.Println("want to read")
     log.Println("reading")
     for byteRead == -1 || byteRead == bufferSize{
-        byteRead, errMex = this.recv.conn.Read(buffer)
+        byteRead, errMex = (*this.safeConn.conn).Read(buffer)
         if errMex != nil {
             panic("error reading")
             log.Println("found other error, received message: ", byteRead)
@@ -54,7 +52,7 @@ func (this *node) Recv() (string, error) {
         }   
         outMex += string(buffer)
     }
-	this.recv.mu.Unlock()
+	this.safeConn.mu.Unlock()
     
     log.Println("found no error, received message: ", byteRead)
 	return outMex, errMex
@@ -67,21 +65,17 @@ func NewNode(remoteAddr string, remotePort string) (Node) {
 	}
 }
 
-func (this *node) AddConnIn(conn *net.Conn) {
-	this.recv.conn = *conn
-}
-
-func (this *node) AddConnOut(conn *net.Conn) {
-	this.send.conn = *conn
+func (this *node) AddConn(conn *net.Conn) {
+	this.safeConn.conn = conn
 }
 
 func (this *node) Send(mex []byte) error{
-    if this.send.conn == nil {
+    if this.safeConn.conn == nil {
         return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
     }
-	this.recv.mu.Lock()
-    this.recv.conn.Write(mex)
-	this.recv.mu.Unlock()
+	this.safeConn.mu.Lock()
+    (*this.safeConn.conn).Write(mex)
+	this.safeConn.mu.Unlock()
     return nil
 	
 }
