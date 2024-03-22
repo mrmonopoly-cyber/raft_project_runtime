@@ -30,7 +30,6 @@ type node struct {
 }
 
 // Read_rpc implements Node.
-// before: func (this *node) Recv() (*messages.Rpc, error)
 func (this *node) Recv() (string, error) {
 
 	var raw_mex string = ""
