@@ -36,12 +36,13 @@ func (this *node) Recv() (string, error) {
 
 	var raw_mex string = ""
 	var errMex error
+    if this.recv.conn == nil {
+        return "", errors.New("connection not instantiated")
+    }
 	this.recv.mu.Lock()
     log.Println("want to read")
-    if this.recv.conn != nil {
-        log.Println("reading")
-        raw_mex, errMex = bufio.NewReader(this.recv.conn).ReadString('\n')
-    }
+    log.Println("reading")
+    raw_mex, errMex = bufio.NewReader(this.recv.conn).ReadString('\n')
 	this.recv.mu.Unlock()
 
     
