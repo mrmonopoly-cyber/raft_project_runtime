@@ -1,7 +1,6 @@
 package node
 
 import (
-	"bufio"
 	"errors"
 	"io"
 	"log"
@@ -30,11 +29,16 @@ type node struct {
 	send safeConn
 }
 
+
 // Read_rpc implements Node.
 func (this *node) Recv() (string, error) {
 
-	var raw_mex string = ""
+    const bufferSize = 1024
+
+    var outMex = ""
+	var byteRead int = -1
 	var errMex error
+    var buffer []byte = make([]byte, bufferSize)
     if this.recv.conn == nil {
         // return "", errors.New("connection not instantiated")
         return "", nil
@@ -42,22 +46,19 @@ func (this *node) Recv() (string, error) {
 	this.recv.mu.Lock()
     log.Println("want to read")
     log.Println("reading")
-    raw_mex, errMex = bufio.NewReader(this.recv.conn).ReadString('\n')
-	this.recv.mu.Unlock()
-
-    
-    if errMex == io.EOF {
-        log.Println("found EOF, received message: ", raw_mex)
-        return raw_mex, nil
+    for byteRead == -1 || byteRead == bufferSize{
+        byteRead, errMex = this.recv.conn.Read(buffer)
+        if errMex != nil {
+            panic("error reading")
+            log.Println("found other error, received message: ", byteRead)
+            return "", errMex
+        }   
+        outMex += string(buffer)
     }
-
-	if errMex != nil {
-        log.Println("found other error, received message: ", raw_mex)
-		return "", errMex
-	}
+	this.recv.mu.Unlock()
     
-    log.Println("found no error, received message: ", raw_mex)
-	return raw_mex, errMex
+    log.Println("found no error, received message: ", byteRead)
+	return outMex, errMex
 
 }
 
