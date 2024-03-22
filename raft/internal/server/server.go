@@ -199,6 +199,7 @@ func (s *Server) handleResponse() {
 }
 
 func (s *Server) sendAll(rpc *messages.Rpc){
+    log.Println("start broadcast")
     s.otherNodes.Range(func(key, value any) bool {
         var node node.Node = value.(node.Node)
         var mex custom_mex.Message
@@ -210,6 +211,7 @@ func (s *Server) sendAll(rpc *messages.Rpc){
         node.Send(raw_mex)
         return true
     })
+    log.Println("end broadcast")
 }
 
 func (s *Server) run() {
