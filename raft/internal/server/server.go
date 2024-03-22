@@ -226,7 +226,8 @@ func (s *Server) sendAll(rpc *messages.Rpc){
         var nNode node.Node 
         var found bool 
         if !found {
-            panic("failed conversion type node")   
+            var s = reflect.TypeOf(value)
+            log.Panicln("failed conversion type node, type is: ", s)
         }
         nNode, found = value.(node.Node)
         var mex custom_mex.Message
