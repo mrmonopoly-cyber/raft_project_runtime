@@ -2,6 +2,7 @@ package main
 
 import (
 	//"flag"
+	"bufio"
 	"log"
 	"os"
 	"strings"
@@ -15,7 +16,7 @@ import (
 func main() {
 
   var workDir = "/root/mount/raft/"
-  var fileMyIp, errm = os.ReadFile(workDir + "my_ip")
+  var fileMyIp, errm = os.Open(workDir + "my_ip")
   if errm != nil {
     panic("could not find my ip")
   }
@@ -23,7 +24,12 @@ func main() {
   if erro != nil {
     panic("could not find other ips")
   }
-  var stringMyIp = string(fileMyIp)
+  // var stringMyIp = string(fileMyIp)
+  var stringMyIp, err = bufio.NewReader(fileMyIp).ReadString('\n')
+  if err != nil {
+    panic("error reading my ip")
+  }
+  log.Println("my ip is: ", stringMyIp)
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
 
