@@ -72,8 +72,8 @@ func (this *node) Send(mex []byte) error{
     }
     log.Printf("start sending message to %v", this.GetIp())
 	this.safeConn.mu.Lock()
-    // (*this.safeConn.conn).Write([]byte("hello\n"))
-    fmt.Fprint(this.safeConn.conn,"hello")
+    this.safeConn.conn.Write([]byte("hello" + "\n"))
+    // fmt.Fprint(this.safeConn.conn,"hello")
 	this.safeConn.mu.Unlock()
     log.Printf("message sended to %v", this.GetIp())
     return nil
