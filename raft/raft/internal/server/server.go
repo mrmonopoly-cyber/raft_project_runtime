@@ -66,7 +66,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
 		new_node = node.NewNode(serversIp[i], port)
-        log.Println("connecting to the server: ", serversIp[i])
+        log.Printf("connecting to the server: %v\n", serversIp[i])
         var nodeConn net.Conn
         var erroConn error
         var nodeId string
@@ -76,7 +76,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
             log.Println("Failed to connect to node: ", serversIp[i])
             continue
         }
-        new_node.AddConnIn(&nodeConn)
+        new_node.AddConn(&nodeConn)
         log.Println("storing new node with ip :", serversIp[i])
         nodeId = generateID(serversIp[i])
         server.otherNodes.Store(nodeId, new_node)
@@ -93,9 +93,6 @@ func (s *Server) Start() {
     log.Println("Start accepting connections")
 	go s.acceptIncomingConn()
 
- //    log.Println("connect To other Servers")
-	// s.connectToServers()
-
     log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
 
@@ -107,38 +104,6 @@ func (s *Server) Start() {
 
     log.Println("wait to finish")
 	s.wg.Wait()
-}
-
-/*
- * Create a connection between this server to all the others and populate the map containing these connections
- */
-func (s *Server) connectToServers() {
-    log.Println("connecting to list of nodes")
-    if s.otherNodes == nil {
-        panic("Map of Node not allocated")
-    }
-	s.otherNodes.Range(func(key any, value interface{}) bool {
-        log.Println("connecting to a node")
-		var nodeEle node.Node
-		var errEl bool
-		nodeEle, errEl = value.(node.Node)
-		if !errEl {
-			log.Println("invalid object in otherNodes map: ", reflect.TypeOf(nodeEle))
-			return false
-		}
-		var ipAddr string = nodeEle.GetIp()
-		var port string = nodeEle.GetPort()
-        log.Println("connecting to: " + ipAddr + ":" + "8080")
-		var conn, err = net.Dial("tcp", ipAddr+":"+port)
-		for err != nil {
-			log.Println("Dial error: ", err)
-			return false
-		}
-		if conn != nil {
-			nodeEle.AddConnOut(&conn)
-		}
-		return true
-	})
 }
 
 func (s *Server) acceptIncomingConn() {
@@ -159,20 +124,18 @@ func (s *Server) acceptIncomingConn() {
 		var newConncetionIp string = tcpAddr.IP.String()
 		var newConncetionPort string = string(rune(tcpAddr.Port))
 		var id_node string = generateID(newConncetionIp)
-        var value any
         var found bool
-		value, found = s.otherNodes.Load(id_node)
+		_, found = s.otherNodes.Load(id_node)
         
         log.Println("enstablish connection with node: ", newConncetionIp)
 
 		if found {
             log.Printf("node with ip %v found", newConncetionIp)
-			var connectedNode node.Node = value.(node.Node)
-			(connectedNode).AddConnIn(&conn)
+            continue
 		} else {
             log.Printf("node with ip %v not found", newConncetionIp)
 			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort)
-			new_node.AddConnIn(&conn)
+			new_node.AddConn(&conn)
 			s.otherNodes.Store(id_node, new_node)
             s._state.IncreaseNodeInCluster()
 		}
