@@ -156,8 +156,6 @@ func (s *Server) acceptIncomingConn() {
             log.Printf("node with ip %v found", newConncetionIp)
 			var connectedNode node.Node = value.(node.Node)
 			(connectedNode).AddConnIn(&conn)
-            // s.otherNodes.Delete(id_node)
-            // s.otherNodes.Store(connectedNode)
 		} else {
             log.Printf("node with ip %v not found", newConncetionIp)
 			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort)
@@ -208,6 +206,7 @@ func (s *Server) sendAll(rpc *messages.Rpc){
 
         mex = custom_mex.FromRpc(*rpc)
         raw_mex = mex.ToByte()
+        log.Printf("sending: %v to %v", (*rpc).ToString(), node.GetIp() )
         node.Send(raw_mex)
         return true
     })
