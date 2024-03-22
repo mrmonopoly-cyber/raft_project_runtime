@@ -79,7 +79,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
         new_node.AddConnIn(&nodeConn)
         log.Println("storing new node with ip :", serversIp[i])
         nodeId = generateID(serversIp[i])
-        server.otherNodes.Store(nodeId, new_node)
+        server.otherNodes.Store(nodeId, &new_node)
         server._state.IncreaseNodeInCluster()
 
 	}
@@ -188,23 +188,32 @@ func (s *Server) handleResponse() {
 	// iterating over the connections map and receive byte message
 	for {
 		s.otherNodes.Range(func(k, conn interface{}) bool {
-            var node *node.Node = conn.(*node.Node)
+            // var node *node.Node = conn.(*node.Node)
+            var nNode node.Node
+            var err bool
+
+            nNode,err = conn.(node.Node)
+
+            if !err {
+                panic("error type is not a node.Node")
+            }
+
 			var message string
 			var errMes error
-			message, errMes = (*node).Recv()
+			message, errMes = nNode.Recv()
             if errMes == errors.New("connection not instantiated"){
                 return false
             }
 			if errMes != nil {
 				fmt.Printf("error in reading from node %v with error %v",
-					(*node).GetIp(), errMes)
+					nNode.GetIp(), errMes)
 				return false
 			}
             if message != "" {
-                log.Println("received message from: " + (*node).GetIp())
+                log.Println("received message from: " + nNode.GetIp())
                 log.Println("data of message: " + message )
                 s.messageChannel <- 
-                pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),(*node).GetIp()}
+                pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),nNode.GetIp()}
             }
 			return true
 		})
@@ -214,14 +223,19 @@ func (s *Server) handleResponse() {
 func (s *Server) sendAll(rpc *messages.Rpc){
     log.Println("start broadcast")
     s.otherNodes.Range(func(key, value any) bool {
-        var node *node.Node = value.(*node.Node)
+        var nNode node.Node 
+        var found bool 
+        if !found {
+            panic("failed conversion type node")   
+        }
+        nNode, found = value.(node.Node)
         var mex custom_mex.Message
         var raw_mex []byte
 
         mex = custom_mex.FromRpc(*rpc)
         raw_mex = mex.ToByte()
-        log.Printf("sending: %v to %v", (*rpc).ToString(), (*node).GetIp() )
-        (*node).Send(raw_mex)
+        log.Printf("sending: %v to %v", (*rpc).ToString(), nNode.GetIp() )
+        nNode.Send(raw_mex)
         return true
     })
     log.Println("end broadcast")
