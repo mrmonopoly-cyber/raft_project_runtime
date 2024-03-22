@@ -31,7 +31,7 @@ func main(){
       panic("failed to create listener")
   }
 
-  var numAddrs = len(addresses)
+  var numAddrs = len(addresses)-1
   log.Printf("addresses found: %v", numAddrs)
   if numAddrs == 0 {
       log.Printf("accepting connection")
