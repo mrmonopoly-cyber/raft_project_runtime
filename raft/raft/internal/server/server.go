@@ -153,9 +153,11 @@ func (s *Server) acceptIncomingConn() {
         log.Println("enstablish connection with node: ", id_node)
 
 		if found {
+            log.Printf("node with ip %v found", id_node)
 			var connectedNode node.Node = value.(node.Node)
 			(connectedNode).AddConnIn(&conn)
 		} else {
+            log.Printf("node with ip %v not found", id_node)
 			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort)
 			new_node.AddConnIn(&conn)
 			s.otherNodes.Store(id_node, &new_node)
@@ -220,7 +222,6 @@ func (s *Server) run() {
             var rpcCall *messages.Rpc
             var sender string
             var oldRole raftstate.Role
-            var newRole raftstate.Role
             var resp *messages.Rpc
             var mex custom_mex.Message
 
@@ -228,7 +229,6 @@ func (s *Server) run() {
             rpcCall = mess.payload
             sender = mess.sender
             resp = (*rpcCall).Execute(&s._state)
-            newRole = s._state.GetRole()
 
             if resp != nil {
                 mex = custom_mex.FromRpc(*resp)
@@ -246,8 +246,8 @@ func (s *Server) run() {
                 f.(node.Node).Send(mex.ToByte())
             }
 
-            if newRole == state.LEADER && oldRole != state.LEADER{
-                s._state.IncrementTerm()
+            if s._state.Leader() && oldRole != state.LEADER{
+                s.wg.Add(1)
                 go s.leaderHearthBit()
             }
 
@@ -293,6 +293,7 @@ func (s *Server) startNewElection(){
 }
 
 func (s *Server) leaderHearthBit(){
+    defer s.wg.Done()
     log.Println("start sending hearthbit")
     for s._state.Leader(){
         select{
