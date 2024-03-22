@@ -39,11 +39,11 @@ func (this *node) Recv() (string, error) {
     if this.safeConn.conn == nil {
         return "", errors.New("connection not instantiated")
     }
-	this.safeConn.mu.Lock()
+	// this.safeConn.mu.Lock()
     log.Println("want to read")
     log.Printf("start reading from %v\n", this.GetIp())
     outMex,errMex = bufio.NewReader(this.safeConn.conn).ReadString('\n')
-	this.safeConn.mu.Unlock()
+	// this.safeConn.mu.Unlock()
     log.Printf("end reading from %v : %v\n", this.GetIp(), outMex)
     if errMex != nil {
         log.Println("found other error, received message: ", byteRead)
