@@ -48,17 +48,18 @@ func main(){
             for {
                 mex = "to you"
                 _,err = con.Write([]byte(mex + "\n"))
-                log.Printf("message sent %v", mex)
             }
         }()
 
         log.Printf("recr mex")
         go func (){
-            mex, err = bufio.NewReader(con).ReadString('\n')
-            if err != nil{
-                log.Panicf("error in receiving the mex: %v", err)
+            for{
+                mex, err = bufio.NewReader(con).ReadString('\n')
+                if err != nil{
+                    log.Panicf("error in receiving the mex: %v", err)
+                }
+                log.Printf("message received %v", mex)
             }
-            log.Printf("message received %v", mex)
         }()
         wg.Wait()
 
