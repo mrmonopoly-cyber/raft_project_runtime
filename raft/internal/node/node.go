@@ -15,12 +15,12 @@ type Node interface {
 	Recv() (string, error)
 	GetIp() string
 	GetPort() string
-	AddConn(conn *net.Conn)
+	AddConn(conn net.Conn)
 }
 
 type safeConn struct {
 	mu   sync.Mutex
-	conn *net.Conn
+	conn net.Conn
 }
 
 type node struct {
@@ -43,7 +43,7 @@ func (this *node) Recv() (string, error) {
 	this.safeConn.mu.Lock()
     log.Println("want to read")
     log.Printf("start reading from %v\n", this.GetIp())
-    outMex,errMex = bufio.NewReader(*this.safeConn.conn).ReadString('\n')
+    outMex,errMex = bufio.NewReader(this.safeConn.conn).ReadString('\n')
 	this.safeConn.mu.Unlock()
     log.Printf("end reading from %v : %v\n", this.GetIp(), outMex)
     if errMex != nil {
@@ -62,7 +62,7 @@ func NewNode(remoteAddr string, remotePort string) (Node) {
 	}
 }
 
-func (this *node) AddConn(conn *net.Conn) {
+func (this *node) AddConn(conn net.Conn) {
 	this.safeConn.conn = conn
 }
 
@@ -73,7 +73,7 @@ func (this *node) Send(mex []byte) error{
     log.Printf("start sending message to %v", this.GetIp())
 	this.safeConn.mu.Lock()
     // (*this.safeConn.conn).Write([]byte("hello\n"))
-    fmt.Fprint((*this.safeConn.conn),"hello\n")
+    fmt.Fprint(this.safeConn.conn,"hello\n")
 	this.safeConn.mu.Unlock()
     log.Printf("message sended to %v", this.GetIp())
     return nil
