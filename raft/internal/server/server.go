@@ -155,13 +155,17 @@ func (s *Server) acceptIncomingConn() {
 		var newConncetionIp string = tcpAddr.IP.String()
 		var newConncetionPort string = string(rune(tcpAddr.Port))
 		var id_node string = generateID(newConncetionIp)
-		var value, found = s.otherNodes.Load(id_node)
+        var value any
+        var found bool
+		value, found = s.otherNodes.Load(id_node)
         
         log.Println("enstablish connection with node: ", id_node)
 
 		if found {
 			var connectedNode node.Node = value.(node.Node)
 			connectedNode.AddConnIn(&conn)
+            s.otherNodes.Delete(generateID(connectedNode.GetIp()))
+			s.otherNodes.Store(id_node, connectedNode)
 		} else {
 			var new_node, _ = node.NewNode(newConncetionIp, newConncetionPort)
 			new_node.AddConnIn(&conn)
