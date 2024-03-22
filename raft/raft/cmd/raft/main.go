@@ -60,9 +60,10 @@ func main(){
             }
             log.Printf("message received %v", mex)
         }()
-
+        wg.Wait()
 
         con.Close()
+
     }else{
         var con net.Conn
         var err error
@@ -97,12 +98,12 @@ func main(){
             }
         }()
 
+        wg.Wait()
         con.Close()
     }
 
 
     log.Println("listening on port: " + "8080")
-    wg.Wait()
 }
 
 // func main() {
