@@ -200,7 +200,7 @@ func (s *Server) sendAll(rpc *messages.Rpc){
         mex = custom_mex.FromRpc(*rpc)
         raw_mex = mex.ToByte()
         log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
-        (nNode).Send(raw_mex)
+        nNode.Send(raw_mex)
         return true
     })
     log.Println("end broadcast")
