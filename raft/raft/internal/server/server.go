@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -64,12 +65,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
     log.Println("number of others ip: ", len(serversIp))
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
-		var err error
-		new_node, err = node.NewNode(serversIp[i], port)
-		if err != nil {
-			println("error in creating new node: %v", err)
-			continue
-		}
+		new_node = node.NewNode(serversIp[i], port)
         log.Println("storing new node with ip :", serversIp[i])
 		server.otherNodes.Store(generateID(serversIp[i]), new_node)
         server._state.IncreaseNodeInCluster()
@@ -89,11 +85,6 @@ func (s *Server) Start() {
 
     log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
-
-    // log.Println("if")
-	// if s._state.Leader() {
-	// 	s._state.StartHearthbeatTimeout()
-	// }
 
     log.Println("start main run")
 	go s.run()
@@ -162,12 +153,12 @@ func (s *Server) acceptIncomingConn() {
         log.Println("enstablish connection with node: ", id_node)
 
 		if found {
-			var connectedNode node.Node = value.(node.Node)
-			connectedNode.AddConnIn(&conn)
+			var connectedNode = value.(*node.Node)
+			(*connectedNode).AddConnIn(&conn)
 		} else {
-			var new_node, _ = node.NewNode(newConncetionIp, newConncetionPort)
+			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort)
 			new_node.AddConnIn(&conn)
-			s.otherNodes.Store(id_node, new_node)
+			s.otherNodes.Store(id_node, &new_node)
             s._state.IncreaseNodeInCluster()
 		}
         log.Println("finish accepting new connections")
@@ -186,6 +177,9 @@ func (s *Server) handleResponse() {
 			var message string
 			var errMes error
 			message, errMes = node.Recv()
+            if errMes == errors.New("connection not instantiated"){
+                return false
+            }
 			if errMes != nil {
 				fmt.Printf("error in reading from node %v with error %v",
 					node.GetIp(), errMes)
