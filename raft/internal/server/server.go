@@ -220,7 +220,6 @@ func (s *Server) run() {
             var rpcCall *messages.Rpc
             var sender string
             var oldRole raftstate.Role
-            var newRole raftstate.Role
             var resp *messages.Rpc
             var mex custom_mex.Message
 
@@ -228,7 +227,6 @@ func (s *Server) run() {
             rpcCall = mess.payload
             sender = mess.sender
             resp = (*rpcCall).Execute(&s._state)
-            newRole = s._state.GetRole()
 
             if resp != nil {
                 mex = custom_mex.FromRpc(*resp)
@@ -246,8 +244,8 @@ func (s *Server) run() {
                 f.(node.Node).Send(mex.ToByte())
             }
 
-            if newRole == state.LEADER && oldRole != state.LEADER{
-                s._state.IncrementTerm()
+            if s._state.Leader() && oldRole != state.LEADER{
+                s.wg.Add(1)
                 go s.leaderHearthBit()
             }
 
@@ -293,6 +291,7 @@ func (s *Server) startNewElection(){
 }
 
 func (s *Server) leaderHearthBit(){
+    defer s.wg.Done()
     log.Println("start sending hearthbit")
     for s._state.Leader(){
         select{

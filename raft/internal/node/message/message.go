@@ -14,16 +14,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type EnumType int
-
-const (
-	APPEND_ENTRY EnumType = iota
-	REQUEST_VOTE
-	APPEND_RESPONSE
-	VOTE_RESPONSE
-	COPY_STATE
-)
-
 type Message struct {
 	Kind      p.Ty
 	Payload []byte
