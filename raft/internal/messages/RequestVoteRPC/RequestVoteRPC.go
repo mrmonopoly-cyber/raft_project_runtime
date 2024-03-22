@@ -35,7 +35,7 @@ func (this RequestVoteRPC) GetId() string {
 
 // ToString messages.Rpc.
 func (this *RequestVoteRPC) ToString() string {
-	var mex string = "{term : " + strconv.Itoa(int(this.term)) + ", leaderId: " + this.candidateId + ",lastLogIndex: " + strconv.Itoa(int(this.lastLogIndex)) + ", lastLogTerm: " + strconv.Itoa(int(this.lastLogTerm)) + "}\n"
+	var mex string = "{term : " + strconv.Itoa(int(this.term)) + ", leaderId: " + this.candidateId + ",lastLogIndex: " + strconv.Itoa(int(this.lastLogIndex)) + ", lastLogTerm: " + strconv.Itoa(int(this.lastLogTerm)) + "}"
 
     log.Println("rpc RequestVote :", mex)
 
