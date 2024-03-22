@@ -61,10 +61,10 @@ func (this *node) Recv() (string, error) {
 
 }
 
-func NewNode(remoteAddr string, remotePort string) (Node, error) {
+func NewNode(remoteAddr string, remotePort string) (Node) {
 	return &node{
 		addr: address.NewNodeAddress(remoteAddr, remotePort),
-	}, nil
+	}
 }
 
 func (this *node) AddConnIn(conn *net.Conn) {
