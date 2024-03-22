@@ -66,9 +66,18 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
 		new_node = node.NewNode(serversIp[i], port)
-        log.Println("storing new node with ip :", serversIp[i])
-		server.otherNodes.Store(generateID(serversIp[i]), new_node)
-        server._state.IncreaseNodeInCluster()
+        log.Println("connecting to the server: ", serversIp[i])
+        var nodeConn net.Conn
+        var erroConn error
+
+        nodeConn,erroConn = net.Dial("tcp",serversIp[i]+":"+port)
+        if erroConn != nil {
+            new_node.AddConnIn(&nodeConn)
+            log.Println("storing new node with ip :", serversIp[i])
+            server.otherNodes.Store(generateID(serversIp[i]), new_node)
+            server._state.IncreaseNodeInCluster()
+        }
+
 	}
 	return server
 }
@@ -80,8 +89,8 @@ func (s *Server) Start() {
     log.Println("Start accepting connections")
 	go s.acceptIncomingConn()
 
-    log.Println("connect To other Servers")
-	s.connectToServers()
+ //    log.Println("connect To other Servers")
+	// s.connectToServers()
 
     log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
