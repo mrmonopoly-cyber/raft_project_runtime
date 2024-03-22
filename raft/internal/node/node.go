@@ -3,7 +3,6 @@ package node
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"raft/internal/node/address"
