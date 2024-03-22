@@ -41,13 +41,14 @@ func (this *node) Recv() (string, error) {
     }
 	this.safeConn.mu.Lock()
     log.Println("want to read")
-    log.Println("reading")
+    log.Printf("start reading from %v\n", this.GetIp())
     outMex,errMex = bufio.NewReader(*this.safeConn.conn).ReadString('\n')
+	this.safeConn.mu.Unlock()
+    log.Printf("end reading from %v : %v\n", this.GetIp(), outMex)
     if errMex != nil {
         log.Println("found other error, received message: ", byteRead)
         return "", errMex
     }   
-	this.safeConn.mu.Unlock()
     
     log.Println("found no error, received message: ", byteRead)
 	return outMex, errMex
@@ -70,7 +71,7 @@ func (this *node) Send(mex []byte) error{
     }
     log.Printf("start sending message to %v", this.GetIp())
 	this.safeConn.mu.Lock()
-    (*this.safeConn.conn).Write(mex)
+    (*this.safeConn.conn).Write([]byte("hello\n"))
 	this.safeConn.mu.Unlock()
     log.Printf("message sended to %v", this.GetIp())
     return nil
