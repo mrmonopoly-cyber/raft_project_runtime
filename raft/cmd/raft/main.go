@@ -52,11 +52,11 @@ func main(){
             }
         }()
 
-        log.Printf("recv mex")
+        log.Printf("recr mex")
         go func (){
             mex, err = bufio.NewReader(con).ReadString('\n')
             if err != nil{
-                panic("error in receiving the mex")
+                log.Panicf("error in receiving the mex: %v", err)
             }
             log.Printf("message received %v", mex)
         }()
@@ -91,7 +91,7 @@ func main(){
             for {
                 mex, err = bufio.NewReader(con).ReadString('\n')
                 if err != nil{
-                    panic("error in receiving the mex")
+                    log.Panicf("error in receiving the mex: %v", err)
                 }
                 log.Printf("data received: %v", mex)
             }
