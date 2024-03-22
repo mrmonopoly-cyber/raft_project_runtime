@@ -31,7 +31,9 @@ func main(){
       panic("failed to create listener")
   }
 
-  if len(addresses) == 0 {
+  var numAddrs = len(addresses)
+  log.Printf("addresses found: %v", numAddrs)
+  if numAddrs == 0 {
       log.Printf("accepting connection")
       var con net.Conn
       con, err = list.Accept()
