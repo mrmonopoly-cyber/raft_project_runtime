@@ -40,18 +40,25 @@ func main(){
       if err != nil {
           panic("accept failed")
       }
+      var mex string
+
+      go func () {
+          for {
+              mex = "to you"
+              _,err = con.Write([]byte(mex + "\n"))
+              log.Printf("message sent %v", mex)
+          }
+      }()
 
       log.Printf("recv mex")
-      var mex string
-      mex, err = bufio.NewReader(con).ReadString('\n')
-      if err != nil{
-          panic("error in receiving the mex")
-      }
-      log.Printf("message received %v", mex)
+      go func (){
+          mex, err = bufio.NewReader(con).ReadString('\n')
+          if err != nil{
+              panic("error in receiving the mex")
+          }
+          log.Printf("message received %v", mex)
+      }()
 
-      mex = "to you"
-      _,err = con.Write([]byte(mex + "\n"))
-      log.Printf("message sent %v", mex)
       
       con.Close()
   }else{
@@ -64,19 +71,29 @@ func main(){
       }
 
       log.Printf("sending message")
-      var mex = "hello"
-      _,err = con.Write([]byte(mex + "\n"))
-      if err != nil {
-        panic("error sending data")
-      }
+      go func ()  {
+        for{
+            var mex = "hello"
+            _,err = con.Write([]byte(mex + "\n"))
+            if err != nil {
+                panic("error sending data")
+            }
+        }
+      }()
+    
+      var mex string
       log.Println("data sent")
 
-
-      mex, err = bufio.NewReader(con).ReadString('\n')
-      if err != nil{
-          panic("error in receiving the mex")
-      }
-      log.Printf("data received: %v", mex)
+    
+      go func (){
+          for {
+              mex, err = bufio.NewReader(con).ReadString('\n')
+              if err != nil{
+                  panic("error in receiving the mex")
+              }
+              log.Printf("data received: %v", mex)
+          }
+      }()
 
       con.Close()
   }
