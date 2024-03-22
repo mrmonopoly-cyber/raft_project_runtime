@@ -47,8 +47,13 @@ func main(){
       if err != nil{
           panic("error in receiving the mex")
       }
-
       log.Printf("message received %v", mex)
+
+      mex = "to you"
+      _,err = con.Write([]byte(mex + "\n"))
+      log.Printf("message sent %v", mex)
+      
+      con.Close()
   }else{
       var con net.Conn
       var err error
@@ -64,8 +69,15 @@ func main(){
       if err != nil {
         panic("error sending data")
       }
-
       log.Println("data sent")
+
+
+      mex, err = bufio.NewReader(con).ReadString('\n')
+      if err != nil{
+          panic("error in receiving the mex")
+      }
+      log.Printf("data received: %v", mex)
+
       con.Close()
   }
 
