@@ -153,11 +153,11 @@ func (s *Server) acceptIncomingConn() {
         log.Println("enstablish connection with node: ", id_node)
 
 		if found {
-            log.Printf("node with ip %v found", id_node)
+            log.Printf("node with ip %v found", newConncetionIp)
 			var connectedNode node.Node = value.(node.Node)
 			(connectedNode).AddConnIn(&conn)
 		} else {
-            log.Printf("node with ip %v not found", id_node)
+            log.Printf("node with ip %v not found", newConncetionIp)
 			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort)
 			new_node.AddConnIn(&conn)
 			s.otherNodes.Store(id_node, &new_node)
@@ -199,6 +199,7 @@ func (s *Server) handleResponse() {
 }
 
 func (s *Server) sendAll(rpc *messages.Rpc){
+    log.Println("start broadcast")
     s.otherNodes.Range(func(key, value any) bool {
         var node node.Node = value.(node.Node)
         var mex custom_mex.Message
@@ -206,9 +207,11 @@ func (s *Server) sendAll(rpc *messages.Rpc){
 
         mex = custom_mex.FromRpc(*rpc)
         raw_mex = mex.ToByte()
+        log.Printf("sending: %v to %v", (*rpc).ToString(), node.GetIp() )
         node.Send(raw_mex)
         return true
     })
+    log.Println("end broadcast")
 }
 
 func (s *Server) run() {
