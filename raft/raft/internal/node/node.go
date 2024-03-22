@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"net"
 	"raft/internal/node/address"
 	"sync"
@@ -35,15 +37,25 @@ func (this *node) Recv() (string, error) {
 	var raw_mex string = ""
 	var errMex error
 	this.recv.mu.Lock()
+    log.Println("want to read")
     if this.recv.conn != nil {
+        log.Println("reading")
         raw_mex, errMex = bufio.NewReader(this.recv.conn).ReadString('\n')
     }
 	this.recv.mu.Unlock()
 
+    
+    if errMex == io.EOF {
+        log.Println("found EOF, received message: ", raw_mex)
+        return raw_mex, nil
+    }
+
 	if errMex != nil {
+        log.Println("found other error, received message: ", raw_mex)
 		return "", errMex
 	}
-
+    
+    log.Println("found no error, received message: ", raw_mex)
 	return raw_mex, errMex
 
 }
