@@ -19,7 +19,7 @@ func main(){
   var workDir = "/root/mount/raft/"
   var fileOthersIp, erro = os.ReadFile(workDir + "others_ip")
   if erro != nil {
-    panic("could not find other ips")
+    log.Printf("could not find other ips")
   }
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
