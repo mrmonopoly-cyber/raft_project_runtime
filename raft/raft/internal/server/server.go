@@ -94,14 +94,14 @@ func (s *Server) Start() {
 	go s.acceptIncomingConn()
 
 
- //    log.Println("Start election Timeout")
-	// s._state.StartElectionTimeout()
-	//
- //    log.Println("start main run")
-	// go s.run()
-	//
- //    log.Println("start handle response")
-	// go s.handleResponse()
+    log.Println("Start election Timeout")
+	s._state.StartElectionTimeout()
+
+    log.Println("start main run")
+	go s.run()
+
+    log.Println("start handle response")
+	go s.handleResponse()
 
     log.Println("wait to finish")
 	s.wg.Wait()
