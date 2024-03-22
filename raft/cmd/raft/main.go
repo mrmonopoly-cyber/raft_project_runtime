@@ -24,7 +24,7 @@ func main(){
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
 
-  if len(addresses) > 0 {
+  if len(addresses) == 0 {
       var list net.Listener
       var err error
       log.Printf("creating listener")
