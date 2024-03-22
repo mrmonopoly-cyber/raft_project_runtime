@@ -86,11 +86,6 @@ func (s *Server) Start() {
     log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
 
-    // log.Println("if")
-	// if s._state.Leader() {
-	// 	s._state.StartHearthbeatTimeout()
-	// }
-
     log.Println("start main run")
 	go s.run()
 
