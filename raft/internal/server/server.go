@@ -153,9 +153,11 @@ func (s *Server) acceptIncomingConn() {
         log.Println("enstablish connection with node: ", id_node)
 
 		if found {
+            log.Printf("node with ip %v found", id_node)
 			var connectedNode node.Node = value.(node.Node)
 			(connectedNode).AddConnIn(&conn)
 		} else {
+            log.Printf("node with ip %v not found", id_node)
 			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort)
 			new_node.AddConnIn(&conn)
 			s.otherNodes.Store(id_node, &new_node)
