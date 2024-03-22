@@ -76,7 +76,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
             log.Println("Failed to connect to node: ", serversIp[i])
             continue
         }
-        new_node.AddConn(&nodeConn)
+        new_node.AddConn(nodeConn)
         log.Println("storing new node with ip :", serversIp[i])
         nodeId = generateID(serversIp[i])
         server.otherNodes.Store(nodeId, new_node)
@@ -135,7 +135,7 @@ func (s *Server) acceptIncomingConn() {
 		} else {
             log.Printf("node with ip %v not found", newConncetionIp)
 			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort)
-			new_node.AddConn(&conn)
+			new_node.AddConn(conn)
 			s.otherNodes.Store(id_node, new_node)
             s._state.IncreaseNodeInCluster()
 		}
