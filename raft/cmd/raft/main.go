@@ -2,7 +2,6 @@ package main
 
 import (
 	//"flag"
-	"bufio"
 	"log"
 	"os"
 	"strings"
@@ -16,7 +15,7 @@ import (
 func main() {
 
   var workDir = "/root/mount/raft/"
-  var fileMyIp, errm = os.Open(workDir + "my_ip")
+  var fileMyIp, errm = os.ReadFile(workDir + "my_ip")
   if errm != nil {
     panic("could not find my ip")
   }
@@ -24,19 +23,14 @@ func main() {
   if erro != nil {
     panic("could not find other ips")
   }
-  // var stringMyIp = string(fileMyIp)
-  var stringMyIp, err = bufio.NewReader(fileMyIp).ReadString('\n')
-  if err != nil {
-    panic("error reading my ip")
-  }
-  log.Println("my ip is: ", stringMyIp)
+  var stringMyIp = strings.Split(string(fileMyIp), "\n")
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
 
 
   log.Println("listening on port: " + "8080")
 
-  var server1 *ser.Server = ser.NewServer(0, stringMyIp, "8080", addresses)
+  var server1 *ser.Server = ser.NewServer(0, stringMyIp[0], "8080", addresses)
 
   var wg sync.WaitGroup
 
