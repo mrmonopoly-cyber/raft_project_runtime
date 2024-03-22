@@ -23,16 +23,15 @@ func main(){
   }
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
+  log.Printf("creating listener")
+  var list net.Listener
+  var err error
+  list,err = net.Listen("tcp",":8080")
+  if err !=nil {
+      panic("failed to create listener")
+  }
 
   if len(addresses) == 0 {
-      var list net.Listener
-      var err error
-      log.Printf("creating listener")
-      list,err = net.Listen("tcp",":8080")
-      if err !=nil {
-        panic("failed to create listener")
-      }
-
       log.Printf("accepting connection")
       var con net.Conn
       con, err = list.Accept()
