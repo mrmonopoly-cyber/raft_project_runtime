@@ -77,7 +77,8 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
         }
         new_node.AddConnIn(&nodeConn)
         log.Println("storing new node with ip :", serversIp[i])
-        server.otherNodes.Store(generateID(serversIp[i]), new_node)
+        // server.otherNodes.Store(generateID(serversIp[i]), new_node)
+        server.otherNodes.Store(serversIp[i], new_node)
         server._state.IncreaseNodeInCluster()
 
 	}
@@ -156,7 +157,8 @@ func (s *Server) acceptIncomingConn() {
 
 		var newConncetionIp string = tcpAddr.IP.String()
 		var newConncetionPort string = string(rune(tcpAddr.Port))
-		var id_node string = generateID(newConncetionIp)
+		// var id_node string = generateID(newConncetionIp)
+		var id_node string = newConncetionIp
         var value any
         var found bool
 		value, found = s.otherNodes.Load(id_node)
@@ -249,7 +251,8 @@ func (s *Server) run() {
                 log.Println("reponse to send to: ", sender)
                 var f any
                 var ok bool
-                f, ok = s.otherNodes.Load(generateID(sender))
+                // f, ok = s.otherNodes.Load(generateID(sender))
+                f, ok = s.otherNodes.Load(sender)
 
                 if !ok {
                     log.Printf("Node %s not found", sender)
