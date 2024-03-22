@@ -161,7 +161,7 @@ func (s *Server) acceptIncomingConn() {
         var found bool
 		value, found = s.otherNodes.Load(id_node)
         
-        log.Println("enstablish connection with node: ", id_node)
+        log.Println("enstablish connection with node: ", newConncetionIp)
 
 		if found {
             log.Printf("node with ip %v found", newConncetionIp)
