@@ -223,20 +223,20 @@ func (s *Server) handleResponse() {
 func (s *Server) sendAll(rpc *messages.Rpc){
     log.Println("start broadcast")
     s.otherNodes.Range(func(key, value any) bool {
-        var nNode node.Node 
+        var nNode *node.Node 
         var found bool 
+        nNode, found = value.(*node.Node)
         if !found {
             var s = reflect.TypeOf(value)
             log.Panicln("failed conversion type node, type is: ", s)
         }
-        nNode, found = value.(node.Node)
         var mex custom_mex.Message
         var raw_mex []byte
 
         mex = custom_mex.FromRpc(*rpc)
         raw_mex = mex.ToByte()
-        log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
-        (nNode).Send(raw_mex)
+        log.Printf("sending: %v to %v", (*rpc).ToString(), (*nNode).GetIp() )
+        (*nNode).Send(raw_mex)
         return true
     })
     log.Println("end broadcast")
