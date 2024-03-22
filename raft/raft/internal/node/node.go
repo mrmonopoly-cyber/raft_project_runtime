@@ -1,6 +1,7 @@
 package node
 
 import (
+	"bufio"
 	"errors"
 	"log"
 	"net"
@@ -33,25 +34,19 @@ func (this *node) Recv() (string, error) {
     const bufferSize = 1024
 
     var outMex = ""
-	var byteRead int = -1
+	var byteRead string
 	var errMex error
-    var buffer []byte = make([]byte, bufferSize)
     if this.safeConn.conn == nil {
-        // return "", errors.New("connection not instantiated")
-        return "", nil
+        return "", errors.New("connection not instantiated")
     }
 	this.safeConn.mu.Lock()
     log.Println("want to read")
     log.Println("reading")
-    for byteRead == -1 || byteRead == bufferSize{
-        byteRead, errMex = (*this.safeConn.conn).Read(buffer)
-        if errMex != nil {
-            panic("error reading")
-            log.Println("found other error, received message: ", byteRead)
-            return "", errMex
-        }   
-        outMex += string(buffer)
-    }
+    outMex,errMex = bufio.NewReader(*this.safeConn.conn).ReadString('\n')
+    if errMex != nil {
+        log.Println("found other error, received message: ", byteRead)
+        return "", errMex
+    }   
 	this.safeConn.mu.Unlock()
     
     log.Println("found no error, received message: ", byteRead)
