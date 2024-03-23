@@ -25,26 +25,33 @@ type AppendEntryRPC struct {
 }
 
 func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, state raftstate.State) bool {
-  return state.GetEntries()[prevLogIndex].GetTerm() == prevLogTerm
+	return state.GetEntries()[prevLogIndex].GetTerm() == prevLogTerm
 }
 
 // Manage implements messages.Rpc.
-func (this *AppendEntryRPC) Execute(state *raftstate.State) *messages.Rpc{
+func (this *AppendEntryRPC) Execute(state *raftstate.State) *messages.Rpc {
+  (*state).StopElectionTimeout()
+  defer (*state).StartElectionTimeout()
 
-    if ((*state).GetRole() != raftstate.FOLLOWER) {
-        (*state).SetRole(raftstate.FOLLOWER)
-    }
+	if (*state).GetRole() != raftstate.FOLLOWER {
+		(*state).SetRole(raftstate.FOLLOWER)
+	}
 
-    var appendEntryResp messages.Rpc
+  var appendEntryResp messages.Rpc
+  var success bool
 
-    if (this.term < (*state).GetTerm()) || !checkConsistency(this.prevLogIndex, this.prevLogTerm, *state) { 
-        appendEntryResp = appendEntryResponse.NewAppendEntryResponse("",false, 
-        (*state).GetTerm(), 
-        uint64(len((*state).GetEntries()) - 1))
-    } else {
-
-    }
-    return &appendEntryResp
+	if (this.term < (*state).GetTerm()) || !checkConsistency(this.prevLogIndex, this.prevLogTerm, *state) {
+		success = false
+	} else {
+    (*state).AppendEntries(this.entries)
+    success = true
+	}
+	appendEntryResp = appendEntryResponse.NewAppendEntryResponse(
+    (*state).GetId(),
+		success,
+		(*state).GetTerm(),
+		uint64(len((*state).GetEntries())-1))
+  return &appendEntryResp
 }
 
 // ToString implements messages.Rpc.
@@ -94,7 +101,7 @@ func GenerateHearthbeat(state raftstate.State) messages.Rpc {
 
 
 func (this AppendEntryRPC) GetId() string {
-  return this.leaderId
+	return this.leaderId
 }
 
 func (this AppendEntryRPC) GetTerm() uint64 {
@@ -143,3 +150,4 @@ func (this AppendEntryRPC) GetPrevLogIndex() uint64 {
 func (this AppendEntryRPC) GetLeaderCommit() uint64 {
 	return this.leaderCommit
 }
+

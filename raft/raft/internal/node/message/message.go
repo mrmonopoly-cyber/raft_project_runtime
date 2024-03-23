@@ -43,11 +43,7 @@ func (this *Message) ToByte() []byte {
 		Kind:    t.Enum(),
 		Payload: this.Payload,
 	}
-	mex, err := proto.Marshal(mess)
-    if err != nil {
-        log.Panicf("marshal failed with error code: %v", err)
-        
-    }
+	mex, _ := proto.Marshal(mess)
 	return mex
 }
 

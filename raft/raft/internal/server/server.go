@@ -66,22 +66,9 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
 		new_node = node.NewNode(serversIp[i], port)
-        log.Printf("connecting to the server: %v\n", serversIp[i])
-        var nodeConn net.Conn
-        var erroConn error
-        var nodeId string
-
-        nodeConn,erroConn = net.Dial("tcp",serversIp[i]+":"+port)
-        if erroConn != nil {
-            log.Println("Failed to connect to node: ", serversIp[i])
-            continue
-        }
-        new_node.AddConn(nodeConn)
         log.Println("storing new node with ip :", serversIp[i])
-        nodeId = generateID(serversIp[i])
-        server.otherNodes.Store(nodeId, new_node)
+		server.otherNodes.Store(generateID(serversIp[i]), new_node)
         server._state.IncreaseNodeInCluster()
-
 	}
 	return server
 }
@@ -93,6 +80,8 @@ func (s *Server) Start() {
     log.Println("Start accepting connections")
 	go s.acceptIncomingConn()
 
+    log.Println("connect To other Servers")
+	s.connectToServers()
 
     log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
@@ -105,6 +94,38 @@ func (s *Server) Start() {
 
     log.Println("wait to finish")
 	s.wg.Wait()
+}
+
+/*
+ * Create a connection between this server to all the others and populate the map containing these connections
+ */
+func (s *Server) connectToServers() {
+    log.Println("connecting to list of nodes")
+    if s.otherNodes == nil {
+        panic("Map of Node not allocated")
+    }
+	s.otherNodes.Range(func(key any, value interface{}) bool {
+        log.Println("connecting to a node")
+		var nodeEle node.Node
+		var errEl bool
+		nodeEle, errEl = value.(node.Node)
+		if !errEl {
+			log.Println("invalid object in otherNodes map: ", reflect.TypeOf(nodeEle))
+			return false
+		}
+		var ipAddr string = nodeEle.GetIp()
+		var port string = nodeEle.GetPort()
+        log.Println("connecting to: " + ipAddr + ":" + "8080")
+		var conn, err = net.Dial("tcp", ipAddr+":"+port)
+		for err != nil {
+			log.Println("Dial error: ", err)
+			return false
+		}
+		if conn != nil {
+			nodeEle.AddConnOut(&conn)
+		}
+		return true
+	})
 }
 
 func (s *Server) acceptIncomingConn() {
@@ -125,19 +146,23 @@ func (s *Server) acceptIncomingConn() {
 		var newConncetionIp string = tcpAddr.IP.String()
 		var newConncetionPort string = string(rune(tcpAddr.Port))
 		var id_node string = generateID(newConncetionIp)
+        var value any
         var found bool
-		_, found = s.otherNodes.Load(id_node)
+		value, found = s.otherNodes.Load(id_node)
         
-        log.Println("enstablish connection with node: ", newConncetionIp)
+        log.Println("enstablish connection with node: ", id_node)
 
 		if found {
             log.Printf("node with ip %v found", newConncetionIp)
-            continue
+			var connectedNode node.Node = value.(node.Node)
+			(connectedNode).AddConnIn(&conn)
+            // s.otherNodes.Delete(id_node)
+            // s.otherNodes.Store(connectedNode)
 		} else {
             log.Printf("node with ip %v not found", newConncetionIp)
 			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort)
-			new_node.AddConn(conn)
-			s.otherNodes.Store(id_node, new_node)
+			new_node.AddConnIn(&conn)
+			s.otherNodes.Store(id_node, &new_node)
             s._state.IncreaseNodeInCluster()
 		}
         log.Println("finish accepting new connections")
@@ -152,32 +177,23 @@ func (s *Server) handleResponse() {
 	// iterating over the connections map and receive byte message
 	for {
 		s.otherNodes.Range(func(k, conn interface{}) bool {
-            // var node *node.Node = conn.(*node.Node)
-            var nNode node.Node
-            var err bool
-
-            nNode,err = conn.(node.Node)
-
-            if !err {
-                panic("error type is not a node.Node")
-            }
-
+      var node node.Node = conn.(node.Node)
 			var message string
 			var errMes error
-			message, errMes = (nNode).Recv()
+			message, errMes = node.Recv()
             if errMes == errors.New("connection not instantiated"){
                 return false
             }
 			if errMes != nil {
 				fmt.Printf("error in reading from node %v with error %v",
-					(nNode).GetIp(), errMes)
+					node.GetIp(), errMes)
 				return false
 			}
             if message != "" {
-                log.Println("received message from: " + (nNode).GetIp())
+                log.Println("received message from: " + node.GetIp())
                 log.Println("data of message: " + message )
                 s.messageChannel <- 
-                pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),(nNode).GetIp()}
+                pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),node.GetIp()}
             }
 			return true
 		})
@@ -185,25 +201,16 @@ func (s *Server) handleResponse() {
 }
 
 func (s *Server) sendAll(rpc *messages.Rpc){
-    log.Println("start broadcast")
     s.otherNodes.Range(func(key, value any) bool {
-        var nNode node.Node 
-        var found bool 
-        nNode, found = value.(node.Node)
-        if !found {
-            var s = reflect.TypeOf(value)
-            log.Panicln("failed conversion type node, type is: ", s)
-        }
+        var node node.Node = value.(node.Node)
         var mex custom_mex.Message
         var raw_mex []byte
 
         mex = custom_mex.FromRpc(*rpc)
         raw_mex = mex.ToByte()
-        log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
-        nNode.Send(raw_mex)
+        node.Send(raw_mex)
         return true
     })
-    log.Println("end broadcast")
 }
 
 func (s *Server) run() {
