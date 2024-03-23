@@ -1,1 +1,13 @@
-../../../../../../../src/raft_daemon.service
+[Unit]
+Description=raft bootstrap node
+
+[Service]
+Type=simple
+ExecStart=/bin/sh /root/raft_bootstrap.sh &
+RemainAfterExit=no
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+
