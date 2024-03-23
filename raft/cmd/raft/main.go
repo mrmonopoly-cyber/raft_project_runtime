@@ -14,20 +14,29 @@ import (
 
 func main() {
 
-  var workDir = "/root/raft_project_runtimet/"
-  var fileMyIp, _ = os.ReadFile(workDir + "my_ip")
-  var fileOthersIp, _ = os.ReadFile(workDir + "others_ip")
-  var stringMyIp = string(fileMyIp)
+  var workDir = "/root/mount/raft/"
+  var fileMyIp, errm = os.ReadFile(workDir + "my_ip")
+  if errm != nil {
+    panic("could not find my ip")
+  }
+  var fileOthersIp, erro = os.ReadFile(workDir + "others_ip")
+  if erro != nil {
+    panic("could not find other ips")
+  }
+  var stringMyIp = strings.Split(string(fileMyIp), "\n")
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
 
-  var server1 *ser.Server = ser.NewServer(0,stringMyIp, "8080", addresses)
+
+  log.Println("listening on port: " + "8080")
+
+  var server1 *ser.Server = ser.NewServer(0, stringMyIp[0], "8080", addresses)
 
   var wg sync.WaitGroup
 
 
+  wg.Add(1)
   go func() {
-    wg.Add(1)
     defer wg.Done()
     server1.Start()
   } ()

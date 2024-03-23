@@ -2,7 +2,9 @@ package node
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"raft/internal/node/address"
@@ -30,27 +32,40 @@ type node struct {
 }
 
 // Read_rpc implements Node.
-// before: func (this *node) Recv() (*messages.Rpc, error)
 func (this *node) Recv() (string, error) {
 
-	var raw_mex string
+	var raw_mex string = ""
 	var errMex error
+    if this.recv.conn == nil {
+        // return "", errors.New("connection not instantiated")
+        return "", nil
+    }
 	this.recv.mu.Lock()
-	raw_mex, errMex = bufio.NewReader(this.recv.conn).ReadString('\n')
+    log.Println("want to read")
+    log.Println("reading")
+    raw_mex, errMex = bufio.NewReader(this.recv.conn).ReadString('\n')
 	this.recv.mu.Unlock()
 
+    
+    if errMex == io.EOF {
+        log.Println("found EOF, received message: ", raw_mex)
+        return raw_mex, nil
+    }
+
 	if errMex != nil {
+        log.Println("found other error, received message: ", raw_mex)
 		return "", errMex
 	}
-
+    
+    log.Println("found no error, received message: ", raw_mex)
 	return raw_mex, errMex
 
 }
 
-func NewNode(remoteAddr string, remotePort string) (Node, error) {
+func NewNode(remoteAddr string, remotePort string) (Node) {
 	return &node{
 		addr: address.NewNodeAddress(remoteAddr, remotePort),
-	}, nil
+	}
 }
 
 func (this *node) AddConnIn(conn *net.Conn) {
@@ -61,18 +76,15 @@ func (this *node) AddConnOut(conn *net.Conn) {
 	this.send.conn = *conn
 }
 
-func (this *node) Send(mex []byte) error {
-	//    var mexByte []byte
-	//    var err error
-	// mexByte, err = mex.Encode()
-	//    if err != nil {
-	//        println("fail to send message to %v", this.GetIp())
-	//        return err
-	//    }
+func (this *node) Send(mex []byte) error{
+    if this.send.conn == nil {
+        return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
+    }
 	this.send.mu.Lock()
-	fmt.Fprintf(this.send.conn, string(mex))
+    fmt.Fprintf(this.send.conn, string(mex))
 	this.send.mu.Unlock()
-	return nil
+    return nil
+	
 }
 
 func (this *node) GetIp() string {
@@ -81,25 +93,4 @@ func (this *node) GetIp() string {
 
 func (this *node) GetPort() string {
 	return this.addr.GetPort()
-}
-
-/*
- *  Send to every connected server a bunch of bytes
- */
-func SendAll(nodes *sync.Map, mex []byte) {
-	nodes.Range(func(k, conn interface{}) bool {
-		// conn.(node.Node)
-		var nodeConv Node
-		var err bool
-		nodeConv, err = conn.(Node)
-
-		if !err {
-			log.Println("invalid node in othersNode")
-			return false
-		}
-
-		log.Println(string(mex))
-		nodeConv.Send(mex)
-		return true
-	})
 }

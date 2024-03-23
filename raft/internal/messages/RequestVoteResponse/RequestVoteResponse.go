@@ -15,9 +15,39 @@ type RequestVoteResponse struct {
 	term        uint64
 }
 
+func NewRequestVoteResponse(id string, voteGranted bool, term uint64) messages.Rpc {
+	return &RequestVoteResponse{
+		id:          id,
+		voteGranted: voteGranted,
+		term:        term,
+	}
+}
+
 // Manage implements messages.Rpc.
-func (this *RequestVoteResponse) Execute(state *raftstate.State, resp *messages.Rpc) {
-	panic("unimplemented")
+func (this *RequestVoteResponse) Execute(state *raftstate.State) *messages.Rpc {
+    var nSupp = (*state).GetNumSupporters()
+    var nNonSupp = (*state).GetNumNotSupporters()
+    var nodeInCluster = (*state).GetNumNodeInCluster()
+    var victory uint64 = nodeInCluster/2
+
+    if this.voteGranted {
+        (*state).IncreaseSupporters()
+    }else {
+        (*state).IncreaseNotSupporters()
+    }
+
+    if nSupp > victory {
+        //became leader
+        (*state).SetRole(raftstate.LEADER)
+        (*state).VoteFor("")
+        (*state).ResetElection()
+    }
+    
+    if (nSupp + nNonSupp) == nodeInCluster{
+        (*state).VoteFor("")
+    }
+
+    return nil
 }
 
 // ToString implements messages.Rpc.
@@ -25,13 +55,6 @@ func (this *RequestVoteResponse) ToString() string {
 	return "{term : " + strconv.Itoa(int(this.term)) + ", \nvoteGranted: " + strconv.FormatBool(this.voteGranted) + "}"
 }
 
-func newRequestVoteResponse(id string, voteGranted bool, term uint64) messages.Rpc {
-	return &RequestVoteResponse{
-		id:          id,
-		voteGranted: voteGranted,
-		term:        term,
-	}
-}
 
 func (this RequestVoteResponse) GetId() string {
 	return this.id

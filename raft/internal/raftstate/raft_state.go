@@ -2,6 +2,7 @@ package raftstate
 
 import (
 	"math/rand"
+	"log"
 	l "raft/internal/raft_log"
 	p "raft/pkg/protobuf"
 	"time"
@@ -22,20 +23,23 @@ const (
 )
 
 type raftStateImpl struct {
-  id        string
-	term      uint64
-	leaderId  string
-	role      Role
-	voteFor   string
-	voting    bool
+	id               string
+	term             uint64
+	leaderId         string
+	role             Role
+	voteFor          string
+	voting           bool
 	electionTimeout  *time.Timer
 	heartbeatTimeout *time.Timer
 	log              l.Log
+	nSupporting      uint64
+	nNotSupporting   uint64
+	nNodeInCluster   uint64
 }
 
 
 type State interface {
-  GetId() string
+	GetId() string
 	GetTerm() uint64
 	GetRole() Role
 	StartElectionTimeout()
@@ -48,15 +52,24 @@ type State interface {
 	GetVoteFor() string
 	IncrementTerm()
 	VoteFor(id string)
+	CanVote() bool
 	GetEntries() []p.Entry
 	GetCommitIndex() uint64
 	SetRole(newRole Role)
-  SetTerm(newTerm uint64)
   AppendEntries(newEntries []*p.Entry)
+	SetTerm(newTerm uint64)
+	MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool
+	IncreaseSupporters()
+	IncreaseNotSupporters()
+	IncreaseNodeInCluster()
+	GetNumSupporters() uint64
+	GetNumNotSupporters() uint64
+	GetNumNodeInCluster() uint64
+	ResetElection()
 }
 
 func (_state *raftStateImpl) GetId() string {
-  return _state.id
+	return _state.id
 }
 
 func (_state *raftStateImpl) GetTerm() uint64 {
@@ -64,7 +77,7 @@ func (_state *raftStateImpl) GetTerm() uint64 {
 }
 
 func (_state *raftStateImpl) SetTerm(newTerm uint64) {
-  _state.term = newTerm
+	_state.term = newTerm
 }
 
 func (_state *raftStateImpl) GetRole() Role {
@@ -114,6 +127,7 @@ func (_state *raftStateImpl) CanVote() bool {
 }
 
 func (_state *raftStateImpl) HeartbeatTimeout() *time.Timer {
+    log.Println("timeout hearthbit")
 	return _state.heartbeatTimeout
 }
 
@@ -133,6 +147,46 @@ func (_state *raftStateImpl) VoteFor(id string) {
 	_state.voteFor = id
 }
 
+// MoreRecentLog implements State.
+func (_state *raftStateImpl) MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool {
+	return _state.log.More_recent_log(lastLogIndex, lastLogTerm)
+}
+
+// GetNumSupporters implements State.
+func (_state *raftStateImpl) GetNumSupporters() uint64 {
+	return _state.nSupporting
+}
+
+// IncreaseNotSupporters implements State.
+func (_state *raftStateImpl) IncreaseNotSupporters() {
+	_state.nNotSupporting++
+}
+
+// IncreaseSupporters implements State.
+func (_state *raftStateImpl) IncreaseSupporters() {
+	_state.nSupporting++
+}
+
+// GetNumNotSupporters implements State.
+func (_state *raftStateImpl) GetNumNotSupporters() uint64 {
+	return _state.nNotSupporting
+}
+
+// GetNumNodeInCluster implements State.
+func (_state *raftStateImpl) GetNumNodeInCluster() uint64 {
+	return _state.nNodeInCluster
+}
+
+// IncreaseNodeInCluster implements State.
+func (_state *raftStateImpl) IncreaseNodeInCluster() {
+	_state.nNodeInCluster++
+}
+
+func (_state *raftStateImpl) ResetElection() {
+	_state.nSupporting = 0
+	_state.nNotSupporting = 0
+}
+
 func NewState(term uint64, id string, role Role) State {
 	var s = new(raftStateImpl)
 	s.role = role
@@ -140,6 +194,9 @@ func NewState(term uint64, id string, role Role) State {
   s.id = id
 	s.electionTimeout = time.NewTimer(MAX_ELECTION_TIMEOUT)
 	s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)
- 
+	s.nNotSupporting = 0
+	s.nSupporting = 0
+	s.nNodeInCluster = 1
+
 	return s
 }

@@ -3,21 +3,25 @@ package server
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	messages "raft/internal/messages"
-	app_entry "raft/internal/messages/AppendEntryRPC"
+	"raft/internal/messages/AppendEntryRPC"
+	"raft/internal/messages/RequestVoteRPC"
 	"raft/internal/node"
 	custom_mex "raft/internal/node/message"
+	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
+	p "raft/pkg/protobuf"
 	"reflect"
 	"sync"
 )
 
-type pairMex struct {
-  payload messages.Rpc
-  sender string
+type pairMex struct{
+    payload *messages.Rpc
+    sender string
 }
 
 type Server struct {
@@ -45,7 +49,7 @@ func generateID(input string) string {
 }
 
 func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Server {
-	listener, err := net.Listen("tcp", ip_addr+":"+port)
+	listener, err := net.Listen("tcp",":"+port)
 
 	if err != nil {
 		log.Fatalf("Failed to listen on port %s: %s", port, err)
@@ -58,15 +62,13 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 		listener:       listener,
 	}
 
-	for i := 0; i < len(serversIp)-2; i++ {
+    log.Println("number of others ip: ", len(serversIp))
+	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
-		var err error
-		new_node, err = node.NewNode(serversIp[i], port)
-		if err != nil {
-			println("error in creating new node: %v", err)
-			continue
-		}
+		new_node = node.NewNode(serversIp[i], port)
+        log.Println("storing new node with ip :", serversIp[i])
 		server.otherNodes.Store(generateID(serversIp[i]), new_node)
+        server._state.IncreaseNodeInCluster()
 	}
 	return server
 }
@@ -74,20 +76,23 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 func (s *Server) Start() {
 	s.wg.Add(3)
 
+
+    log.Println("Start accepting connections")
 	go s.acceptIncomingConn()
 
+    log.Println("connect To other Servers")
 	s.connectToServers()
 
+    log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
 
-	if s._state.Leader() {
-		s._state.StartHearthbeatTimeout()
-	}
-
+    log.Println("start main run")
 	go s.run()
 
+    log.Println("start handle response")
 	go s.handleResponse()
 
+    log.Println("wait to finish")
 	s.wg.Wait()
 }
 
@@ -95,7 +100,12 @@ func (s *Server) Start() {
  * Create a connection between this server to all the others and populate the map containing these connections
  */
 func (s *Server) connectToServers() {
+    log.Println("connecting to list of nodes")
+    if s.otherNodes == nil {
+        panic("Map of Node not allocated")
+    }
 	s.otherNodes.Range(func(key any, value interface{}) bool {
+        log.Println("connecting to a node")
 		var nodeEle node.Node
 		var errEl bool
 		nodeEle, errEl = value.(node.Node)
@@ -105,6 +115,7 @@ func (s *Server) connectToServers() {
 		}
 		var ipAddr string = nodeEle.GetIp()
 		var port string = nodeEle.GetPort()
+        log.Println("connecting to: " + ipAddr + ":" + "8080")
 		var conn, err = net.Dial("tcp", ipAddr+":"+port)
 		for err != nil {
 			log.Println("Dial error: ", err)
@@ -135,16 +146,26 @@ func (s *Server) acceptIncomingConn() {
 		var newConncetionIp string = tcpAddr.IP.String()
 		var newConncetionPort string = string(rune(tcpAddr.Port))
 		var id_node string = generateID(newConncetionIp)
-		var value, found = s.otherNodes.Load(id_node)
+        var value any
+        var found bool
+		value, found = s.otherNodes.Load(id_node)
+        
+        log.Println("enstablish connection with node: ", id_node)
 
 		if found {
+            log.Printf("node with ip %v found", newConncetionIp)
 			var connectedNode node.Node = value.(node.Node)
-			connectedNode.AddConnIn(&conn)
+			(connectedNode).AddConnIn(&conn)
+            // s.otherNodes.Delete(id_node)
+            // s.otherNodes.Store(connectedNode)
 		} else {
-			var new_node, _ = node.NewNode(newConncetionIp, newConncetionPort)
+            log.Printf("node with ip %v not found", newConncetionIp)
+			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort)
 			new_node.AddConnIn(&conn)
-			s.otherNodes.Store(id_node, new_node)
+			s.otherNodes.Store(id_node, &new_node)
+            s._state.IncreaseNodeInCluster()
 		}
+        log.Println("finish accepting new connections")
 	}
 }
 
@@ -160,52 +181,132 @@ func (s *Server) handleResponse() {
 			var message string
 			var errMes error
 			message, errMes = node.Recv()
+            if errMes == errors.New("connection not instantiated"){
+                return false
+            }
 			if errMes != nil {
 				fmt.Printf("error in reading from node %v with error %v",
 					node.GetIp(), errMes)
 				return false
 			}
-			s.messageChannel <- pairMex{*custom_mex.NewMessage([]byte(message)).ToRpc(), node.GetIp(),}
+            if message != "" {
+                log.Println("received message from: " + node.GetIp())
+                log.Println("data of message: " + message )
+                s.messageChannel <- 
+                pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),node.GetIp()}
+            }
 			return true
 		})
 	}
 }
 
+func (s *Server) sendAll(rpc *messages.Rpc){
+    s.otherNodes.Range(func(key, value any) bool {
+        var node node.Node = value.(node.Node)
+        var mex custom_mex.Message
+        var raw_mex []byte
+
+        mex = custom_mex.FromRpc(*rpc)
+        raw_mex = mex.ToByte()
+        node.Send(raw_mex)
+        return true
+    })
+}
+
 func (s *Server) run() {
 	defer s.wg.Done()
 	for {
-		var pair pairMex
-    var mess custom_mex.Message
-		select {
-		case pair = <-s.messageChannel:
-		  var rpc messages.Rpc = pair.payload
-      var sender string = pair.sender
-      var resp *messages.Rpc
-			resp = rpc.Execute(&s._state)
-			
-      if resp != nil {
-				mess = custom_mex.FromRpc(*resp)
-				var f any
-				var ok bool
-				f, ok = s.otherNodes.Load(generateID(sender))
+		var mess pairMex
 
-				if !ok {
-					log.Printf("Node %s not found", sender)
-					continue
-				}
+        select {
+        case mess = <-s.messageChannel:
+            log.Println("processing message: ", (*mess.payload).ToString())
+            var rpcCall *messages.Rpc
+            var sender string
+            var oldRole raftstate.Role
+            var resp *messages.Rpc
+            var mex custom_mex.Message
 
-				f.(node.Node).Send(mess.ToByte())
-			}
+            oldRole = s._state.GetRole()
+            rpcCall = mess.payload
+            sender = mess.sender
+            resp = (*rpcCall).Execute(&s._state)
 
-		case <-s._state.HeartbeatTimeout().C:
-			
-      if s._state.Leader() {
-        var hb messages.Rpc = app_entry.GenerateHearthbeat(s._state)
-        mess = custom_mex.FromRpc(hb)
-        node.SendAll(s.otherNodes, mess.ToByte())
-      }
+            if resp != nil {
+                mex = custom_mex.FromRpc(*resp)
+                log.Println("reponse to send to: ", sender)
+                var f any
+                var ok bool
+                f, ok = s.otherNodes.Load(generateID(sender))
 
-		case <-s._state.ElectionTimeout().C:
-		}
+                if !ok {
+                    log.Printf("Node %s not found", sender)
+                    continue
+                }
+
+                log.Println("sending mex to: ",sender)
+                f.(node.Node).Send(mex.ToByte())
+            }
+
+            if s._state.Leader() && oldRole != state.LEADER{
+                s.wg.Add(1)
+                go s.leaderHearthBit()
+            }
+
+            log.Println("rpc processed")
+        case <-s._state.ElectionTimeout().C:
+            s.startNewElection()
+        }
 	}
+}
+
+func (s *Server) startNewElection(){
+    var entries []p.Entry
+    var len_ent int
+    var voteRequest messages.Rpc
+    var entryTerm uint64 = 0
+
+    s._state.IncrementTerm()
+
+    entries = s._state.GetEntries()
+    len_ent = len(entries)
+    if len_ent > 0{
+        entryTerm = entries[len_ent].GetTerm()
+    }
+
+
+    voteRequest = RequestVoteRPC.NewRequestVoteRPC(
+        s._state.GetTerm(),
+        s._state.GetId(),
+        uint64(len_ent),
+        entryTerm)
+
+    s._state.IncreaseSupporters()
+    log.Println("node in cluster: ",s._state.GetNumNodeInCluster())
+    if s._state.GetNumNodeInCluster() == 1 {
+        log.Println("became leader: ",s._state.GetRole())
+        s._state.SetRole(raftstate.LEADER)
+        s._state.ResetElection()
+        go s.leaderHearthBit()
+    }else {
+        log.Println("sending to everybody request vote :" + voteRequest.ToString())
+        s.sendAll(&voteRequest)
+    }
+}
+
+func (s *Server) leaderHearthBit(){
+    defer s.wg.Done()
+    log.Println("start sending hearthbit")
+    for s._state.Leader(){
+        select{
+        case <- s._state.HeartbeatTimeout().C:
+            var hearthBit messages.Rpc
+
+            hearthBit = AppendEntryRPC.GenerateHearthbeat(s._state)
+            log.Println("sending hearthbit")
+            s.sendAll(&hearthBit)
+            s._state.StartHearthbeatTimeout()
+        }
+    }
+    log.Println("no longer LEADER, stop sending hearthbit")
 }

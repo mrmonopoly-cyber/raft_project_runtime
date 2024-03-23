@@ -17,12 +17,11 @@ type AppendEntryResponse struct {
 }
 
 // Manage implements messages.Rpc.
-func (this *AppendEntryResponse) Execute(state *raftstate.State, resp *messages.Rpc) {
+func (this *AppendEntryResponse) Execute(state *raftstate.State) *messages.Rpc {
 	if !this.success {
 
-	} else {
-		resp = nil
-	}
+	} 
+    return nil
 }
 
 // ToString implements messages.Rpc.
