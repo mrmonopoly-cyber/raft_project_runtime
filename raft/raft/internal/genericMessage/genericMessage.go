@@ -42,9 +42,9 @@ func Encode(mex *rpcs.Rpc) ([]byte,error){
     // rawByte, err= (*mex).Encode()
     // genericMessage.Payload = rawByte
 
-    if err != nil {
-        log.Panicln("error encoding this message :", (*mex).ToString())
-    }
+    // if err != nil {
+    //     log.Panicln("error encoding this message :", (*mex).ToString())
+    // }
 
     switch (*mex).(type){
     case *AppendEntryRpc.AppendEntryRpc:
