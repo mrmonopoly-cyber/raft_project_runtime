@@ -26,14 +26,25 @@ func GenerateHearthbeat(state raftstate.State) messages.Rpc {
         prevLogTerm = entries[prevLogIndex].GetTerm()
     }
 
+    // var app = &AppendEntryRpc{
+    //     pMex: protobuf.AppendEntriesRequest{
+    //         Term:         state.GetTerm(),
+    //         LeaderId:     state.GetId(),
+    //         PrevLogIndex: uint64(prevLogIndex),
+    //         PrevLogTerm:  prevLogTerm,
+    //         Entries:      make([]*protobuf.LogEntry, 0),
+    //         LeaderCommit: state.GetCommitIndex(),
+    //     },
+    // }
+
     var app = &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
-            Term:         state.GetTerm(),
-            LeaderId:     state.GetId(),
-            PrevLogIndex: uint64(prevLogIndex),
-            PrevLogTerm:  prevLogTerm,
+            Term:         1,
+            LeaderId:     "hello app",
+            PrevLogIndex: 2,
+            PrevLogTerm:  3,
             Entries:      make([]*protobuf.LogEntry, 0),
-            LeaderCommit: state.GetCommitIndex(),
+            LeaderCommit: 4,
         },
     }
 
