@@ -7,8 +7,12 @@ import (
 type Rpc interface {
 	GetId() string
 	GetTerm() uint64
-	Encode() ([]byte, error)
 	Decode(b []byte) error
 	ToString() string
 	Execute(state *raftstate.State) *Rpc
+    Encode() ([]byte, error)
+}
+
+func Decode(m string) *Rpc{
+    panic("unimplemented")
 }

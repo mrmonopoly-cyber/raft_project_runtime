@@ -1,9 +1,9 @@
 package raft_log
 
-import p "raft/pkg/protobuf"
+import p "raft/pkg/rpcEncoding/out/protobuf"
 
 type Log struct {
-	entries     []p.Entry
+	entries     []p.LogEntry
 	commitIndex uint64
 }
 
@@ -12,7 +12,7 @@ type LogInterface interface {
   GetCommitIndex() uint64
 }
 
-func (l *Log) GetEntries() []p.Entry {
+func (l *Log) GetEntries() []p.LogEntry{
   return l.entries
 }
 

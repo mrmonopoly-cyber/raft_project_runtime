@@ -7,14 +7,13 @@ import (
 	"fmt"
 	"log"
 	"net"
-	messages "raft/internal/messages"
-	"raft/internal/messages/AppendEntryRPC"
+	"raft/internal/messages"
+	"raft/internal/messages/AppendEntryRpc"
 	"raft/internal/messages/RequestVoteRPC"
 	"raft/internal/node"
-	custom_mex "raft/internal/node/message"
 	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
-	p "raft/pkg/protobuf"
+	p "raft/pkg/rpcEncoding/out/protobuf"
 	"reflect"
 	"sync"
 )
@@ -177,7 +176,8 @@ func (s *Server) handleResponse() {
                 log.Println("received message from: " + (nNode).GetIp())
                 log.Println("data of message: " + message )
                 s.messageChannel <- 
-                pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),(nNode).GetIp()}
+                // pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),(nNode).GetIp()}
+                pairMex{messages.Decode(message),(nNode).GetIp()}
             }
 			return true
 		})
@@ -194,11 +194,13 @@ func (s *Server) sendAll(rpc *messages.Rpc){
             var s = reflect.TypeOf(value)
             log.Panicln("failed conversion type node, type is: ", s)
         }
-        var mex custom_mex.Message
         var raw_mex []byte
+        var err error
 
-        mex = custom_mex.FromRpc(*rpc)
-        raw_mex = mex.ToByte()
+        raw_mex,err = (*rpc).Encode()
+        if err != nil {
+            log.Panicln("error in Encoding this rpc: ",(*rpc).ToString())
+        }
         log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
         nNode.Send(raw_mex)
         return true
@@ -218,7 +220,8 @@ func (s *Server) run() {
             var sender string
             var oldRole raftstate.Role
             var resp *messages.Rpc
-            var mex custom_mex.Message
+            var byEnc []byte
+            var errEn error
 
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
@@ -226,7 +229,6 @@ func (s *Server) run() {
             resp = (*rpcCall).Execute(&s._state)
 
             if resp != nil {
-                mex = custom_mex.FromRpc(*resp)
                 log.Println("reponse to send to: ", sender)
                 var f any
                 var ok bool
@@ -238,7 +240,12 @@ func (s *Server) run() {
                 }
 
                 log.Println("sending mex to: ",sender)
-                f.(node.Node).Send(mex.ToByte())
+                // f.(node.Node).Send(mex.ToByte())
+                byEnc, errEn = (*resp).Encode()
+                if errEn != nil{
+                    log.Panicln("error encoding this rpc: ", (*resp).ToString())
+                }
+                f.(node.Node).Send(byEnc)
             }
 
             if s._state.Leader() && oldRole != state.LEADER{
@@ -254,7 +261,7 @@ func (s *Server) run() {
 }
 
 func (s *Server) startNewElection(){
-    var entries []p.Entry
+    var entries []p.LogEntry
     var len_ent int
     var voteRequest messages.Rpc
     var entryTerm uint64 = 0
@@ -295,7 +302,8 @@ func (s *Server) leaderHearthBit(){
         case <- s._state.HeartbeatTimeout().C:
             var hearthBit messages.Rpc
 
-            hearthBit = AppendEntryRPC.GenerateHearthbeat(s._state)
+            // hearthBit = AppendEntryRPC.GenerateHearthbeat(s._state)
+            hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
             log.Println("sending hearthbit")
             s.sendAll(&hearthBit)
             s._state.StartHearthbeatTimeout()
