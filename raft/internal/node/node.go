@@ -27,9 +27,8 @@ func (this *node) Recv() ([]byte, error) {
 
     const bufferSize = 1024
 
-    var mexS string
     var outMex []byte 
-    // var tempBuffer[] byte = make([]byte, bufferSize)
+    var tempBuffer[] byte = make([]byte, bufferSize)
 	var errMex error
     var byteRead int  = bufferSize
 
@@ -38,20 +37,18 @@ func (this *node) Recv() ([]byte, error) {
     }
     log.Println("want to read")
     log.Printf("start reading from %v\n", this.GetIp())
-    mexS,errMex = bufio.NewReader(this.conn).ReadString('\n')
-    // for byteRead == bufferSize{
-    //     byteRead,errMex = this.conn.Read(tempBuffer)
-    //     outMex = append(outMex, tempBuffer...)
-    // }
-    if errMex != nil {
-        log.Println("found other error, received message: ", byteRead)
-        return nil, errMex
-    }   
+    for byteRead == bufferSize{
+        byteRead,errMex = this.conn.Read(tempBuffer)
+        if errMex != nil {
+            log.Println("found other error, received message: ", byteRead)
+            return nil, errMex
+        }   
+        outMex = append(outMex, tempBuffer...)
+    }
     log.Printf("end reading from %v : %v\n", this.GetIp(), outMex)
     
     log.Println("found no error, received message: ", byteRead)
-	// return outMex, errMex
-	return []byte(mexS), errMex
+	return outMex, errMex
 
 }
 
@@ -70,8 +67,7 @@ func (this *node) Send(mex []byte) error{
         return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
     }
     log.Printf("start sending message to %v", this.GetIp())
-    // var mexTerm = string(mex) + "\n"
-    this.conn.Write(append(mex, []byte("\n")...))
+    this.conn.Write(mex)
     log.Printf("message sended to %v", this.GetIp())
     return nil
 	
