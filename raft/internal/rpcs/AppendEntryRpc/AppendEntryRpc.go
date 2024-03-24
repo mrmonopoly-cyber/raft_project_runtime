@@ -47,7 +47,6 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 	leaderCommit uint64) rpcs.Rpc {
     return &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
-            Ty: protobuf.MexType_APPEND_ENTRY,
             Term: term,
             LeaderId: leaderId,
             PrevLogIndex: prevLogIndex,
@@ -94,7 +93,6 @@ func (this *AppendEntryRpc) Decode(rawMex []byte) (error) {
 	err := proto.Unmarshal(rawMex, pb)
 
 	if err != nil {
-        this.pMex.Ty = pb.Ty
         this.pMex.Term = pb.Term
         this.pMex.PrevLogIndex = pb.PrevLogIndex
         this.pMex.PrevLogTerm = pb.PrevLogTerm
