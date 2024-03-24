@@ -25,11 +25,10 @@ type RequestVote struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Ty           MexType `protobuf:"varint,1,opt,name=ty,proto3,enum=protobuf.MexType" json:"ty,omitempty"`
-	Term         uint64  `protobuf:"varint,2,opt,name=Term,proto3" json:"Term,omitempty"`
-	CandidateId  string  `protobuf:"bytes,3,opt,name=CandidateId,proto3" json:"CandidateId,omitempty"`
-	LastLogIndex uint64  `protobuf:"varint,4,opt,name=LastLogIndex,proto3" json:"LastLogIndex,omitempty"`
-	LastLogTerm  uint64  `protobuf:"varint,5,opt,name=LastLogTerm,proto3" json:"LastLogTerm,omitempty"`
+	Term         uint64 `protobuf:"varint,2,opt,name=Term,proto3" json:"Term,omitempty"`
+	CandidateId  string `protobuf:"bytes,3,opt,name=CandidateId,proto3" json:"CandidateId,omitempty"`
+	LastLogIndex uint64 `protobuf:"varint,4,opt,name=LastLogIndex,proto3" json:"LastLogIndex,omitempty"`
+	LastLogTerm  uint64 `protobuf:"varint,5,opt,name=LastLogTerm,proto3" json:"LastLogTerm,omitempty"`
 }
 
 func (x *RequestVote) Reset() {
@@ -64,13 +63,6 @@ func (*RequestVote) Descriptor() ([]byte, []int) {
 	return file_request_vote_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *RequestVote) GetTy() MexType {
-	if x != nil {
-		return x.Ty
-	}
-	return MexType_APPEND_ENTRY
-}
-
 func (x *RequestVote) GetTerm() uint64 {
 	if x != nil {
 		return x.Term
@@ -103,11 +95,8 @@ var File_request_vote_proto protoreflect.FileDescriptor
 
 var file_request_vote_proto_rawDesc = []byte{
 	0x0a, 0x12, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x5f, 0x76, 0x6f, 0x74, 0x65, 0x2e, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x12, 0x08, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x1a, 0x0b,
-	0x65, 0x6e, 0x74, 0x72, 0x79, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0xac, 0x01, 0x0a, 0x0b,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x56, 0x6f, 0x74, 0x65, 0x12, 0x21, 0x0a, 0x02, 0x74,
-	0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x11, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62,
-	0x75, 0x66, 0x2e, 0x4d, 0x65, 0x78, 0x54, 0x79, 0x70, 0x65, 0x52, 0x02, 0x74, 0x79, 0x12, 0x12,
+	0x72, 0x6f, 0x74, 0x6f, 0x12, 0x08, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x22, 0x89,
+	0x01, 0x0a, 0x0b, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x56, 0x6f, 0x74, 0x65, 0x12, 0x12,
 	0x0a, 0x04, 0x54, 0x65, 0x72, 0x6d, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52, 0x04, 0x54, 0x65,
 	0x72, 0x6d, 0x12, 0x20, 0x0a, 0x0b, 0x43, 0x61, 0x6e, 0x64, 0x69, 0x64, 0x61, 0x74, 0x65, 0x49,
 	0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x43, 0x61, 0x6e, 0x64, 0x69, 0x64, 0x61,
@@ -134,15 +123,13 @@ func file_request_vote_proto_rawDescGZIP() []byte {
 var file_request_vote_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_request_vote_proto_goTypes = []interface{}{
 	(*RequestVote)(nil), // 0: protobuf.RequestVote
-	(MexType)(0),        // 1: protobuf.MexType
 }
 var file_request_vote_proto_depIdxs = []int32{
-	1, // 0: protobuf.RequestVote.ty:type_name -> protobuf.MexType
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // [0:0] is the sub-list for method output_type
+	0, // [0:0] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_request_vote_proto_init() }
@@ -150,7 +137,6 @@ func file_request_vote_proto_init() {
 	if File_request_vote_proto != nil {
 		return
 	}
-	file_entry_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_request_vote_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RequestVote); i {

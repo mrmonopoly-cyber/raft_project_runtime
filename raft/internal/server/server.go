@@ -197,7 +197,7 @@ func (s *Server) sendAll(rpc *rpcs.Rpc){
         var raw_mex []byte
         var err error
 
-        raw_mex,err = (*rpc).Encode()
+        raw_mex,err = genericmessage.Encode(rpc)
         if err != nil {
             log.Panicln("error in Encoding this rpc: ",(*rpc).ToString())
         }

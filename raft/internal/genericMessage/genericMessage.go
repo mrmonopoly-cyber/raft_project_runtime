@@ -4,7 +4,9 @@ import (
 	"log"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
-	"raft/pkg/rpcEncoding/out/protobuf"
+    "raft/internal/rpcs/RequestVoteRPC"
+
+    "raft/pkg/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -29,4 +31,34 @@ func Decode(raw_mex []byte) (*rpcs.Rpc){
     
     return &outRpc
 
+}
+
+func Encode(mex *rpcs.Rpc) ([]byte,error){
+    var err error
+    var rawByte []byte
+    var rawByteToSend []byte
+    var genericMessage protobuf.Entry
+
+    rawByte, err= (*mex).Encode()
+    genericMessage.Payload = rawByte
+
+    if err != nil {
+        log.Panicln("error encoding this message :", (*mex).ToString())
+    }
+
+    switch (*mex).(type){
+    case *AppendEntryRpc.AppendEntryRpc:
+        genericMessage.OpType = protobuf.MexType_APPEND_ENTRY
+    case *RequestVoteRPC.RequestVoteRPC:
+        genericMessage.OpType = protobuf.MexType_REQUEST_VOTE
+    }
+
+    rawByteToSend,err = proto.Marshal(&genericMessage)
+    if err != nil {
+        log.Panicln("failed in serializing the rpc AppendEntry")
+    }
+
+    return rawByteToSend,nil
+
+    
 }
