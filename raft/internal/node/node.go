@@ -1,7 +1,6 @@
 package node
 
 import (
-	"bufio"
 	"errors"
 	"log"
 	"net"
