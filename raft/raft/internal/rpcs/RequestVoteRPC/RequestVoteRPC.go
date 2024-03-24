@@ -55,7 +55,17 @@ func (this *RequestVoteRPC) Encode() ([]byte, error) {
 
 // Decode rpcs.Rpc.
 func (this *RequestVoteRPC) Decode(b []byte) error {
-    panic("unimplemented")
+    pb := new(protobuf.RequestVote)
+	err := proto.Unmarshal(b, pb)
+
+	if err != nil {
+        this.pMex.Term = pb.GetTerm()
+		this.pMex.CandidateId = pb.GetCandidateId()
+		this.pMex.LastLogTerm = pb.GetLastLogTerm()
+		this.pMex.LastLogIndex = pb.GetLastLogIndex()
+	}
+
+	return err
 }
 
 // GetCandidateId rpcs.Rpc.
