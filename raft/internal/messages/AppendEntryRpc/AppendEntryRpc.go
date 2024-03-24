@@ -42,7 +42,7 @@ func GenerateHearthbeat(state raftstate.State) messages.Rpc {
             Term:         1,
             LeaderId:     "hello app",
             PrevLogIndex: 2,
-            PrevLogTerm:  3,
+            PrevLogTerm:  prevLogTerm + 3,
             Entries:      make([]*protobuf.LogEntry, 0),
             LeaderCommit: 4,
         },
