@@ -1,7 +1,9 @@
 package node
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"log"
 	"net"
 	"raft/internal/node/address"
@@ -24,30 +26,45 @@ type node struct {
 // Read_rpc implements Node.
 func (this *node) Recv() ([]byte, error) {
 
-    const bufferSize = 1024
+    buffer := &bytes.Buffer{}
 
-    var outMex []byte 
-    var tempBuffer[] byte = make([]byte, bufferSize)
-	var errMex error
-    var byteRead int  = bufferSize
+	// Create a temporary buffer to store incoming data
+	tmp := make([]byte, 1024) // Initial buffer size
+
 
     if this.conn == nil {
         return nil, errors.New("connection not instantiated")
     }
     log.Println("want to read")
     log.Printf("start reading from %v\n", this.GetIp())
-    for byteRead == bufferSize{
-        byteRead,errMex = this.conn.Read(tempBuffer)
-        if errMex != nil {
-            log.Println("found other error, received message: ", byteRead)
-            return nil, errMex
-        }   
-        outMex = append(outMex, tempBuffer...)
-    }
-    log.Printf("end reading from %v : %v\n", this.GetIp(), outMex)
+
+    for {
+		// Read data from the connection
+		bytesRead, err := this.conn.Read(tmp)
+		if err != nil {
+			if err != io.EOF {
+				// Handle other errors
+				return nil, err
+			}
+			break
+		}
+
+		// Write the read data into the buffer
+		_, err = buffer.Write(tmp[:bytesRead])
+		if err != nil {
+			return nil, err
+		}
+
+		// Check if more data is available
+		if bytesRead < len(tmp) {
+			break
+		}
+	}
+
+    log.Printf("end reading from %v : %v\n", this.GetIp(), buffer)
     
-    log.Println("found no error, received message: ", byteRead)
-	return outMex, errMex
+    log.Println("found no error, received message: ", buffer)
+	return buffer.Bytes(), nil 
 
 }
 
