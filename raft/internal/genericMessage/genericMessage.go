@@ -18,7 +18,7 @@ func Decode(raw_mex []byte) (*rpcs.Rpc){
 
     err = proto.Unmarshal(raw_mex,&genericMex)
     if err != nil {
-        log.Panicln("error decoding generic message")
+        log.Panicln("error decoding generic message: ", string(raw_mex))
         return nil
     }
     log.Println("generic message Decoded with type :", genericMex.GetPayload())
