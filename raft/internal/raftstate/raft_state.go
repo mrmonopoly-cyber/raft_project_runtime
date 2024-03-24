@@ -3,7 +3,7 @@ package raftstate
 import (
 	"log"
 	l "raft/internal/raft_log"
-	p "raft/pkg/protobuf"
+	p "raft/pkg/rpcEncoding/out/protobuf"
 	"time"
 )
 
@@ -49,7 +49,7 @@ type State interface {
 	IncrementTerm()
 	VoteFor(id string)
 	CanVote() bool
-	GetEntries() []p.Entry
+	GetEntries() []p.LogEntry
 	GetCommitIndex() uint64
 	SetRole(newRole Role)
 	SetTerm(newTerm uint64)
@@ -83,7 +83,7 @@ func (_state *raftStateImpl) SetRole(newRole Role) {
 	_state.role = newRole
 }
 
-func (_state *raftStateImpl) GetEntries() []p.Entry {
+func (_state *raftStateImpl) GetEntries() []p.LogEntry{
 	return _state.log.GetEntries()
 }
 

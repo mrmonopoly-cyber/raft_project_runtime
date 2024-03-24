@@ -3,39 +3,38 @@ package RequestVoteRPC
 import (
 	"log"
 	"raft/internal/messages"
-	"raft/internal/messages/RequestVoteResponse"
 	"raft/internal/raftstate"
-	p "raft/pkg/protobuf"
 	"strconv"
+    "raft/pkg/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
 )
 
 type RequestVoteRPC struct {
-	term         uint64
-	candidateId  string
-	lastLogIndex uint64
-	lastLogTerm  uint64
+    pMex protobuf.RequestVote
 }
 
 func NewRequestVoteRPC(term uint64, candidateId string,
 	lastLogIndex uint64, lastLogTerm uint64) messages.Rpc {
 	return &RequestVoteRPC{
-		term,
-		candidateId,
-		lastLogIndex,
-		lastLogTerm,
+        protobuf.RequestVote{
+            Ty: protobuf.MexType_REQUEST_VOTE,
+            Term: term,
+            CandidateId: candidateId,
+            LastLogIndex: lastLogIndex,
+            LastLogTerm: lastLogTerm,
+        },
 	}
 }
 
 // GetId messages.Rpc.
-func (this RequestVoteRPC) GetId() string {
-  return this.candidateId
+func (this *RequestVoteRPC) GetId() string {
+  return this.pMex.CandidateId
 }
 
 // ToString messages.Rpc.
 func (this *RequestVoteRPC) ToString() string {
-	var mex string = "{term : " + strconv.Itoa(int(this.term)) + ", leaderId: " + this.candidateId + ",lastLogIndex: " + strconv.Itoa(int(this.lastLogIndex)) + ", lastLogTerm: " + strconv.Itoa(int(this.lastLogTerm)) + "}"
+	var mex string = "{term : " + strconv.Itoa(int(this.pMex.Term)) + ", leaderId: " + this.pMex.CandidateId + ",lastLogIndex: " + strconv.Itoa(int(this.pMex.LastLogIndex)) + ", lastLogTerm: " + strconv.Itoa(int(this.pMex.LastLogTerm)) + "}"
 
     log.Println("rpc RequestVote :", mex)
 
@@ -43,51 +42,36 @@ func (this *RequestVoteRPC) ToString() string {
 }
 
 // GetTerm messages.Rpc.
-func (this RequestVoteRPC) GetTerm() uint64 {
-	return this.term
+func (this *RequestVoteRPC) GetTerm() uint64 {
+	return this.pMex.Term
 }
 
 // Encode messages.Rpc.
-func (this RequestVoteRPC) Encode() ([]byte, error) {
-	reqVote := &p.RequestVote{
-		Term:         proto.Uint64(this.term),
-		CandidateId:  proto.String(this.candidateId),
-		LastLogIndex: proto.Uint64(this.lastLogIndex),
-		LastLogTerm:  proto.Uint64(this.lastLogTerm),
-	}
-
-	mess, err := proto.Marshal(reqVote)
+func (this *RequestVoteRPC) Encode() ([]byte, error) {
+    var mess []byte
+    var err error
+	mess, err = proto.Marshal(&(*this).pMex)
 	return mess, err
 }
 
 // Decode messages.Rpc.
-func (this RequestVoteRPC) Decode(b []byte) error {
-	pb := new(p.RequestVote)
-	err := proto.Unmarshal(b, pb)
-
-	if err != nil {
-		this.term = pb.GetTerm()
-		this.candidateId = pb.GetCandidateId()
-		this.lastLogTerm = pb.GetLastLogTerm()
-		this.lastLogIndex = pb.GetLastLogIndex()
-	}
-
-	return err
+func (this *RequestVoteRPC) Decode(b []byte) error {
+    panic("unimplemented")
 }
 
 // GetCandidateId messages.Rpc.
-func (this RequestVoteRPC) GetCandidateId() string {
-	return this.candidateId
+func (this *RequestVoteRPC) GetCandidateId() string {
+	return this.pMex.CandidateId
 }
 
 // GetLastLogIndex  messages.Rpc.
-func (this RequestVoteRPC) GetLastLogIndex() uint64 {
-	return this.lastLogIndex
+func (this *RequestVoteRPC) GetLastLogIndex() uint64 {
+	return this.pMex.LastLogIndex
 }
 
 // GetLastLogTerm messages.Rpc.
-func (this RequestVoteRPC) GetLastLogTerm() uint64 {
-	return this.lastLogTerm
+func (this *RequestVoteRPC) GetLastLogTerm() uint64 {
+	return this.pMex.LastLogTerm
 }
 
 // Manage implements messages.Rpc.
@@ -98,7 +82,7 @@ func (this *RequestVoteRPC) Execute(state *raftstate.State) *messages.Rpc{
     if ! (*state).CanVote(){
         return nil
     }
-    if this.term < (*state).GetTerm() {
+    if this.pMex.Term < (*state).GetTerm() {
         return this.respondeVote(state, &sender, false)
     }
 
@@ -113,6 +97,5 @@ func (this *RequestVoteRPC) Execute(state *raftstate.State) *messages.Rpc{
 }
 
 func (this *RequestVoteRPC) respondeVote(state *raftstate.State, sender *string, vote bool) *messages.Rpc{
-        var resp = RequestVoteResponse.NewRequestVoteResponse(*sender,vote,(*state).GetTerm())
-        return &resp
+    panic("non implemented")
 }
