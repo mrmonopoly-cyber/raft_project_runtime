@@ -70,8 +70,8 @@ func (this *node) Send(mex []byte) error{
         return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
     }
     log.Printf("start sending message to %v", this.GetIp())
-    var mexTerm = string(mex) + "\n"
-    this.conn.Write([]byte(mexTerm))
+    // var mexTerm = string(mex) + "\n"
+    this.conn.Write(append(mex, []byte("\n")...))
     log.Printf("message sended to %v", this.GetIp())
     return nil
 	
