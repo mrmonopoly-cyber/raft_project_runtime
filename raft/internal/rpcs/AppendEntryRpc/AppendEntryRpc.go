@@ -2,7 +2,7 @@ package AppendEntryRpc
 
 import (
 	"log"
-	"raft/internal/messages"
+	"raft/internal/rpcs"
 	"raft/internal/raftstate"
 	"strconv"
 
@@ -17,7 +17,7 @@ type AppendEntryRpc struct {
     pMex protobuf.AppendEntriesRequest
 }
 
-func GenerateHearthbeat(state raftstate.State) messages.Rpc {
+func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
 	var entries []protobuf.LogEntry = state.GetEntries()
 	prevLogIndex := len(entries)
     var prevLogTerm  uint64 = 0
@@ -44,7 +44,7 @@ func GenerateHearthbeat(state raftstate.State) messages.Rpc {
 
 func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 	prevLogTerm uint64, entries []*protobuf.LogEntry,
-	leaderCommit uint64) messages.Rpc {
+	leaderCommit uint64) rpcs.Rpc {
     return &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
             Ty: protobuf.MexType_APPEND_ENTRY,
@@ -58,18 +58,18 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
     }
 }
 
-// GetId implements messages.Rpc.
+// GetId implements rpcs.Rpc.
 func (this *AppendEntryRpc) GetId() string {
     return this.pMex.LeaderId
 }
 
 
-// Manage implements messages.Rpc.
-func (this *AppendEntryRpc) Execute(state *raftstate.State) *messages.Rpc {
+// Manage implements rpcs.Rpc.
+func (this *AppendEntryRpc) Execute(state *raftstate.State) *rpcs.Rpc {
     panic("dummy implementation")
 }
 
-// ToString implements messages.Rpc.
+// ToString implements rpcs.Rpc.
 func (this *AppendEntryRpc) ToString() string {
 	var entries string
 	for _, el := range this.pMex.Entries{
@@ -89,6 +89,20 @@ func (this *AppendEntryRpc) Encode() ([]byte, error) {
 	mess, err = proto.Marshal(&(*this).pMex)
 	return mess, err
 }
-func (this *AppendEntryRpc) decode(b []byte) error {
-    panic("dummy implementation")
+func (this *AppendEntryRpc) Decode(rawMex []byte) (error) {
+    var pb = new(protobuf.AppendEntriesRequest)
+	err := proto.Unmarshal(rawMex, pb)
+
+	if err != nil {
+        this.pMex.Ty = pb.Ty
+        this.pMex.Term = pb.Term
+        this.pMex.PrevLogIndex = pb.PrevLogIndex
+        this.pMex.PrevLogTerm = pb.PrevLogTerm
+        this.pMex.CommitIndex = pb.CommitIndex
+        this.pMex.LeaderId = pb.LeaderId
+        this.pMex.Entries = pb.Entries
+        this.pMex.LeaderCommit = pb.LeaderCommit
+	}
+
+	return err
 }

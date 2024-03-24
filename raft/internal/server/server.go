@@ -7,19 +7,20 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"raft/internal/messages"
-	"raft/internal/messages/AppendEntryRpc"
-	"raft/internal/messages/RequestVoteRPC"
+	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
 	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
+	"raft/internal/rpcs"
+	"raft/internal/rpcs/AppendEntryRpc"
+	"raft/internal/rpcs/RequestVoteRPC"
 	p "raft/pkg/rpcEncoding/out/protobuf"
 	"reflect"
 	"sync"
 )
 
 type pairMex struct{
-    payload *messages.Rpc
+    payload *rpcs.Rpc
     sender string
 }
 
@@ -144,7 +145,7 @@ func (s *Server) acceptIncomingConn() {
 }
 
 /*
- * Handle incoming messages and send it to the corresponding channel
+ * Handle incoming rpcs and send it to the corresponding channel
  */
 func (s *Server) handleResponse() {
 	defer s.wg.Done()
@@ -176,15 +177,14 @@ func (s *Server) handleResponse() {
                 log.Println("received message from: " + (nNode).GetIp())
                 log.Println("data of message: " + string(message))
                 s.messageChannel <- 
-                // pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),(nNode).GetIp()}
-                pairMex{messages.Decode(message),(nNode).GetIp()}
+                pairMex{genericmessage.Decode(message),(nNode).GetIp()}
             }
 			return true
 		})
 	}
 }
 
-func (s *Server) sendAll(rpc *messages.Rpc){
+func (s *Server) sendAll(rpc *rpcs.Rpc){
     log.Println("start broadcast")
     s.otherNodes.Range(func(key, value any) bool {
         var nNode node.Node 
@@ -216,10 +216,10 @@ func (s *Server) run() {
         select {
         case mess = <-s.messageChannel:
             log.Println("processing message: ", (*mess.payload).ToString())
-            var rpcCall *messages.Rpc
+            var rpcCall *rpcs.Rpc
             var sender string
             var oldRole raftstate.Role
-            var resp *messages.Rpc
+            var resp *rpcs.Rpc
             var byEnc []byte
             var errEn error
 
@@ -263,7 +263,7 @@ func (s *Server) run() {
 func (s *Server) startNewElection(){
     var entries []p.LogEntry
     var len_ent int
-    var voteRequest messages.Rpc
+    var voteRequest rpcs.Rpc
     var entryTerm uint64 = 0
 
     s._state.IncrementTerm()
@@ -300,7 +300,7 @@ func (s *Server) leaderHearthBit(){
     for s._state.Leader(){
         select{
         case <- s._state.HeartbeatTimeout().C:
-            var hearthBit messages.Rpc
+            var hearthBit rpcs.Rpc
 
             // hearthBit = AppendEntryRPC.GenerateHearthbeat(s._state)
             hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  

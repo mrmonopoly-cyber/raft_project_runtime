@@ -2,7 +2,7 @@ package RequestVoteRPC
 
 import (
 	"log"
-	"raft/internal/messages"
+	"raft/internal/rpcs"
 	"raft/internal/raftstate"
 	"strconv"
     "raft/pkg/rpcEncoding/out/protobuf"
@@ -15,7 +15,7 @@ type RequestVoteRPC struct {
 }
 
 func NewRequestVoteRPC(term uint64, candidateId string,
-	lastLogIndex uint64, lastLogTerm uint64) messages.Rpc {
+	lastLogIndex uint64, lastLogTerm uint64) rpcs.Rpc {
 	return &RequestVoteRPC{
         protobuf.RequestVote{
             Ty: protobuf.MexType_REQUEST_VOTE,
@@ -27,12 +27,12 @@ func NewRequestVoteRPC(term uint64, candidateId string,
 	}
 }
 
-// GetId messages.Rpc.
+// GetId rpcs.Rpc.
 func (this *RequestVoteRPC) GetId() string {
   return this.pMex.CandidateId
 }
 
-// ToString messages.Rpc.
+// ToString rpcs.Rpc.
 func (this *RequestVoteRPC) ToString() string {
 	var mex string = "{term : " + strconv.Itoa(int(this.pMex.Term)) + ", leaderId: " + this.pMex.CandidateId + ",lastLogIndex: " + strconv.Itoa(int(this.pMex.LastLogIndex)) + ", lastLogTerm: " + strconv.Itoa(int(this.pMex.LastLogTerm)) + "}"
 
@@ -41,12 +41,12 @@ func (this *RequestVoteRPC) ToString() string {
     return mex
 }
 
-// GetTerm messages.Rpc.
+// GetTerm rpcs.Rpc.
 func (this *RequestVoteRPC) GetTerm() uint64 {
 	return this.pMex.Term
 }
 
-// Encode messages.Rpc.
+// Encode rpcs.Rpc.
 func (this *RequestVoteRPC) Encode() ([]byte, error) {
     var mess []byte
     var err error
@@ -54,28 +54,28 @@ func (this *RequestVoteRPC) Encode() ([]byte, error) {
 	return mess, err
 }
 
-// Decode messages.Rpc.
+// Decode rpcs.Rpc.
 func (this *RequestVoteRPC) Decode(b []byte) error {
     panic("unimplemented")
 }
 
-// GetCandidateId messages.Rpc.
+// GetCandidateId rpcs.Rpc.
 func (this *RequestVoteRPC) GetCandidateId() string {
 	return this.pMex.CandidateId
 }
 
-// GetLastLogIndex  messages.Rpc.
+// GetLastLogIndex  rpcs.Rpc.
 func (this *RequestVoteRPC) GetLastLogIndex() uint64 {
 	return this.pMex.LastLogIndex
 }
 
-// GetLastLogTerm messages.Rpc.
+// GetLastLogTerm rpcs.Rpc.
 func (this *RequestVoteRPC) GetLastLogTerm() uint64 {
 	return this.pMex.LastLogTerm
 }
 
-// Manage implements messages.Rpc.
-func (this *RequestVoteRPC) Execute(state *raftstate.State) *messages.Rpc{
+// Manage implements rpcs.Rpc.
+func (this *RequestVoteRPC) Execute(state *raftstate.State) *rpcs.Rpc{
     var myVote string = (*state).GetVoteFor()
     var sender = this.GetCandidateId()
 
@@ -96,6 +96,6 @@ func (this *RequestVoteRPC) Execute(state *raftstate.State) *messages.Rpc{
     return this.respondeVote(state,&sender,false)
 }
 
-func (this *RequestVoteRPC) respondeVote(state *raftstate.State, sender *string, vote bool) *messages.Rpc{
+func (this *RequestVoteRPC) respondeVote(state *raftstate.State, sender *string, vote bool) *rpcs.Rpc{
     panic("non implemented")
 }
