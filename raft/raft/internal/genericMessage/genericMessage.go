@@ -51,6 +51,8 @@ func Encode(mex *rpcs.Rpc) ([]byte,error){
         genericMessage.OpType = protobuf.MexType_APPEND_ENTRY
     case *RequestVoteRPC.RequestVoteRPC:
         genericMessage.OpType = protobuf.MexType_REQUEST_VOTE
+    default:
+        log.Panicln("rpc not recognize: ", (*mex).ToString())
     }
 
     rawByteToSend,err = proto.Marshal(&genericMessage)
