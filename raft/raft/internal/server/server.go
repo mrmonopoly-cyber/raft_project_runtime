@@ -161,7 +161,7 @@ func (s *Server) handleResponse() {
                 panic("error type is not a node.Node")
             }
 
-			var message string
+			var message []byte
 			var errMes error
 			message, errMes = (nNode).Recv()
             if errMes == errors.New("connection not instantiated"){
@@ -172,9 +172,9 @@ func (s *Server) handleResponse() {
 					(nNode).GetIp(), errMes)
 				return false
 			}
-            if message != "" {
+            if message != nil {
                 log.Println("received message from: " + (nNode).GetIp())
-                log.Println("data of message: " + message )
+                log.Println("data of message: " + string(message))
                 s.messageChannel <- 
                 // pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),(nNode).GetIp()}
                 pairMex{messages.Decode(message),(nNode).GetIp()}
