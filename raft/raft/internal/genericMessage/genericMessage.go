@@ -21,7 +21,7 @@ func Decode(raw_mex []byte) (*rpcs.Rpc){
         log.Panicln("error decoding generic message: ", string(raw_mex))
         return nil
     }
-    log.Println("generic message Decoded with type :", genericMex.GetPayload())
+    log.Println("generic message Decoded with type :", genericMex.GetOpType())
     switch genericMex.GetOpType(){
     case protobuf.MexType_APPEND_ENTRY:
         var appendEntry AppendEntryRpc.AppendEntryRpc
@@ -35,16 +35,16 @@ func Decode(raw_mex []byte) (*rpcs.Rpc){
 
 func Encode(mex *rpcs.Rpc) ([]byte,error){
     var err error
-    // var rawByte []byte
+    var rawByte []byte
     var rawByteToSend []byte
     var genericMessage protobuf.Entry
 
-    // rawByte, err= (*mex).Encode()
-    // genericMessage.Payload = rawByte
+    rawByte, err= (*mex).Encode()
+    genericMessage.Payload = rawByte
 
-    // if err != nil {
-    //     log.Panicln("error encoding this message :", (*mex).ToString())
-    // }
+    if err != nil {
+        log.Panicln("error encoding this message :", (*mex).ToString())
+    }
 
     switch (*mex).(type){
     case *AppendEntryRpc.AppendEntryRpc:
