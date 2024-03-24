@@ -18,7 +18,6 @@ func NewRequestVoteRPC(term uint64, candidateId string,
 	lastLogIndex uint64, lastLogTerm uint64) rpcs.Rpc {
 	return &RequestVoteRPC{
         protobuf.RequestVote{
-            Ty: protobuf.MexType_REQUEST_VOTE,
             Term: term,
             CandidateId: candidateId,
             LastLogIndex: lastLogIndex,
