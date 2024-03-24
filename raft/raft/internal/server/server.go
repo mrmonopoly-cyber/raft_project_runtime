@@ -240,8 +240,7 @@ func (s *Server) run() {
                 }
 
                 log.Println("sending mex to: ",sender)
-                // f.(node.Node).Send(mex.ToByte())
-                byEnc, errEn = (*resp).Encode()
+                byEnc, errEn = genericmessage.Encode(resp)
                 if errEn != nil{
                     log.Panicln("error encoding this rpc: ", (*resp).ToString())
                 }
