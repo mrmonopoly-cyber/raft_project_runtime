@@ -27,6 +27,12 @@ func Decode(raw_mex []byte) (*rpcs.Rpc){
         var appendEntry AppendEntryRpc.AppendEntryRpc
         appendEntry.Decode(genericMex.GetPayload())
         outRpc = &appendEntry
+    case protobuf.MexType_REQUEST_VOTE:
+        var requestVote RequestVoteRPC.RequestVoteRPC
+        requestVote.Decode(genericMex.GetPayload())
+        outRpc = &requestVote
+    default:
+        log.Panicln("rpc type not recognize in decoing generic message")
     }
     
     return &outRpc
