@@ -50,8 +50,16 @@ func (this *RequestVoteRPC) Encode() ([]byte, error) {
     var mess []byte
     var err error
     this.ToString()
-	mess, err = proto.Marshal(&(*this).pMex)
+    mess, err = proto.Marshal(&(*this).pMex)
 
+    var debugMessage  = protobuf.RequestVote{
+        Term: this.GetTerm(),
+        LastLogIndex: this.GetLastLogIndex(),
+        LastLogTerm: this.GetLastLogTerm(),
+        CandidateId: this.GetCandidateId(),
+    }
+
+    mess, err = proto.Marshal(&debugMessage)
 
     var debug RequestVoteRPC
 
@@ -60,7 +68,6 @@ func (this *RequestVoteRPC) Encode() ([]byte, error) {
         log.Panic("debug: ",debugErr)
     }
     debug.ToString()
-    panic("")
 
 
 	return mess, err
