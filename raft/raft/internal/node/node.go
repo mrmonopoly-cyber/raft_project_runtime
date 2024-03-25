@@ -39,28 +39,31 @@ func (this *node) Recv() ([]byte, error) {
     log.Printf("start reading from %v\n", this.GetIp())
 
     var bytesRead int = len(tmp)
-    var err error
+    var errConn error
+    var errSavi error
     for bytesRead == len(tmp){
 		// Read data from the connection
-		bytesRead, err = this.conn.Read(tmp)
-		if err != nil {
-			if err != io.EOF {
-				// Handle other errors
-				return nil, err
+		bytesRead, errConn = this.conn.Read(tmp)
+
+        _, errSavi = buffer.Write(tmp[:bytesRead])
+        if errSavi != nil {
+            return nil, errSavi
+        }
+
+		if errConn != nil {
+			if errConn != io.EOF {
+				// Handle other errConnors
+				return nil, errConn
 			}
             // Write the read data into the buffer
-            _, err = buffer.Write(tmp[:bytesRead])
-            if err != nil {
-                return nil, err
-            }
 			break
 		}
 
-		// Write the read data into the buffer
-		_, err = buffer.Write(tmp[:bytesRead])
-		if err != nil {
-			return nil, err
-		}
+		// // Write the read data into the buffer
+		// _, errConn = buffer.Write(tmp[:bytesRead])
+		// if errConn != nil {
+		// 	return nil, errConn
+		// }
 	}
 
     log.Printf("end reading from %v : %v\n", this.GetIp(), buffer)
