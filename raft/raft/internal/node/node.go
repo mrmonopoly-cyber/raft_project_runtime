@@ -38,23 +38,28 @@ func (this *node) Recv() ([]byte, error) {
     log.Println("want to read")
     log.Printf("start reading from %v\n", this.GetIp())
 
-    var bytesRead int = len(tmp)
-    var errRec error
-    var errSav error
+    var bytesRead int
+    var err error
     for bytesRead < len(tmp){
 		// Read data from the connection
-		bytesRead, errRec = this.conn.Read(tmp)
-        // Write the read data into the buffer
-        _, errSav = buffer.Write(tmp[:bytesRead])
-        if errSav != nil {
-            return nil, errSav
-        }
-		if errRec != nil {
-			if errRec != io.EOF {
+		bytesRead, err = this.conn.Read(tmp)
+		if err != nil {
+			if err != io.EOF {
 				// Handle other errors
-				return nil, errRec
+				return nil, err
 			}
+            // Write the read data into the buffer
+            _, err = buffer.Write(tmp[:bytesRead])
+            if err != nil {
+                return nil, err
+            }
 			break
+		}
+
+		// Write the read data into the buffer
+		_, err = buffer.Write(tmp[:bytesRead])
+		if err != nil {
+			return nil, err
 		}
 	}
 
