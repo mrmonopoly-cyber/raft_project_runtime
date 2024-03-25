@@ -51,6 +51,18 @@ func (this *RequestVoteRPC) Encode() ([]byte, error) {
     var err error
     this.ToString()
 	mess, err = proto.Marshal(&(*this).pMex)
+
+
+    var debug RequestVoteRPC
+
+    debugErr := debug.Decode(mess)
+    if debugErr != nil {
+        log.Panic("debug: ",debugErr)
+    }
+    debug.ToString()
+    panic("")
+
+
 	return mess, err
 }
 
