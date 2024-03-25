@@ -45,7 +45,10 @@ func (this *node) Recv() ([]byte, error) {
 		// Read data from the connection
 		bytesRead, errConn = this.conn.Read(tmp)
 
+        // Write the read data into the buffer
         _, errSavi = buffer.Write(tmp[:bytesRead])
+        
+        // check error saving
         if errSavi != nil {
             return nil, errSavi
         }
@@ -55,15 +58,8 @@ func (this *node) Recv() ([]byte, error) {
 				// Handle other errConnors
 				return nil, errConn
 			}
-            // Write the read data into the buffer
 			break
 		}
-
-		// // Write the read data into the buffer
-		// _, errConn = buffer.Write(tmp[:bytesRead])
-		// if errConn != nil {
-		// 	return nil, errConn
-		// }
 	}
 
     log.Printf("end reading from %v : %v\n", this.GetIp(), buffer)
