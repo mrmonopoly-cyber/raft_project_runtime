@@ -18,22 +18,22 @@ func NewRequestVoteRPC(term uint64, candidateId string,
 lastLogIndex uint64, lastLogTerm uint64) rpcs.Rpc {
     return &RequestVoteRPC{
         pMex : protobuf.RequestVote{
-            Term: term,
-            CandidateId: candidateId,
-            LastLogIndex: lastLogIndex,
-            LastLogTerm: lastLogTerm,
+            Term: &term,
+            CandidateId: &candidateId,
+            LastLogIndex: &lastLogIndex,
+            LastLogTerm: &lastLogTerm,
         },
     }
 }
 
 // GetId rpcs.Rpc.
 func (this *RequestVoteRPC) GetId() string {
-  return this.pMex.CandidateId
+  return *this.pMex.CandidateId
 }
 
 // ToString rpcs.Rpc.
 func (this *RequestVoteRPC) ToString() string {
-	var mex string = "{term : " + strconv.Itoa(int(this.pMex.Term)) + ", leaderId: " + this.pMex.CandidateId + ",lastLogIndex: " + strconv.Itoa(int(this.pMex.LastLogIndex)) + ", lastLogTerm: " + strconv.Itoa(int(this.pMex.LastLogTerm)) + "}"
+	var mex string = "{term : " + strconv.Itoa(int(this.GetTerm())) + ", leaderId: " + this.GetCandidateId()+ ",lastLogIndex: " + strconv.Itoa(int(this.GetLastLogIndex())) + ", lastLogTerm: " + strconv.Itoa(int(this.GetLastLogTerm())) + "}"
 
     log.Println("rpc RequestVote :", mex)
 
@@ -42,7 +42,7 @@ func (this *RequestVoteRPC) ToString() string {
 
 // GetTerm rpcs.Rpc.
 func (this *RequestVoteRPC) GetTerm() uint64 {
-	return this.pMex.Term
+	return *this.pMex.Term
 }
 
 // Encode rpcs.Rpc.
@@ -64,10 +64,10 @@ func (this *RequestVoteRPC) Decode(b []byte) error {
 	err := proto.Unmarshal(b, pb)
 
 	if err != nil {
-        this.pMex.Term = pb.GetTerm()
-		this.pMex.CandidateId = pb.GetCandidateId()
-		this.pMex.LastLogTerm = pb.GetLastLogTerm()
-		this.pMex.LastLogIndex = pb.GetLastLogIndex()
+        *this.pMex.Term = pb.GetTerm()
+		*this.pMex.CandidateId = pb.GetCandidateId()
+		*this.pMex.LastLogTerm = pb.GetLastLogTerm()
+		*this.pMex.LastLogIndex = pb.GetLastLogIndex()
 	}
 
 	return err
@@ -75,17 +75,17 @@ func (this *RequestVoteRPC) Decode(b []byte) error {
 
 // GetCandidateId rpcs.Rpc.
 func (this *RequestVoteRPC) GetCandidateId() string {
-	return this.pMex.CandidateId
+	return *this.pMex.CandidateId
 }
 
 // GetLastLogIndex  rpcs.Rpc.
 func (this *RequestVoteRPC) GetLastLogIndex() uint64 {
-	return this.pMex.LastLogIndex
+	return *this.pMex.LastLogIndex
 }
 
 // GetLastLogTerm rpcs.Rpc.
 func (this *RequestVoteRPC) GetLastLogTerm() uint64 {
-	return this.pMex.LastLogTerm
+	return *this.pMex.LastLogTerm
 }
 
 // Manage implements rpcs.Rpc.
@@ -97,7 +97,7 @@ func (this *RequestVoteRPC) Execute(state *raftstate.State) *rpcs.Rpc{
         log.Printf("request vote: this node cannot vote right now")
         return nil
     }
-    if this.pMex.Term < (*state).GetTerm() {
+    if this.GetTerm() < (*state).GetTerm() {
         log.Printf("request vote: not valid term vote false: my term %v, other therm %v", 
                     (*state).GetTerm(), this.GetTerm())
         return this.respondeVote(state, &sender, false)
