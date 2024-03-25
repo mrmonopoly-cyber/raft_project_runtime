@@ -38,7 +38,7 @@ func (this *node) Recv() ([]byte, error) {
     log.Println("want to read")
     log.Printf("start reading from %v\n", this.GetIp())
 
-    var bytesRead int
+    var bytesRead int = len(tmp)
     var err error
     for bytesRead < len(tmp){
 		// Read data from the connection
