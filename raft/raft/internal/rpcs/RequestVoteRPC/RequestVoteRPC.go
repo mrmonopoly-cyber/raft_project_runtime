@@ -89,20 +89,25 @@ func (this *RequestVoteRPC) Execute(state *raftstate.State) *rpcs.Rpc{
     var sender = this.GetCandidateId()
 
     if ! (*state).CanVote(){
+        log.Printf("request vote: this node cannot vote right now")
         return nil
     }
     if this.pMex.Term < (*state).GetTerm() {
+        log.Printf("request vote: not valid term vote false: my term %v, other therm %v", 
+                    (*state).GetTerm(), this.GetTerm())
         return this.respondeVote(state, &sender, false)
     }
 
     if ! (*state).MoreRecentLog(this.GetLastLogIndex(), this.GetLastLogTerm()) {
+        log.Printf("request vote: log not recent enough")
         return this.respondeVote(state, &sender,false)
     }else if myVote == "" || myVote == this.GetCandidateId(){
+        log.Printf("request vote: vote accepted, voting for: %v", this.GetCandidateId())
         this.respondeVote(state,&sender,true)
         (*state).VoteFor(sender)
     }
 
-    return this.respondeVote(state,&sender,false)
+    return this.respondeVote(state,&sender,true)
 }
 
 func (this *RequestVoteRPC) respondeVote(state *raftstate.State, sender *string, vote bool) *rpcs.Rpc{
