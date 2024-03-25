@@ -68,7 +68,7 @@ func (this *RequestVoteRPC) Encode() ([]byte, error) {
         log.Panic("debug: ",debugErr)
     }
     debug.ToString()
-
+    panic("")
 
 	return mess, err
 }
