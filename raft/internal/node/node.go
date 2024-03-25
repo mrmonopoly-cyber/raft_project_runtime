@@ -46,6 +46,11 @@ func (this *node) Recv() ([]byte, error) {
 				// Handle other errors
 				return nil, err
 			}
+            // Write the read data into the buffer
+            _, err = buffer.Write(tmp[:bytesRead])
+            if err != nil {
+                return nil, err
+            }
 			break
 		}
 
