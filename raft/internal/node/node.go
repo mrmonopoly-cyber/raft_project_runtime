@@ -40,7 +40,7 @@ func (this *node) Recv() ([]byte, error) {
 
     var bytesRead int = len(tmp)
     var err error
-    for bytesRead < len(tmp){
+    for bytesRead == len(tmp){
 		// Read data from the connection
 		bytesRead, err = this.conn.Read(tmp)
 		if err != nil {
