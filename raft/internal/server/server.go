@@ -273,6 +273,7 @@ func (s *Server) startNewElection(){
         entryTerm = entries[len_ent].GetTerm()
     }
 
+    log.Panicln("my id :", s._state.GetId())
 
     voteRequest = RequestVoteRPC.NewRequestVoteRPC(
         s._state.GetTerm(),
