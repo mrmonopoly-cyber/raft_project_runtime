@@ -49,6 +49,8 @@ func (this *RequestVoteRPC) GetTerm() uint64 {
 func (this *RequestVoteRPC) Encode() ([]byte, error) {
     var mess []byte
     var err error
+    this.ToString()
+    panic("")
 	mess, err = proto.Marshal(&(*this).pMex)
 	return mess, err
 }
