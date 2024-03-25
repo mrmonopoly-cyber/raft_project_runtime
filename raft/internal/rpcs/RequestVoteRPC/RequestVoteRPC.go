@@ -49,26 +49,11 @@ func (this *RequestVoteRPC) GetTerm() uint64 {
 func (this *RequestVoteRPC) Encode() ([]byte, error) {
     var mess []byte
     var err error
-    this.ToString()
+
     mess, err = proto.Marshal(&(*this).pMex)
-
-    var debugMessage  = protobuf.RequestVote{
-        Term: this.GetTerm(),
-        LastLogIndex: this.GetLastLogIndex(),
-        LastLogTerm: this.GetLastLogTerm(),
-        CandidateId: this.GetCandidateId(),
+    if err != nil {
+        log.Panicln("error in Encoding Request Vote: ", err)
     }
-
-    mess, err = proto.Marshal(&debugMessage)
-
-    var debug RequestVoteRPC
-
-    debugErr := debug.Decode(mess)
-    if debugErr != nil {
-        log.Panic("debug: ",debugErr)
-    }
-    debug.ToString()
-    panic("")
 
 	return mess, err
 }
