@@ -17,7 +17,7 @@ type RequestVoteRPC struct {
 func NewRequestVoteRPC(term uint64, candidateId string,
 lastLogIndex uint64, lastLogTerm uint64) rpcs.Rpc {
     return &RequestVoteRPC{
-        protobuf.RequestVote{
+        pMex : protobuf.RequestVote{
             Term: term,
             CandidateId: candidateId,
             LastLogIndex: lastLogIndex,
