@@ -1,7 +1,7 @@
 package NEW_RPC
 
 import (
-	"raft/internal/messages"
+	"raft/internal/rpcs"
 	"raft/internal/raftstate"
 	// "sync"
  //    "raft/pkg/protobuf/t/protobuf"
@@ -12,23 +12,23 @@ import (
 type NEW_RPC struct {
 }
 
-func NewNEW_RPCRPC(term uint64) messages.Rpc {
+func NewNEW_RPCRPC(term uint64) rpcs.Rpc {
     return &NEW_RPC{
     }
 }
 
-// GetId implements messages.Rpc.
+// GetId implements rpcs.Rpc.
 func (this *NEW_RPC) GetId() string {
     panic("dummy implementation")
 }
 
 
-// Manage implements messages.Rpc.
-func (this *NEW_RPC) Execute(state *raftstate.State) *messages.Rpc {
+// Manage implements rpcs.Rpc.
+func (this *NEW_RPC) Execute(state *raftstate.State) *rpcs.Rpc {
     panic("dummy implementation")
 }
 
-// ToString implements messages.Rpc.
+// ToString implements rpcs.Rpc.
 func (this *NEW_RPC) ToString() string {
     panic("dummy implementation")
 }
