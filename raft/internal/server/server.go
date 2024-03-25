@@ -13,7 +13,7 @@ import (
 	state "raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
-	"raft/internal/rpcs/RequestVoteRPC"
+    "raft/internal/rpcs/RequestVoteRPC"
 	p "raft/pkg/rpcEncoding/out/protobuf"
 	"reflect"
 	"sync"
@@ -272,8 +272,6 @@ func (s *Server) startNewElection(){
     if len_ent > 0{
         entryTerm = entries[len_ent].GetTerm()
     }
-
-    log.Panicln("my id :", s._state.GetId())
 
     voteRequest = RequestVoteRPC.NewRequestVoteRPC(
         s._state.GetTerm(),
