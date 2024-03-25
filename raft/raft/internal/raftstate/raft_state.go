@@ -179,6 +179,7 @@ func NewState(term uint64, id string, role Role) State {
 	s.nNotSupporting = 0
 	s.nSupporting = 0
 	s.nNodeInCluster = 1
+    s.voting = true
 
 	return s
 }
