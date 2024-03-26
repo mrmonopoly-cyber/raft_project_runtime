@@ -6,6 +6,7 @@ import (
 	"raft/internal/raftstate"
 	"strconv"
     "raft/pkg/rpcEncoding/out/protobuf"
+    "raft/internal/rpcs/RequestVoteResponse"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -102,13 +103,14 @@ func (this *RequestVoteRPC) Execute(state *raftstate.State) *rpcs.Rpc{
         return this.respondeVote(state, &sender,false)
     }else if myVote == "" || myVote == this.GetCandidateId(){
         log.Printf("request vote: vote accepted, voting for: %v", this.GetCandidateId())
-        this.respondeVote(state,&sender,true)
         (*state).VoteFor(sender)
+        return this.respondeVote(state,&sender,true)
     }
 
     return this.respondeVote(state,&sender,true)
 }
 
 func (this *RequestVoteRPC) respondeVote(state *raftstate.State, sender *string, vote bool) *rpcs.Rpc{
-    panic("non implemented")
+    var resp = RequestVoteResponse.NewRequestVoteResponseRPC(*sender,vote, (*state).GetTerm())
+    return &resp
 }
