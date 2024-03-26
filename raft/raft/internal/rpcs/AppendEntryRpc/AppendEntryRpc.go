@@ -89,18 +89,6 @@ func (this *AppendEntryRpc) Encode() ([]byte, error) {
 	return mess, err
 }
 func (this *AppendEntryRpc) Decode(rawMex []byte) (error) {
-    var pb = new(protobuf.AppendEntriesRequest)
-	err := proto.Unmarshal(rawMex, pb)
-
-	if err != nil {
-        this.pMex.Term = pb.Term
-        this.pMex.PrevLogIndex = pb.PrevLogIndex
-        this.pMex.PrevLogTerm = pb.PrevLogTerm
-        this.pMex.CommitIndex = pb.CommitIndex
-        this.pMex.LeaderId = pb.LeaderId
-        this.pMex.Entries = pb.Entries
-        this.pMex.LeaderCommit = pb.LeaderCommit
-	}
-
+	err := proto.Unmarshal(rawMex, &this.pMex)
 	return err
 }

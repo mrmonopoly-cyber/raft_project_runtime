@@ -60,16 +60,7 @@ func (this *RequestVoteRPC) Encode() ([]byte, error) {
 
 // Decode rpcs.Rpc.
 func (this *RequestVoteRPC) Decode(b []byte) error {
-    pb := new(protobuf.RequestVote)
-	err := proto.Unmarshal(b, pb)
-
-	if err != nil {
-        this.pMex.Term = pb.GetTerm()
-		this.pMex.CandidateId = pb.GetCandidateId()
-		this.pMex.LastLogTerm = pb.GetLastLogTerm()
-		this.pMex.LastLogIndex = pb.GetLastLogIndex()
-	}
-
+	err := proto.Unmarshal(b,&this.pMex)
 	return err
 }
 
