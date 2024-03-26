@@ -13,5 +13,5 @@ message AppendEntriesRequest {
 	uint64 CommitIndex=5;
 	string LeaderId=6;
 	repeated logEntry Entries=7;
-	uint64 LeaderCommit =8;
+	int64 LeaderCommit =8;
 }
