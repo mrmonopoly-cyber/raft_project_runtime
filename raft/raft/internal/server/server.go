@@ -300,7 +300,6 @@ func (s *Server) leaderHearthBit(){
         case <- s._state.HeartbeatTimeout().C:
             var hearthBit rpcs.Rpc
 
-            // hearthBit = AppendEntryRPC.GenerateHearthbeat(s._state)
             hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
             log.Println("sending hearthbit")
             s.sendAll(&hearthBit)
