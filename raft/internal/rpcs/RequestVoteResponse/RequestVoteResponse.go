@@ -25,7 +25,27 @@ func (this *RequestVoteResponse) GetId() string {
 
 // Manage implements rpcs.Rpc.
 func (this *RequestVoteResponse) Execute(state *raftstate.State) *rpcs.Rpc {
-    panic("dummy implementation")
+    if this.GetVote() {
+        (*state).IncreaseSupporters()
+    }else {
+        (*state).IncreaseNotSupporters()
+    }
+    
+    var nodeInCluster = (*state).GetNumNodeInCluster()
+    var nVictory = nodeInCluster/2
+    var supp = (*state).GetNumSupporters()
+    var notSupp = (*state).GetNumNotSupporters()
+
+    if supp > nVictory {
+        (*state).SetRole(raftstate.LEADER)
+        (*state).ResetElection()
+        return nil
+    }
+    if supp + notSupp == nodeInCluster{
+        (*state).ResetElection()
+    }
+
+    return nil
 }
 
 // ToString implements rpcs.Rpc.
