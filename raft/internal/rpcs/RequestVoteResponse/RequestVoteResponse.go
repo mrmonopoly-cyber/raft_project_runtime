@@ -12,8 +12,13 @@ type RequestVoteResponse struct {
     pMex protobuf.RequestVoteResponse
 }
 
-func NewRequestVoteResponseRPC(term uint64) rpcs.Rpc {
+func NewRequestVoteResponseRPC(id string, vote bool, term uint64) rpcs.Rpc {
     return &RequestVoteResponse{
+        pMex: protobuf.RequestVoteResponse{
+            Id: id,
+            VoteGranted: vote,
+            Term: term,
+        },
     }
 }
 
@@ -89,3 +94,4 @@ func (this *RequestVoteResponse) Decode(b []byte) error {
     }
 	return err
 }
+
