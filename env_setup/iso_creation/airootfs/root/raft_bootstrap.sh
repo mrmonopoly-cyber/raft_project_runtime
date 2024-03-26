@@ -7,6 +7,7 @@ raft_executable=raft
 raft_branch=raft_executables 
 raft_url=https://github.com/mrmonopoly-cyber/raft_project_runtime.git 
 my_ip_pos=$raft_dir/my_ip
+others_ip_pos_work=/usr/share/raft/others_ip
 others_ip_pos=$raft_dir/others_ip
 my_ip=""
 
@@ -38,10 +39,10 @@ touch $my_ip_pos
 echo "$my_ip" > $my_ip_pos
 echo "setted ips"
 
-while [[ ! -f $others_ip_pos ]]; do
+while [[ ! -f $others_ip_pos_work ]]; do
     sleep 1
 done
-
+cp $others_ip_pos_work $others_ip_pos
 ##start main program of raft
 
 echo "started execution of raft"

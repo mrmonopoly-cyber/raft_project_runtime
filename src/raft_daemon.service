@@ -1,13 +1,1 @@
-[Unit]
-Description=raft bootstrap node
-
-[Service]
-Type=simple
-ExecStart=/bin/sh /root/raft_bootstrap.sh &
-RemainAfterExit=no
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-
-
+../env_setup/iso_creation/airootfs/usr/lib/systemd/system/raft_daemon.service

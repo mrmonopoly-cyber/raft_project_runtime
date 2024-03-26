@@ -1,15 +1,1 @@
-[Unit]
-Description=raft bootstrap node
-
-[Service]
-Type=forking
-ExecStart=/bin/sh /root/nmap_discover.sh
-RemainAfterExit=no
-Restart=always
-RestartSec=30s
-
-[Install]
-WantedBy=multi-user.target
-
-
-
+../env_setup/iso_creation/airootfs/usr/lib/systemd/system/raft_discovery.service

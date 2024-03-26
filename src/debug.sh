@@ -1,0 +1,1 @@
+../env_setup/iso_creation/airootfs/root/debug.sh

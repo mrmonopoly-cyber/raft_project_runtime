@@ -1,2 +1,1 @@
-pkill raft_main
-systemctl restart raft_daemon
+../env_setup/iso_creation/airootfs/root/reset_raft.sh
