@@ -83,9 +83,16 @@ func (this *AppendEntryRpc) Encode() ([]byte, error) {
     var mess []byte
     var err error
 	mess, err = proto.Marshal(&(*this).pMex)
+    if err != nil {
+        log.Panicln("error in Encoding Append Entry: ", err)
+    }
 	return mess, err
 }
 func (this *AppendEntryRpc) Decode(rawMex []byte) (error) {
 	err := proto.Unmarshal(rawMex, &this.pMex)
+
+    if err != nil {
+        log.Panicln("error in Decoding Append Entry: ", err)
+    }
 	return err
 }
