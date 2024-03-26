@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"log"
 	l "raft/internal/raft_log"
-	p "raft/pkg/protobuf"
+	p "raft/pkg/rpcEncoding/out/protobuf"
 	"time"
 )
 
@@ -53,10 +53,10 @@ type State interface {
 	IncrementTerm()
 	VoteFor(id string)
 	CanVote() bool
-	GetEntries() []p.Entry
+	GetEntries() []p.LogEntry
 	GetCommitIndex() uint64
 	SetRole(newRole Role)
-  AppendEntries(newEntries []*p.Entry)
+  AppendEntries(newEntries []p.LogEntry)
 	SetTerm(newTerm uint64)
 	MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool
 	IncreaseSupporters()
@@ -88,11 +88,11 @@ func (_state *raftStateImpl) SetRole(newRole Role) {
 	_state.role = newRole
 }
 
-func (_state *raftStateImpl) GetEntries() []p.Entry {
+func (_state *raftStateImpl) GetEntries() []p.LogEntry{
 	return _state.log.GetEntries()
 }
 
-func (_state *raftStateImpl) AppendEntries(newEntries []*p.Entry) {
+func (_state *raftStateImpl) AppendEntries(newEntries []p.LogEntry) {
   _state.log.AppendEntries(newEntries)
 }
 
@@ -197,6 +197,7 @@ func NewState(term uint64, id string, role Role) State {
 	s.nNotSupporting = 0
 	s.nSupporting = 0
 	s.nNodeInCluster = 1
+    s.voting = true
 
 	return s
 }

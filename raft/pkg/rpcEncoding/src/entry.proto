@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package protobuf;
+
+option go_package = "protobuf/";
+
+enum MexType {
+    APPEND_ENTRY = 0;
+    APPEND_ENTRY_RESPONSE = 1;
+    REQUEST_VOTE = 2;
+    REQUEST_VOTE_RESPONSE = 3;
+}
+
+message Entry {
+	MexType OpType=1;
+    bytes Payload=2;
+}
+
+
+

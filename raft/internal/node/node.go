@@ -1,64 +1,71 @@
 package node
 
 import (
-	"bufio"
+	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
 	"raft/internal/node/address"
-	"sync"
 )
 
 type Node interface {
 	Send(mex []byte) error
-	Recv() (string, error)
+	Recv() ([]byte, error)
 	GetIp() string
 	GetPort() string
-	AddConnIn(conn *net.Conn)
-	AddConnOut(conn *net.Conn)
-}
-
-type safeConn struct {
-	mu   sync.Mutex
-	conn net.Conn
+	AddConn(conn net.Conn)
 }
 
 type node struct {
 	addr address.NodeAddress
-	recv safeConn
-	send safeConn
+    conn net.Conn
 }
 
+
 // Read_rpc implements Node.
-func (this *node) Recv() (string, error) {
+func (this *node) Recv() ([]byte, error) {
 
-	var raw_mex string = ""
-	var errMex error
-    if this.recv.conn == nil {
-        // return "", errors.New("connection not instantiated")
-        return "", nil
+    buffer := &bytes.Buffer{}
+
+	// Create a temporary buffer to store incoming data
+	tmp := make([]byte, 1024) // Initial buffer size
+
+
+    if this.conn == nil {
+        return nil, errors.New("connection not instantiated")
     }
-	this.recv.mu.Lock()
     log.Println("want to read")
-    log.Println("reading")
-    raw_mex, errMex = bufio.NewReader(this.recv.conn).ReadString('\n')
-	this.recv.mu.Unlock()
+    log.Printf("start reading from %v\n", this.GetIp())
 
-    
-    if errMex == io.EOF {
-        log.Println("found EOF, received message: ", raw_mex)
-        return raw_mex, nil
-    }
+    var bytesRead int = len(tmp)
+    var errConn error
+    var errSavi error
+    for bytesRead == len(tmp){
+		// Read data from the connection
+		bytesRead, errConn = this.conn.Read(tmp)
 
-	if errMex != nil {
-        log.Println("found other error, received message: ", raw_mex)
-		return "", errMex
+        // Write the read data into the buffer
+        _, errSavi = buffer.Write(tmp[:bytesRead])
+        
+        // check error saving
+        if errSavi != nil {
+            return nil, errSavi
+        }
+
+		if errConn != nil {
+			if errConn != io.EOF {
+				// Handle other errConnors
+				return nil, errConn
+			}
+			break
+		}
 	}
+
+    log.Printf("end reading from %v : %v\n", this.GetIp(), buffer)
     
-    log.Println("found no error, received message: ", raw_mex)
-	return raw_mex, errMex
+    log.Println("found no error, received message: ", buffer)
+	return buffer.Bytes(), nil 
 
 }
 
@@ -68,21 +75,17 @@ func NewNode(remoteAddr string, remotePort string) (Node) {
 	}
 }
 
-func (this *node) AddConnIn(conn *net.Conn) {
-	this.recv.conn = *conn
-}
-
-func (this *node) AddConnOut(conn *net.Conn) {
-	this.send.conn = *conn
+func (this *node) AddConn(conn net.Conn) {
+	this.conn = conn
 }
 
 func (this *node) Send(mex []byte) error{
-    if this.send.conn == nil {
+    if this.conn == nil {
         return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
     }
-	this.send.mu.Lock()
-    fmt.Fprintf(this.send.conn, string(mex))
-	this.send.mu.Unlock()
+    log.Printf("start sending message to %v", this.GetIp())
+    this.conn.Write(mex)
+    log.Printf("message sended to %v", this.GetIp())
     return nil
 	
 }

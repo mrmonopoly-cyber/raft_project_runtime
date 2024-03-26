@@ -1,15 +1,11 @@
 package main
 
 import (
-	//"flag"
 	"log"
 	"os"
-	"strings"
-
-	//"strings"
-
-	ser "raft/internal/server"
 	"sync"
+	"strings"
+	ser "raft/internal/server"
 )
 
 func main() {
@@ -28,7 +24,7 @@ func main() {
   var addresses []string = strings.Split(stringOthersIp, "\n")
 
 
-  log.Println("listening on port: " + "8080")
+  log.Println("listening on port: " + "8080" + " with ip: " + stringMyIp[0])
 
   var server1 *ser.Server = ser.NewServer(0, stringMyIp[0], "8080", addresses)
 

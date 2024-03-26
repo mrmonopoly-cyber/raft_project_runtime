@@ -7,20 +7,20 @@ import (
 	"fmt"
 	"log"
 	"net"
-	messages "raft/internal/messages"
-	"raft/internal/messages/AppendEntryRPC"
-	"raft/internal/messages/RequestVoteRPC"
+	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
-	custom_mex "raft/internal/node/message"
 	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
-	p "raft/pkg/protobuf"
+	"raft/internal/rpcs"
+	"raft/internal/rpcs/AppendEntryRpc"
+    "raft/internal/rpcs/RequestVoteRPC"
+	p "raft/pkg/rpcEncoding/out/protobuf"
 	"reflect"
 	"sync"
 )
 
 type pairMex struct{
-    payload *messages.Rpc
+    payload *rpcs.Rpc
     sender string
 }
 
@@ -66,9 +66,22 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
 		new_node = node.NewNode(serversIp[i], port)
+        log.Printf("connecting to the server: %v\n", serversIp[i])
+        var nodeConn net.Conn
+        var erroConn error
+        var nodeId string
+
+        nodeConn,erroConn = net.Dial("tcp",serversIp[i]+":"+port)
+        if erroConn != nil {
+            log.Println("Failed to connect to node: ", serversIp[i])
+            continue
+        }
+        new_node.AddConn(nodeConn)
         log.Println("storing new node with ip :", serversIp[i])
-		server.otherNodes.Store(generateID(serversIp[i]), new_node)
+        nodeId = generateID(serversIp[i])
+        server.otherNodes.Store(nodeId, new_node)
         server._state.IncreaseNodeInCluster()
+
 	}
 	return server
 }
@@ -80,8 +93,6 @@ func (s *Server) Start() {
     log.Println("Start accepting connections")
 	go s.acceptIncomingConn()
 
-    log.Println("connect To other Servers")
-	s.connectToServers()
 
     log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
@@ -94,38 +105,6 @@ func (s *Server) Start() {
 
     log.Println("wait to finish")
 	s.wg.Wait()
-}
-
-/*
- * Create a connection between this server to all the others and populate the map containing these connections
- */
-func (s *Server) connectToServers() {
-    log.Println("connecting to list of nodes")
-    if s.otherNodes == nil {
-        panic("Map of Node not allocated")
-    }
-	s.otherNodes.Range(func(key any, value interface{}) bool {
-        log.Println("connecting to a node")
-		var nodeEle node.Node
-		var errEl bool
-		nodeEle, errEl = value.(node.Node)
-		if !errEl {
-			log.Println("invalid object in otherNodes map: ", reflect.TypeOf(nodeEle))
-			return false
-		}
-		var ipAddr string = nodeEle.GetIp()
-		var port string = nodeEle.GetPort()
-        log.Println("connecting to: " + ipAddr + ":" + "8080")
-		var conn, err = net.Dial("tcp", ipAddr+":"+port)
-		for err != nil {
-			log.Println("Dial error: ", err)
-			return false
-		}
-		if conn != nil {
-			nodeEle.AddConnOut(&conn)
-		}
-		return true
-	})
 }
 
 func (s *Server) acceptIncomingConn() {
@@ -146,23 +125,19 @@ func (s *Server) acceptIncomingConn() {
 		var newConncetionIp string = tcpAddr.IP.String()
 		var newConncetionPort string = string(rune(tcpAddr.Port))
 		var id_node string = generateID(newConncetionIp)
-        var value any
         var found bool
-		value, found = s.otherNodes.Load(id_node)
+		_, found = s.otherNodes.Load(id_node)
         
-        log.Println("enstablish connection with node: ", id_node)
+        log.Println("enstablish connection with node: ", newConncetionIp)
 
 		if found {
             log.Printf("node with ip %v found", newConncetionIp)
-			var connectedNode node.Node = value.(node.Node)
-			(connectedNode).AddConnIn(&conn)
-            // s.otherNodes.Delete(id_node)
-            // s.otherNodes.Store(connectedNode)
+            continue
 		} else {
             log.Printf("node with ip %v not found", newConncetionIp)
 			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort)
-			new_node.AddConnIn(&conn)
-			s.otherNodes.Store(id_node, &new_node)
+			new_node.AddConn(conn)
+			s.otherNodes.Store(id_node, new_node)
             s._state.IncreaseNodeInCluster()
 		}
         log.Println("finish accepting new connections")
@@ -170,47 +145,67 @@ func (s *Server) acceptIncomingConn() {
 }
 
 /*
- * Handle incoming messages and send it to the corresponding channel
+ * Handle incoming rpcs and send it to the corresponding channel
  */
 func (s *Server) handleResponse() {
 	defer s.wg.Done()
 	// iterating over the connections map and receive byte message
 	for {
 		s.otherNodes.Range(func(k, conn interface{}) bool {
-      var node node.Node = conn.(node.Node)
-			var message string
+            // var node *node.Node = conn.(*node.Node)
+            var nNode node.Node
+            var err bool
+
+            nNode,err = conn.(node.Node)
+
+            if !err {
+                panic("error type is not a node.Node")
+            }
+
+			var message []byte
 			var errMes error
-			message, errMes = node.Recv()
+			message, errMes = (nNode).Recv()
             if errMes == errors.New("connection not instantiated"){
                 return false
             }
 			if errMes != nil {
 				fmt.Printf("error in reading from node %v with error %v",
-					node.GetIp(), errMes)
+					(nNode).GetIp(), errMes)
 				return false
 			}
-            if message != "" {
-                log.Println("received message from: " + node.GetIp())
-                log.Println("data of message: " + message )
+            if message != nil {
+                log.Println("received message from: " + (nNode).GetIp())
+                log.Println("data of message: " + string(message))
                 s.messageChannel <- 
-                pairMex{custom_mex.NewMessage([]byte(message)).ToRpc(),node.GetIp()}
+                pairMex{genericmessage.Decode(message),(nNode).GetIp()}
             }
 			return true
 		})
 	}
 }
 
-func (s *Server) sendAll(rpc *messages.Rpc){
+func (s *Server) sendAll(rpc *rpcs.Rpc){
+    log.Println("start broadcast")
     s.otherNodes.Range(func(key, value any) bool {
-        var node node.Node = value.(node.Node)
-        var mex custom_mex.Message
+        var nNode node.Node 
+        var found bool 
+        nNode, found = value.(node.Node)
+        if !found {
+            var s = reflect.TypeOf(value)
+            log.Panicln("failed conversion type node, type is: ", s)
+        }
         var raw_mex []byte
+        var err error
 
-        mex = custom_mex.FromRpc(*rpc)
-        raw_mex = mex.ToByte()
-        node.Send(raw_mex)
+        raw_mex,err = genericmessage.Encode(rpc)
+        if err != nil {
+            log.Panicln("error in Encoding this rpc: ",(*rpc).ToString())
+        }
+        log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
+        nNode.Send(raw_mex)
         return true
     })
+    log.Println("end broadcast")
 }
 
 func (s *Server) run() {
@@ -221,11 +216,12 @@ func (s *Server) run() {
         select {
         case mess = <-s.messageChannel:
             log.Println("processing message: ", (*mess.payload).ToString())
-            var rpcCall *messages.Rpc
+            var rpcCall *rpcs.Rpc
             var sender string
             var oldRole raftstate.Role
-            var resp *messages.Rpc
-            var mex custom_mex.Message
+            var resp *rpcs.Rpc
+            var byEnc []byte
+            var errEn error
 
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
@@ -233,7 +229,6 @@ func (s *Server) run() {
             resp = (*rpcCall).Execute(&s._state)
 
             if resp != nil {
-                mex = custom_mex.FromRpc(*resp)
                 log.Println("reponse to send to: ", sender)
                 var f any
                 var ok bool
@@ -245,7 +240,11 @@ func (s *Server) run() {
                 }
 
                 log.Println("sending mex to: ",sender)
-                f.(node.Node).Send(mex.ToByte())
+                byEnc, errEn = genericmessage.Encode(resp)
+                if errEn != nil{
+                    log.Panicln("error encoding this rpc: ", (*resp).ToString())
+                }
+                f.(node.Node).Send(byEnc)
             }
 
             if s._state.Leader() && oldRole != state.LEADER{
@@ -261,9 +260,9 @@ func (s *Server) run() {
 }
 
 func (s *Server) startNewElection(){
-    var entries []p.Entry
+    var entries []p.LogEntry
     var len_ent int
-    var voteRequest messages.Rpc
+    var voteRequest rpcs.Rpc
     var entryTerm uint64 = 0
 
     s._state.IncrementTerm()
@@ -273,7 +272,6 @@ func (s *Server) startNewElection(){
     if len_ent > 0{
         entryTerm = entries[len_ent].GetTerm()
     }
-
 
     voteRequest = RequestVoteRPC.NewRequestVoteRPC(
         s._state.GetTerm(),
@@ -300,9 +298,10 @@ func (s *Server) leaderHearthBit(){
     for s._state.Leader(){
         select{
         case <- s._state.HeartbeatTimeout().C:
-            var hearthBit messages.Rpc
+            var hearthBit rpcs.Rpc
 
-            hearthBit = AppendEntryRPC.GenerateHearthbeat(s._state)
+            // hearthBit = AppendEntryRPC.GenerateHearthbeat(s._state)
+            hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
             log.Println("sending hearthbit")
             s.sendAll(&hearthBit)
             s._state.StartHearthbeatTimeout()

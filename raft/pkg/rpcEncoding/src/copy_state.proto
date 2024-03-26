@@ -1,0 +1,13 @@
+package protobuf;
+
+option go_package = "protobuf/";
+
+import "entry.proto";
+
+message CopyState {
+  required string Id = 1;
+  required uint64 Term = 2;
+  required uint64 Index = 3;
+  required bool Voting = 4;
+  repeated Entry Entries = 5;
+}
