@@ -276,7 +276,7 @@ func (s *Server) startNewElection(){
     voteRequest = RequestVoteRPC.NewRequestVoteRPC(
         s._state.GetTerm(),
         s._state.GetId(),
-        uint64(len_ent),
+        int64(len_ent),
         entryTerm)
 
     s._state.IncreaseSupporters()
