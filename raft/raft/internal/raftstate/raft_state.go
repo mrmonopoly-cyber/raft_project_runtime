@@ -29,7 +29,7 @@ type raftStateImpl struct {
 	voting           bool
 	electionTimeout  *time.Timer
 	heartbeatTimeout *time.Timer
-	log              l.Log
+	log              l.LogEntry
 	nSupporting      uint64
 	nNotSupporting   uint64
 	nNodeInCluster   uint64
@@ -50,10 +50,10 @@ type State interface {
 	VoteFor(id string)
 	CanVote() bool
 	GetEntries() []p.LogEntry
-	GetCommitIndex() uint64
+	GetCommitIndex() int64
 	SetRole(newRole Role)
 	SetTerm(newTerm uint64)
-	MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool
+	MoreRecentLog(lastLogIndex int64, lastLogTerm uint64) bool
 	IncreaseSupporters()
 	IncreaseNotSupporters()
 	IncreaseNodeInCluster()
@@ -87,7 +87,7 @@ func (_state *raftStateImpl) GetEntries() []p.LogEntry{
 	return _state.log.GetEntries()
 }
 
-func (_state *raftStateImpl) GetCommitIndex() uint64 {
+func (_state *raftStateImpl) GetCommitIndex() int64 {
 	return _state.log.GetCommitIndex()
 }
 
@@ -129,7 +129,7 @@ func (_state *raftStateImpl) VoteFor(id string) {
 }
 
 // MoreRecentLog implements State.
-func (_state *raftStateImpl) MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool {
+func (_state *raftStateImpl) MoreRecentLog(lastLogIndex int64, lastLogTerm uint64) bool {
 	return _state.log.More_recent_log(lastLogIndex, lastLogTerm)
 }
 
@@ -180,6 +180,7 @@ func NewState(term uint64, id string, role Role) State {
 	s.nSupporting = 0
 	s.nNodeInCluster = 1
     s.voting = true
+    s.log = l.NewLogEntry()
 
 	return s
 }
