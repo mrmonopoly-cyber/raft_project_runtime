@@ -130,7 +130,7 @@ func (_state *raftStateImpl) VoteFor(id string) {
 
 // MoreRecentLog implements State.
 func (_state *raftStateImpl) MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool {
-	return _state.log.More_recent_log(lastLogIndex, lastLogTerm)
+	return lastLogTerm >= _state.GetTerm() && _state.log.More_recent_log(lastLogIndex)
 }
 
 // GetNumSupporters implements State.
