@@ -5,9 +5,6 @@ import (
 	"raft/internal/rpcs"
 	"raft/internal/raftstate"
 	"strconv"
-
-	// "sync"
-	//
 	"raft/pkg/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
