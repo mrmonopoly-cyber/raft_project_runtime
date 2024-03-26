@@ -24,11 +24,13 @@ const (
 
 type raftStateImpl struct {
 	id               string
+  serverList       []string
 	term             uint64
 	leaderId         string
 	role             Role
 	voteFor          string
 	voting           bool
+  leaderState      *VolatileLeaderState
 	electionTimeout  *time.Timer
 	heartbeatTimeout *time.Timer
 	log              l.Log
@@ -56,7 +58,7 @@ type State interface {
 	GetEntries() []p.LogEntry
 	GetCommitIndex() uint64
 	SetRole(newRole Role)
-  AppendEntries(newEntries []p.LogEntry)
+  AppendEntries(newEntries []*p.LogEntry, index int)
 	SetTerm(newTerm uint64)
 	MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool
 	IncreaseSupporters()
@@ -66,6 +68,9 @@ type State interface {
 	GetNumNotSupporters() uint64
 	GetNumNodeInCluster() uint64
 	ResetElection()
+  BecomeFollower()
+  DecrementNextIndex(id string, index uint64)
+  InitVolatileLeaderState()
 }
 
 func (_state *raftStateImpl) GetId() string {
@@ -92,8 +97,8 @@ func (_state *raftStateImpl) GetEntries() []p.LogEntry{
 	return _state.log.GetEntries()
 }
 
-func (_state *raftStateImpl) AppendEntries(newEntries []p.LogEntry) {
-  _state.log.AppendEntries(newEntries)
+func (_state *raftStateImpl) AppendEntries(newEntries []*p.LogEntry, index int) {
+  _state.log.AppendEntries(newEntries, index)
 }
 
 func (_state *raftStateImpl) GetCommitIndex() uint64 {
@@ -120,6 +125,11 @@ func (_state *raftStateImpl) StopHearthbeatTimeout() {
 
 func (_state *raftStateImpl) Leader() bool {
 	return _state.role == LEADER
+}
+
+func (_state *raftStateImpl) BecomeFollower() {
+  _state.role = FOLLOWER
+  _state.leaderState = nil
 }
 
 func (_state *raftStateImpl) CanVote() bool {
@@ -185,6 +195,16 @@ func (_state *raftStateImpl) IncreaseNodeInCluster() {
 func (_state *raftStateImpl) ResetElection() {
 	_state.nSupporting = 0
 	_state.nNotSupporting = 0
+}
+
+func (_state *raftStateImpl) InitVolatileLeaderState() {
+  _state.leaderState = new(VolatileLeaderState)
+  _state.leaderState.InitMatchIndex(_state.serverList)
+  _state.leaderState.InitNextIndex(_state.serverList, _state.log.LastLogIndex())
+}
+
+func (_state *raftStateImpl) DecrementNextIndex(id string, index uint64) {
+  _state.leaderState.DecrementNextIndex(id, index)
 }
 
 func NewState(term uint64, id string, role Role) State {

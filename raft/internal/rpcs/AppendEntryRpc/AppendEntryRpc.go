@@ -4,8 +4,8 @@ import (
 	"log"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
+	app_resp "raft/internal/rpcs/AppendResponse"
 	"strconv"
-
 	// "sync"
 	//
 	"raft/pkg/rpcEncoding/out/protobuf"
@@ -71,24 +71,48 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State) *rpcs.Rpc {
 	(*state).StopElectionTimeout()
 	defer (*state).StartElectionTimeout()
 
-	if (*state).GetRole() != raftstate.FOLLOWER {
+	var role = (*state).GetRole()
+	var id = (*state).GetId()
+	var term = (*state).GetTerm()
+	var error uint64
+	var success bool
+
+	if role != raftstate.FOLLOWER {
 		(*state).SetRole(raftstate.FOLLOWER)
 	}
 
-	var appendEntryResp rpcs.Rpc
-	var success bool
+	if this.pMex.GetTerm() < term {
 
-	if (this.pMex.GetTerm() < (*state).GetTerm()) || !checkConsistency(this.pMex.GetPrevLogIndex(), this.pMex.GetPrevLogTerm(), *state) {
 		success = false
-	} else {
-		(*state).AppendEntries(this.pMex.GetEntries())
+		return respondeAppend(id, success, term)
+	
+  } else if checkConsistency(this.pMex.GetPrevLogIndex(), this.pMex.GetPrevLogTerm(), *state) {
+		
+    success = false
+		error = this.pMex.GetPrevLogIndex()
+		return respondeAppend(id, success, term, error)
+	
+  } else {
+		
+    (*state).AppendEntries(this.pMex.GetEntries(), int(this.pMex.PrevLogIndex))
 		success = true
+		return respondeAppend(id, success, term)
+	
+  }
+}
+
+func respondeAppend(id string, success bool, term uint64, error ...uint64) *rpcs.Rpc {
+	var appendEntryResp rpcs.Rpc
+
+	if len(error) == 1 {
+		appendEntryResp = app_resp.NewAppendResponseRPC(
+			id,
+			success,
+			term,
+			error[0])
+	} else {
+		appendEntryResp = app_resp.NewAppendResponseRPC(id, success, term)
 	}
-	appendEntryResp = appendEntryResponse.NewAppendEntryResponse(
-		(*state).GetId(),
-		success,
-		(*state).GetTerm(),
-		uint64(len((*state).GetEntries())-1))
 	return &appendEntryResp
 }
 

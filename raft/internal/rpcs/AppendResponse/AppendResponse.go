@@ -44,9 +44,9 @@ func (this *AppendResponse) Execute(state *raftstate.State) *rpcs.Rpc {
   if !this.pMex.GetSuccess() {
     if this.GetTerm() > (*state).GetTerm() {
       (*state).SetTerm(this.GetTerm())
-      (*state).SetRole(raftstate.FOLLOWER)
+      (*state).BecomeFollower()
     } else {
-      // Check index error
+      (*state).DecrementNextIndex(this.GetId(), this.GetLogIndexError()) 
     }
   }
 
@@ -81,4 +81,8 @@ func (this *AppendResponse) Decode(b []byte) error {
 	}
 
 	return err
+}
+
+func (this *AppendResponse) GetLogIndexError() uint64 {
+  return this.pMex.GetLogIndexError()
 }

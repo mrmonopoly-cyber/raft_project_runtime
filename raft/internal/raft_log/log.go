@@ -20,13 +20,17 @@ func (l *Log) GetCommitIndex() uint64 {
   return l.commitIndex
 }
 
+func (l *Log) LastLogIndex() uint64 {
+  return uint64(len(l.entries)-1)
+}
+
 func (l *Log) More_recent_log(last_log_index uint64, last_log_term uint64) bool {
     //TODO implement More recent log
     return false
 }
 
-func (l *Log) AppendEntries(newEntries []p.LogEntry) {
-  for _, en := range newEntries {
-    l.entries = append(l.entries, en)
+func (l *Log) AppendEntries(newEntries []*p.LogEntry, index int) {
+  for i, en := range newEntries {
+    l.entries[index + i + 1] = *en
   }
 }
