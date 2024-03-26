@@ -61,6 +61,9 @@ func (this *RequestVoteRPC) Encode() ([]byte, error) {
 // Decode rpcs.Rpc.
 func (this *RequestVoteRPC) Decode(b []byte) error {
 	err := proto.Unmarshal(b,&this.pMex)
+    if err != nil {
+        log.Panicln("error in Encoding Request Vote: ", err)
+    }
 	return err
 }
 
