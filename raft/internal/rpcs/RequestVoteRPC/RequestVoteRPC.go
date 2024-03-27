@@ -27,8 +27,8 @@ lastLogIndex int64, lastLogTerm uint64) rpcs.Rpc {
     }
 }
 
-// GetId rpcs.Rpc.
-func (this *RequestVoteRPC) GetId() string {
+// GetCandidateId rpcs.Rpc.
+func (this *RequestVoteRPC) GetCandidateId() string {
   return this.pMex.CandidateId
 }
 
@@ -66,11 +66,6 @@ func (this *RequestVoteRPC) Decode(b []byte) error {
         log.Panicln("error in Encoding Request Vote: ", err)
     }
 	return err
-}
-
-// GetCandidateId rpcs.Rpc.
-func (this *RequestVoteRPC) GetCandidateId() string {
-	return this.pMex.CandidateId
 }
 
 // GetLastLogIndex  rpcs.Rpc.
