@@ -1,12 +1,12 @@
 package raftstate
 
 type VolatileLeaderState struct {
-  nextIndex map[string]uint64
-  matchIndex map[string]uint64
+  nextIndex map[string]int
+  matchIndex map[string]int
 }
 
-func (this *VolatileLeaderState) InitNextIndex(serverList []string, lastLogIndex uint64) {
-  var m map[string]uint64 = make(map[string]uint64)
+func (this *VolatileLeaderState) InitNextIndex(serverList []string, lastLogIndex int) {
+  var m map[string]int = make(map[string]int)
   for _, i := range serverList {
     m[i] = lastLogIndex
   }
@@ -14,13 +14,17 @@ func (this *VolatileLeaderState) InitNextIndex(serverList []string, lastLogIndex
 }
 
 func (this *VolatileLeaderState) InitMatchIndex(serverList []string) {
-  var m map[string]uint64 = make(map[string]uint64)
+  var m map[string]int = make(map[string]int)
   for _, i := range serverList {
-    m[i] = 0
+    m[i] = -1
   }
   this.matchIndex = m
 }
 
-func (this *VolatileLeaderState) DecrementNextIndex(id string, index uint64) {
+func (this *VolatileLeaderState) SetNextIndex(id string, index int) {
+  this.nextIndex[id] = index
+}
+
+func (this *VolatileLeaderState) SetMatchIndex(id string, index int) {
   this.matchIndex[id] = index
 }

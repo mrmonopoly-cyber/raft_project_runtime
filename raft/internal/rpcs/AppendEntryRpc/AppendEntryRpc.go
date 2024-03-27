@@ -6,8 +6,7 @@ import (
 	"raft/internal/rpcs"
 	app_resp "raft/internal/rpcs/AppendResponse"
 	"strconv"
-	// "sync"
-	//
+	"math"
 	"raft/pkg/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
@@ -84,35 +83,38 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State) *rpcs.Rpc {
 	if this.pMex.GetTerm() < term {
 
 		success = false
-		return respondeAppend(id, success, term)
+		return respondeAppend(id, success, term, -1)
 	
   } else if checkConsistency(this.pMex.GetPrevLogIndex(), this.pMex.GetPrevLogTerm(), *state) {
 		
     success = false
 		error = this.pMex.GetPrevLogIndex()
-		return respondeAppend(id, success, term, error)
+		return respondeAppend(id, success, term, int(error))
 	
   } else {
 		
     (*state).AppendEntries(this.pMex.GetEntries(), int(this.pMex.PrevLogIndex))
 		success = true
-		return respondeAppend(id, success, term)
+    var leaderCommit uint64 = this.pMex.GetLeaderCommit()
+    var lastNewEntryIdx uint64 = uint64(len((*state).GetEntries())-1)
+    if leaderCommit > (*state).GetCommitIndex() {
+      if leaderCommit > lastNewEntryIdx {
+        (*state).SetCommitIndex(lastNewEntryIdx)
+      } else {
+        (*state).SetCommitIndex(leaderCommit)
+      }
+    }
+		return respondeAppend(id, success, term, -1)
 	
   }
 }
 
-func respondeAppend(id string, success bool, term uint64, error ...uint64) *rpcs.Rpc {
-	var appendEntryResp rpcs.Rpc
-
-	if len(error) == 1 {
-		appendEntryResp = app_resp.NewAppendResponseRPC(
+func respondeAppend(id string, success bool, term uint64, error int) *rpcs.Rpc {
+	var appendEntryResp rpcs.Rpc = app_resp.NewAppendResponseRPC(
 			id,
 			success,
 			term,
-			error[0])
-	} else {
-		appendEntryResp = app_resp.NewAppendResponseRPC(id, success, term)
-	}
+			error)
 	return &appendEntryResp
 }
 

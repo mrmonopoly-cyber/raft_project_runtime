@@ -31,6 +31,7 @@ type raftStateImpl struct {
 	voteFor          string
 	voting           bool
   leaderState      *VolatileLeaderState
+  volatileState    *VolatileServerState
 	electionTimeout  *time.Timer
 	heartbeatTimeout *time.Timer
 	log              l.Log
@@ -57,6 +58,7 @@ type State interface {
 	CanVote() bool
 	GetEntries() []p.LogEntry
 	GetCommitIndex() uint64
+  SetCommitIndex(val uint64)
 	SetRole(newRole Role)
   AppendEntries(newEntries []*p.LogEntry, index int)
 	SetTerm(newTerm uint64)
@@ -69,142 +71,167 @@ type State interface {
 	GetNumNodeInCluster() uint64
 	ResetElection()
   BecomeFollower()
-  DecrementNextIndex(id string, index uint64)
+  SetNextIndex(id string, index int)
+  SetMatchIndex(id string, index int)
   InitVolatileLeaderState()
+  GetLastLogIndex() int
+  UpdateLastApplied() int
 }
 
-func (_state *raftStateImpl) GetId() string {
-	return _state.id
+func (this *raftStateImpl) GetId() string {
+	return this.id
 }
 
-func (_state *raftStateImpl) GetTerm() uint64 {
-	return _state.term
+func (this *raftStateImpl) GetTerm() uint64 {
+	return this.term
 }
 
-func (_state *raftStateImpl) SetTerm(newTerm uint64) {
-	_state.term = newTerm
+func (this *raftStateImpl) SetTerm(newTerm uint64) {
+	this.term = newTerm
 }
 
-func (_state *raftStateImpl) GetRole() Role {
-	return _state.role
+func (this *raftStateImpl) GetRole() Role {
+	return this.role
 }
 
-func (_state *raftStateImpl) SetRole(newRole Role) {
-	_state.role = newRole
+func (this *raftStateImpl) SetRole(newRole Role) {
+	this.role = newRole
 }
 
-func (_state *raftStateImpl) GetEntries() []p.LogEntry{
-	return _state.log.GetEntries()
+func (this *raftStateImpl) GetEntries() []p.LogEntry{
+	return this.log.GetEntries()
 }
 
-func (_state *raftStateImpl) AppendEntries(newEntries []*p.LogEntry, index int) {
-  _state.log.AppendEntries(newEntries, index)
+func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry, index int) {
+  this.log.AppendEntries(newEntries, index)
 }
 
-func (_state *raftStateImpl) GetCommitIndex() uint64 {
-	return _state.log.GetCommitIndex()
+func (this *raftStateImpl) GetCommitIndex() uint64 {
+	return this.volatileState.GetCommitIndex()
 }
 
-func (_state *raftStateImpl) StartElectionTimeout() {
+func (this *raftStateImpl) SetCommitIndex(val uint64) {
+  this.volatileState.SetCommitIndex(val)
+}
+
+func (this *raftStateImpl) StartElectionTimeout() {
   rand.New(rand.NewSource(time.Now().UnixNano()))
   t := rand.Intn((int(MAX_ELECTION_TIMEOUT)-int(MIN_ELECTION_TIMEOUT) + 1) + int(MIN_ELECTION_TIMEOUT))
-	_state.electionTimeout.Reset(time.Duration(t))
+	this.electionTimeout.Reset(time.Duration(t))
 }
 
-func (_state *raftStateImpl) StopElectionTimeout() {
-  _state.electionTimeout.Stop()
+func (this *raftStateImpl) StopElectionTimeout() {
+  this.electionTimeout.Stop()
 }
 
-func (_state *raftStateImpl) StartHearthbeatTimeout() {
-	_state.heartbeatTimeout.Reset(H_TIMEOUT)
+func (this *raftStateImpl) StartHearthbeatTimeout() {
+	this.heartbeatTimeout.Reset(H_TIMEOUT)
 }
 
-func (_state *raftStateImpl) StopHearthbeatTimeout() {
-  _state.heartbeatTimeout.Stop()
+func (this *raftStateImpl) StopHearthbeatTimeout() {
+  this.heartbeatTimeout.Stop()
 }
 
-func (_state *raftStateImpl) Leader() bool {
-	return _state.role == LEADER
+func (this *raftStateImpl) Leader() bool {
+	return this.role == LEADER
 }
 
-func (_state *raftStateImpl) BecomeFollower() {
-  _state.role = FOLLOWER
-  _state.leaderState = nil
+func (this *raftStateImpl) BecomeFollower() {
+  this.role = FOLLOWER
+  this.leaderState = nil
 }
 
-func (_state *raftStateImpl) CanVote() bool {
-	return _state.voting
+func (this *raftStateImpl) CanVote() bool {
+	return this.voting
 }
 
-func (_state *raftStateImpl) HeartbeatTimeout() *time.Timer {
+func (this *raftStateImpl) HeartbeatTimeout() *time.Timer {
     log.Println("timeout hearthbit")
-	return _state.heartbeatTimeout
+	return this.heartbeatTimeout
 }
 
-func (_state *raftStateImpl) ElectionTimeout() *time.Timer {
-	return _state.electionTimeout
+func (this *raftStateImpl) ElectionTimeout() *time.Timer {
+	return this.electionTimeout
 }
 
-func (_state *raftStateImpl) GetVoteFor() string {
-	return _state.voteFor
+func (this *raftStateImpl) GetVoteFor() string {
+	return this.voteFor
 }
 
-func (_state *raftStateImpl) IncrementTerm() {
-	_state.term += 1
+func (this *raftStateImpl) IncrementTerm() {
+	this.term += 1
 }
 
-func (_state *raftStateImpl) VoteFor(id string) {
-	_state.voteFor = id
+func (this *raftStateImpl) VoteFor(id string) {
+	this.voteFor = id
 }
 
 // MoreRecentLog implements State.
-func (_state *raftStateImpl) MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool {
-	return _state.log.More_recent_log(lastLogIndex, lastLogTerm)
+func (this *raftStateImpl) MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool {
+	return this.log.More_recent_log(lastLogIndex, lastLogTerm)
 }
 
 // GetNumSupporters implements State.
-func (_state *raftStateImpl) GetNumSupporters() uint64 {
-	return _state.nSupporting
+func (this *raftStateImpl) GetNumSupporters() uint64 {
+	return this.nSupporting
 }
 
 // IncreaseNotSupporters implements State.
-func (_state *raftStateImpl) IncreaseNotSupporters() {
-	_state.nNotSupporting++
+func (this *raftStateImpl) IncreaseNotSupporters() {
+	this.nNotSupporting++
 }
 
 // IncreaseSupporters implements State.
-func (_state *raftStateImpl) IncreaseSupporters() {
-	_state.nSupporting++
+func (this *raftStateImpl) IncreaseSupporters() {
+	this.nSupporting++
 }
 
 // GetNumNotSupporters implements State.
-func (_state *raftStateImpl) GetNumNotSupporters() uint64 {
-	return _state.nNotSupporting
+func (this *raftStateImpl) GetNumNotSupporters() uint64 {
+	return this.nNotSupporting
 }
 
 // GetNumNodeInCluster implements State.
-func (_state *raftStateImpl) GetNumNodeInCluster() uint64 {
-	return _state.nNodeInCluster
+func (this *raftStateImpl) GetNumNodeInCluster() uint64 {
+	return this.nNodeInCluster
 }
 
 // IncreaseNodeInCluster implements State.
-func (_state *raftStateImpl) IncreaseNodeInCluster() {
-	_state.nNodeInCluster++
+func (this *raftStateImpl) IncreaseNodeInCluster() {
+	this.nNodeInCluster++
 }
 
-func (_state *raftStateImpl) ResetElection() {
-	_state.nSupporting = 0
-	_state.nNotSupporting = 0
+func (this *raftStateImpl) ResetElection() {
+	this.nSupporting = 0
+	this.nNotSupporting = 0
 }
 
-func (_state *raftStateImpl) InitVolatileLeaderState() {
-  _state.leaderState = new(VolatileLeaderState)
-  _state.leaderState.InitMatchIndex(_state.serverList)
-  _state.leaderState.InitNextIndex(_state.serverList, _state.log.LastLogIndex())
+func (this *raftStateImpl) InitVolatileLeaderState() {
+  this.leaderState = new(VolatileLeaderState)
+  this.leaderState.InitMatchIndex(this.serverList)
+  this.leaderState.InitNextIndex(this.serverList, this.log.LastLogIndex())
 }
 
-func (_state *raftStateImpl) DecrementNextIndex(id string, index uint64) {
-  _state.leaderState.DecrementNextIndex(id, index)
+func (this *raftStateImpl) InitVolatileServer() {
+  this.volatileState = new(VolatileServerState)
+  this.volatileState.InitState()
+}
+
+func (this *raftStateImpl) SetNextIndex(id string, index int) {
+  this.leaderState.SetNextIndex(id, index)
+}
+
+func (this *raftStateImpl) SetMatchIndex(id string, index int) {
+  this.leaderState.SetMatchIndex(id, index)
+}
+
+func (this *raftStateImpl) GetLastLogIndex() int {
+  return this.log.LastLogIndex()
+}
+
+func (this *raftStateImpl) UpdateLastApplied() int {
+  return this.volatileState.UpdateLastApplied()
+  // TODO: apply log to state machine (?)
 }
 
 func NewState(term uint64, id string, role Role) State {
@@ -218,6 +245,7 @@ func NewState(term uint64, id string, role Role) State {
 	s.nSupporting = 0
 	s.nNodeInCluster = 1
     s.voting = true
+  s.InitVolatileServer()
 
 	return s
 }

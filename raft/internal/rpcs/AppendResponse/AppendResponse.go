@@ -13,13 +13,13 @@ type AppendResponse struct {
 	pMex protobuf.AppendEntryResponse
 }
 
-func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError ...uint64) rpcs.Rpc {
-	var error *uint64
+func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError int) rpcs.Rpc {
+	var error *int32
 
-	if len(logIndexError) == 1 {
-		error = &logIndexError[0]
-	} else {
+	if logIndexError == -1 {
 		error = nil
+	} else {
+		error = proto.Int32(int32(logIndexError))
 	}
 
 	return &AppendResponse{
@@ -46,8 +46,11 @@ func (this *AppendResponse) Execute(state *raftstate.State) *rpcs.Rpc {
       (*state).SetTerm(this.GetTerm())
       (*state).BecomeFollower()
     } else {
-      (*state).DecrementNextIndex(this.GetId(), this.GetLogIndexError()) 
+      (*state).SetNextIndex(this.GetId(), this.GetLogIndexError())
     }
+  } else {
+    (*state).SetNextIndex(this.GetId(), (*state).GetLastLogIndex()+1)
+    (*state).SetMatchIndex(this.GetId(), (*state).GetLastLogIndex())
   }
 
   return resp
@@ -83,6 +86,6 @@ func (this *AppendResponse) Decode(b []byte) error {
 	return err
 }
 
-func (this *AppendResponse) GetLogIndexError() uint64 {
-  return this.pMex.GetLogIndexError()
+func (this *AppendResponse) GetLogIndexError() int {
+  return int(this.pMex.GetLogIndexError())
 }
