@@ -6,12 +6,17 @@ type LogEntry interface{
     GetEntries() []p.LogEntry
     GetCommitIndex() int64
     More_recent_log(last_log_index int64, last_log_term uint64) bool 
+    SetCommitIndex(val int64)
+    AppendEntries(newEntries []*p.LogEntry, index int)
+    LastLogIndex() int
+    UpdateLastApplied() int 
+    InitState()
 }
 
 type log struct {
     entries     []p.LogEntry
     lastApplied  int
-    commitIndex  uint64
+    commitIndex  int64
 }
 
 func (this *log) GetEntries() []p.LogEntry{
@@ -41,11 +46,11 @@ func (this *log) UpdateLastApplied() int {
   return -1
 }
 
-func (this *log) GetCommitIndex() uint64 {
+func (this *log) GetCommitIndex() int64 {
   return this.commitIndex
 }
 
-func (this *log) SetCommitIndex(val uint64) {
+func (this *log) SetCommitIndex(val int64) {
   this.commitIndex = val
 }
 

@@ -56,8 +56,8 @@ type State interface {
 	VoteFor(id string)
 	CanVote() bool
 	GetEntries() []p.LogEntry
-	GetCommitIndex() uint64
-    SetCommitIndex(val uint64)
+	GetCommitIndex() int64
+    SetCommitIndex(val int64)
     SetRole(newRole Role)
     AppendEntries(newEntries []*p.LogEntry, index int)
     SetTerm(newTerm uint64)
@@ -105,11 +105,11 @@ func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry, index int) {
   this.log.AppendEntries(newEntries, index)
 }
 
-func (this *raftStateImpl) GetCommitIndex() uint64 {
+func (this *raftStateImpl) GetCommitIndex() int64 {
 	return this.log.GetCommitIndex()
 }
 
-func (this *raftStateImpl) SetCommitIndex(val uint64) {
+func (this *raftStateImpl) SetCommitIndex(val int64) {
   this.log.SetCommitIndex(val)
 }
 
@@ -166,7 +166,7 @@ func (this *raftStateImpl) VoteFor(id string) {
 }
 
 // MoreRecentLog implements State.
-func (this *raftStateImpl) MoreRecentLog(lastLogIndex uint64, lastLogTerm uint64) bool {
+func (this *raftStateImpl) MoreRecentLog(lastLogIndex int64, lastLogTerm uint64) bool {
 	return this.log.More_recent_log(lastLogIndex, lastLogTerm)
 }
 
@@ -228,8 +228,9 @@ func (this *raftStateImpl) GetLastLogIndex() int {
 }
 
 func (this *raftStateImpl) UpdateLastApplied() int {
-  return this.log.UpdateLastApplied()
-  // TODO: apply log to state machine (?)
+    // TODO: apply log to state machine (?)
+    log.Println("log not applied to state machine(?)")
+    return this.log.UpdateLastApplied()
 }
 
 func NewState(term uint64, id string, role Role) State {
