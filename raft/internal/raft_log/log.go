@@ -4,27 +4,47 @@ import p "raft/pkg/rpcEncoding/out/protobuf"
 
 type Log struct {
 	entries     []p.LogEntry
+  lastApplied  int
+  commitIndex  uint64
 }
 
-type LogInterface interface {
-  GetEntries() []p.Entry
+func (this *Log) GetEntries() []p.LogEntry{
+  return this.entries
 }
 
-func (l *Log) GetEntries() []p.LogEntry{
-  return l.entries
+func (this *Log) LastLogIndex() int {
+  return len(this.entries)-1
 }
 
-func (l *Log) LastLogIndex() int {
-  return len(l.entries)-1
-}
-
-func (l *Log) More_recent_log(last_log_index uint64, last_log_term uint64) bool {
+func (this *Log) More_recent_log(last_log_index uint64, last_log_term uint64) bool {
     //TODO implement More recent log
     return false
 }
 
-func (l *Log) AppendEntries(newEntries []*p.LogEntry, index int) {
+func (this *Log) AppendEntries(newEntries []*p.LogEntry, index int) {
   for i, en := range newEntries {
-    l.entries[index + i + 1] = *en
+    this.entries[index + i + 1] = *en
   }
 }
+
+func (this *Log) UpdateLastApplied() int {
+  if int(this.commitIndex) > this.lastApplied {
+    this.lastApplied++
+    return this.lastApplied
+  }
+  return -1
+}
+
+func (this *Log) GetCommitIndex() uint64 {
+  return this.commitIndex
+}
+
+func (this *Log) SetCommitIndex(val uint64) {
+  this.commitIndex = val
+}
+
+func (this *Log) InitState() {
+  this.commitIndex = 0
+  this.lastApplied = 0
+}
+

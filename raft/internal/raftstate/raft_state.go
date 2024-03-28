@@ -31,7 +31,6 @@ type raftStateImpl struct {
 	voteFor          string
 	voting           bool
   leaderState      *VolatileLeaderState
-  volatileState    *VolatileServerState
 	electionTimeout  *time.Timer
 	heartbeatTimeout *time.Timer
 	log              l.Log
@@ -107,11 +106,11 @@ func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry, index int) {
 }
 
 func (this *raftStateImpl) GetCommitIndex() uint64 {
-	return this.volatileState.GetCommitIndex()
+	return this.log.GetCommitIndex()
 }
 
 func (this *raftStateImpl) SetCommitIndex(val uint64) {
-  this.volatileState.SetCommitIndex(val)
+  this.log.SetCommitIndex(val)
 }
 
 func (this *raftStateImpl) StartElectionTimeout() {
@@ -213,8 +212,7 @@ func (this *raftStateImpl) InitVolatileLeaderState() {
 }
 
 func (this *raftStateImpl) InitVolatileServer() {
-  this.volatileState = new(VolatileServerState)
-  this.volatileState.InitState()
+  this.log.InitState()
 }
 
 func (this *raftStateImpl) SetNextIndex(id string, index int) {
@@ -230,7 +228,7 @@ func (this *raftStateImpl) GetLastLogIndex() int {
 }
 
 func (this *raftStateImpl) UpdateLastApplied() int {
-  return this.volatileState.UpdateLastApplied()
+  return this.log.UpdateLastApplied()
   // TODO: apply log to state machine (?)
 }
 
