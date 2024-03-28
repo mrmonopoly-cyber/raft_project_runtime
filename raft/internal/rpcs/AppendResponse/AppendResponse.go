@@ -3,8 +3,8 @@ package AppendResponse
 import (
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
-  "strconv"
 	"raft/pkg/rpcEncoding/out/protobuf"
+	"strconv"
 	//
 	"google.golang.org/protobuf/proto"
 )
@@ -32,37 +32,30 @@ func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError in
 	}
 }
 
-// GetId implements rpcs.Rpc.
-func (this *AppendResponse) GetId() string {
-	return this.pMex.GetId()
-}
-
 // Manage implements rpcs.Rpc.
 func (this *AppendResponse) Execute(state *raftstate.State) *rpcs.Rpc {
-	var resp *rpcs.Rpc = nil 
+	var resp *rpcs.Rpc = nil
 
-  if !this.pMex.GetSuccess() {
-    if this.GetTerm() > (*state).GetTerm() {
-      (*state).SetTerm(this.GetTerm())
-      (*state).BecomeFollower()
-    } else {
-      (*state).SetNextIndex(this.GetId(), this.GetLogIndexError())
-    }
-  } else {
-    (*state).SetNextIndex(this.GetId(), (*state).GetLastLogIndex()+1)
-    (*state).SetMatchIndex(this.GetId(), (*state).GetLastLogIndex())
-  }
+	var id string = this.pMex.GetId()
+	var term uint64 = this.pMex.GetTerm()
+	if !this.pMex.GetSuccess() {
+		if term > (*state).GetTerm() {
+			(*state).SetTerm(term)
+			(*state).BecomeFollower()
+		} else {
+			(*state).SetNextIndex(id, int(this.pMex.GetLogIndexError()))
+		}
+	} else {
+		(*state).SetNextIndex(id, (*state).GetLastLogIndex()+1)
+		(*state).SetMatchIndex(id, (*state).GetLastLogIndex())
+	}
 
-  return resp
+	return resp
 }
 
 // ToString implements rpcs.Rpc.
-func (this *AppendResponse) ToString() string {	
+func (this *AppendResponse) ToString() string {
 	return "{term : " + strconv.Itoa(int(this.pMex.GetTerm())) + ", id: " + this.pMex.GetId() + ", success: " + strconv.FormatBool(this.pMex.GetSuccess()) + ", error: " + strconv.Itoa(int(this.pMex.GetLogIndexError())) + "}"
-}
-
-func (this *AppendResponse) GetTerm() uint64 {
-	return this.pMex.GetTerm()
 }
 
 func (this *AppendResponse) Encode() ([]byte, error) {
@@ -84,8 +77,4 @@ func (this *AppendResponse) Decode(b []byte) error {
 	}
 
 	return err
-}
-
-func (this *AppendResponse) GetLogIndexError() int {
-  return int(this.pMex.GetLogIndexError())
 }

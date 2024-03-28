@@ -5,9 +5,8 @@ import (
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	app_resp "raft/internal/rpcs/AppendResponse"
-	"strconv"
-	"math"
 	"raft/pkg/rpcEncoding/out/protobuf"
+	"strconv"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -56,13 +55,8 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 	}
 }
 
-// GetId implements rpcs.Rpc.
-func (this *AppendEntryRpc) GetId() string {
-	return this.pMex.LeaderId
-}
-
-func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, state raftstate.State) bool {
-	return state.GetEntries()[prevLogIndex].GetTerm() == prevLogTerm
+func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, entries []protobuf.LogEntry) bool {
+	return entries[prevLogIndex].GetTerm() == prevLogTerm
 }
 
 // Manage implements rpcs.Rpc.
@@ -70,51 +64,53 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State) *rpcs.Rpc {
 	(*state).StopElectionTimeout()
 	defer (*state).StartElectionTimeout()
 
-	var role = (*state).GetRole()
-	var id = (*state).GetId()
-	var term = (*state).GetTerm()
+	var role raftstate.Role = (*state).GetRole()
+	var id string = (*state).GetId()
+	var myTerm uint64 = (*state).GetTerm()
 	var error uint64
 	var success bool
+	var prevLogIndex uint64 = this.pMex.GetPrevLogIndex()
+	var entries []protobuf.LogEntry = (*state).GetEntries()
 
 	if role != raftstate.FOLLOWER {
-		(*state).SetRole(raftstate.FOLLOWER)
+		(*state).BecomeFollower()
 	}
 
-	if this.pMex.GetTerm() < term {
+	if this.pMex.GetTerm() < myTerm {
 
 		success = false
-		return respondeAppend(id, success, term, -1)
-	
-  } else if checkConsistency(this.pMex.GetPrevLogIndex(), this.pMex.GetPrevLogTerm(), *state) {
-		
-    success = false
-		error = this.pMex.GetPrevLogIndex()
-		return respondeAppend(id, success, term, int(error))
-	
-  } else {
-		
-    (*state).AppendEntries(this.pMex.GetEntries(), int(this.pMex.PrevLogIndex))
+		return respondeAppend(id, success, myTerm, -1)
+
+	} else if checkConsistency(prevLogIndex, this.pMex.GetPrevLogTerm(), entries) {
+
+		success = false
+		error = prevLogIndex
+		return respondeAppend(id, success, myTerm, int(error))
+
+	} else {
+
+		(*state).AppendEntries(this.pMex.GetEntries(), int(prevLogIndex))
 		success = true
-    var leaderCommit uint64 = this.pMex.GetLeaderCommit()
-    var lastNewEntryIdx uint64 = uint64(len((*state).GetEntries())-1)
-    if leaderCommit > (*state).GetCommitIndex() {
-      if leaderCommit > lastNewEntryIdx {
-        (*state).SetCommitIndex(lastNewEntryIdx)
-      } else {
-        (*state).SetCommitIndex(leaderCommit)
-      }
-    }
-		return respondeAppend(id, success, term, -1)
-	
-  }
+		var leaderCommit uint64 = this.pMex.GetLeaderCommit()
+		var lastNewEntryIdx uint64 = uint64(len(entries) - 1)
+		if leaderCommit > (*state).GetCommitIndex() {
+			if leaderCommit > lastNewEntryIdx {
+				(*state).SetCommitIndex(lastNewEntryIdx)
+			} else {
+				(*state).SetCommitIndex(leaderCommit)
+			}
+		}
+		return respondeAppend(id, success, myTerm, -1)
+
+	}
 }
 
 func respondeAppend(id string, success bool, term uint64, error int) *rpcs.Rpc {
 	var appendEntryResp rpcs.Rpc = app_resp.NewAppendResponseRPC(
-			id,
-			success,
-			term,
-			error)
+		id,
+		success,
+		term,
+		error)
 	return &appendEntryResp
 }
 
@@ -124,11 +120,7 @@ func (this *AppendEntryRpc) ToString() string {
 	for _, el := range this.pMex.Entries {
 		entries += el.String()
 	}
-	return "{term : " + strconv.Itoa(int(this.GetTerm())) + ", leaderId: " + this.GetId() + ", prevLogIndex: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) + ", prevLogTerm: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) + ", entries: " + entries + ", leaderCommit: " + strconv.Itoa(int(this.pMex.LeaderCommit)) + "}"
-}
-
-func (this *AppendEntryRpc) GetTerm() uint64 {
-	return this.pMex.Term
+	return "{term : " + strconv.Itoa(int(this.pMex.GetTerm())) + ", leaderId: " + this.pMex.GetLeaderId() + ", prevLogIndex: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) + ", prevLogTerm: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) + ", entries: " + entries + ", leaderCommit: " + strconv.Itoa(int(this.pMex.LeaderCommit)) + "}"
 }
 
 func (this *AppendEntryRpc) Encode() ([]byte, error) {
