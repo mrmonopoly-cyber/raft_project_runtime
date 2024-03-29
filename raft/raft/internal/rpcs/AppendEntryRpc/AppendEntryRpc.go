@@ -56,8 +56,8 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 }
 
 func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, entries []protobuf.LogEntry) bool {
-    if entries == nil {
-        return true
+    if len(entries) <= 0 {
+        return false
     }
 	return entries[prevLogIndex].GetTerm() == prevLogTerm
 }
@@ -85,7 +85,7 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State) *rpcs.Rpc {
 		success = false
 		return respondeAppend(id, success, myTerm, -1)
 
-	} else if (entries != nil) && checkConsistency(prevLogIndex, prevLogTerm, entries) {
+	} else if checkConsistency(prevLogIndex, prevLogTerm, entries) {
 
 		success = false
 		error = prevLogIndex
