@@ -71,7 +71,7 @@ func Encode(mex *rpcs.Rpc) ([]byte,error){
     case *RequestVoteRPC.RequestVoteRPC:
         genericMessage.OpType = protobuf.MexType_REQUEST_VOTE
     case *RequestVoteResponse.RequestVoteResponse:
-        genericMessage.OpType = protobuf.MexType_APPEND_ENTRY_RESPONSE
+        genericMessage.OpType = protobuf.MexType_REQUEST_VOTE_RESPONSE
     case *AppendResponse.AppendResponse:
         genericMessage.OpType = protobuf.MexType_APPEND_ENTRY_RESPONSE
     default:
