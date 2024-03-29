@@ -4,10 +4,11 @@ import (
 	"log"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
-    "raft/internal/rpcs/RequestVoteRPC"
-    "raft/internal/rpcs/RequestVoteResponse"
+	"raft/internal/rpcs/AppendResponse"
+	"raft/internal/rpcs/RequestVoteRPC"
+	"raft/internal/rpcs/RequestVoteResponse"
 
-    "raft/pkg/rpcEncoding/out/protobuf"
+	"raft/pkg/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -39,6 +40,10 @@ func Decode(raw_mex []byte) (*rpcs.Rpc){
         var requestVoteResponse RequestVoteResponse.RequestVoteResponse
         requestVoteResponse.Decode(payload)
         outRpc = &requestVoteResponse
+    case protobuf.MexType_APPEND_ENTRY_RESPONSE:
+        var appendResponse AppendResponse.AppendResponse
+        appendResponse.Decode(payload)
+        outRpc = &appendResponse
     default:
         log.Panicln("rpc type not recognize in decoing generic message")
     }
@@ -66,6 +71,8 @@ func Encode(mex *rpcs.Rpc) ([]byte,error){
     case *RequestVoteRPC.RequestVoteRPC:
         genericMessage.OpType = protobuf.MexType_REQUEST_VOTE
     case *RequestVoteResponse.RequestVoteResponse:
+        genericMessage.OpType = protobuf.MexType_REQUEST_VOTE_RESPONSE
+    case *AppendResponse.AppendResponse:
         genericMessage.OpType = protobuf.MexType_APPEND_ENTRY_RESPONSE
     default:
         log.Panicln("rpc not recognize: ", (*mex).ToString())
