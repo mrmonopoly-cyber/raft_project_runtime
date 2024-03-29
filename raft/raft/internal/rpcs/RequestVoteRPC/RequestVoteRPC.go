@@ -97,7 +97,7 @@ func (this *RequestVoteRPC) Execute(state *raftstate.State) *rpcs.Rpc {
         return this.respondeVote(state,&sender,true)
     }
 
-	return this.respondeVote(state, &sender, true)
+	return this.respondeVote(state, &sender, false)
 }
 
 func (this *RequestVoteRPC) respondeVote(state *raftstate.State, sender *string, vote bool) *rpcs.Rpc{
