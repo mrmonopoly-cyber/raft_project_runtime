@@ -244,6 +244,7 @@ func NewState(term uint64, id string, role Role) State {
 	s.nSupporting = 0
 	s.nNodeInCluster = 1
     s.voting = true
+  s.log = l.NewLogEntry()
   s.InitVolatileServer()
 	return s
 }

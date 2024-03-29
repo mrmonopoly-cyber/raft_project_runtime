@@ -10,13 +10,22 @@ type LogEntry interface{
     AppendEntries(newEntries []*p.LogEntry, index int)
     LastLogIndex() int
     UpdateLastApplied() int 
-    InitState()
+    InitState() 
 }
 
 type log struct {
     entries     []p.LogEntry
     lastApplied  int
     commitIndex  int64
+}
+
+func NewLogEntry() LogEntry {
+  var l = new(log)
+  l.commitIndex = 0
+  l.lastApplied = 0
+  l.entries = make([]p.LogEntry, 0)
+
+  return l
 }
 
 func (this *log) GetEntries() []p.LogEntry{
@@ -27,7 +36,7 @@ func (this *log) LastLogIndex() int {
   return len(this.entries)-1
 }
 
-func (this *log) More_recent_log(last_log_index uint64, last_log_term uint64) bool {
+func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) bool {
     //TODO implement More recent log
     return false
 }
