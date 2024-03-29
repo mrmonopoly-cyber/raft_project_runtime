@@ -110,7 +110,6 @@ func (s *Server) Start() {
 func (s *Server) acceptIncomingConn() {
 	defer s.wg.Done()
 	for {
-        log.Println("waiting new connection")
 		conn, err := s.listener.Accept()
 		if err != nil {
 			log.Println("Failed on accept: ", err)
@@ -141,6 +140,7 @@ func (s *Server) acceptIncomingConn() {
 			s.otherNodes.Store(id_node, new_node)
             s._state.IncreaseNodeInCluster()
 		}
+        log.Println("finish accepting new connections")
 	}
 }
 

@@ -31,10 +31,8 @@ func (this *RequestVoteResponse) GetId() string {
 // Manage implements rpcs.Rpc.
 func (this *RequestVoteResponse) Execute(state *raftstate.State) *rpcs.Rpc {
     if this.GetVote() {
-        log.Println("received positive vote");
         (*state).IncreaseSupporters()
     }else {
-        log.Println("received negative vote");
         (*state).IncreaseNotSupporters()
     }
     
@@ -44,13 +42,11 @@ func (this *RequestVoteResponse) Execute(state *raftstate.State) *rpcs.Rpc {
     var notSupp = (*state).GetNumNotSupporters()
 
     if supp > nVictory {
-        log.Println("election won");
         (*state).SetRole(raftstate.LEADER)
         (*state).ResetElection()
         return nil
     }
     if supp + notSupp == nodeInCluster{
-        log.Println("election lost");
         (*state).ResetElection()
     }
 

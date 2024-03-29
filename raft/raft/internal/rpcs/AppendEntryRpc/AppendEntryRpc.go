@@ -56,9 +56,6 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 }
 
 func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, entries []protobuf.LogEntry) bool {
-    if len(entries) <= 0 {
-        return false
-    }
 	return entries[prevLogIndex].GetTerm() == prevLogTerm
 }
 
@@ -73,7 +70,6 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State) *rpcs.Rpc {
 	var error uint64
 	var success bool
 	var prevLogIndex uint64 = this.pMex.GetPrevLogIndex()
-	var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
 	var entries []protobuf.LogEntry = (*state).GetEntries()
 
 	if role != raftstate.FOLLOWER {
@@ -85,7 +81,7 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State) *rpcs.Rpc {
 		success = false
 		return respondeAppend(id, success, myTerm, -1)
 
-	} else if checkConsistency(prevLogIndex, prevLogTerm, entries) {
+	} else if checkConsistency(prevLogIndex, this.pMex.GetPrevLogTerm(), entries) {
 
 		success = false
 		error = prevLogIndex

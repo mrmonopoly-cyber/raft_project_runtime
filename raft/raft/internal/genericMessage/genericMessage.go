@@ -30,21 +30,24 @@ func Decode(raw_mex []byte) (*rpcs.Rpc){
     switch genericMex.GetOpType(){
     case protobuf.MexType_APPEND_ENTRY:
         var appendEntry AppendEntryRpc.AppendEntryRpc
+        appendEntry.Decode(payload)
         outRpc = &appendEntry
-    case protobuf.MexType_APPEND_ENTRY_RESPONSE:
-        var appendResponse AppendResponse.AppendResponse
-        outRpc = &appendResponse
     case protobuf.MexType_REQUEST_VOTE:
         var requestVote RequestVoteRPC.RequestVoteRPC
+        requestVote.Decode(payload)
         outRpc = &requestVote
     case protobuf.MexType_REQUEST_VOTE_RESPONSE:
         var requestVoteResponse RequestVoteResponse.RequestVoteResponse
+        requestVoteResponse.Decode(payload)
         outRpc = &requestVoteResponse
+    case protobuf.MexType_APPEND_ENTRY_RESPONSE:
+        var appendResponse AppendResponse.AppendResponse
+        appendResponse.Decode(payload)
+        outRpc = &appendResponse
     default:
         log.Panicln("rpc type not recognize in decoing generic message")
     }
     
-    outRpc.Decode(payload)
     return &outRpc
 
 }
@@ -65,12 +68,12 @@ func Encode(mex *rpcs.Rpc) ([]byte,error){
     switch (*mex).(type){
     case *AppendEntryRpc.AppendEntryRpc:
         genericMessage.OpType = protobuf.MexType_APPEND_ENTRY
-    case *AppendResponse.AppendResponse:
-        genericMessage.OpType = protobuf.MexType_APPEND_ENTRY_RESPONSE
     case *RequestVoteRPC.RequestVoteRPC:
         genericMessage.OpType = protobuf.MexType_REQUEST_VOTE
     case *RequestVoteResponse.RequestVoteResponse:
         genericMessage.OpType = protobuf.MexType_REQUEST_VOTE_RESPONSE
+    case *AppendResponse.AppendResponse:
+        genericMessage.OpType = protobuf.MexType_APPEND_ENTRY_RESPONSE
     default:
         log.Panicln("rpc not recognize: ", (*mex).ToString())
     }
