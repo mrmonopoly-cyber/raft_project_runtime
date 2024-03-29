@@ -4,6 +4,7 @@ import (
 	"log"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
+	"raft/internal/node/nodeState"
 	"raft/pkg/rpcEncoding/out/protobuf"
 	"google.golang.org/protobuf/proto"
 )
@@ -29,7 +30,7 @@ func (this *RequestVoteResponse) GetId() string {
 
 
 // Manage implements rpcs.Rpc.
-func (this *RequestVoteResponse) Execute(state *raftstate.State) *rpcs.Rpc {
+func (this *RequestVoteResponse) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
     if this.GetVote() {
         log.Println("received positive vote");
         (*state).IncreaseSupporters()

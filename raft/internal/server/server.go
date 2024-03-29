@@ -17,6 +17,7 @@ import (
 	p "raft/pkg/rpcEncoding/out/protobuf"
 	"reflect"
 	"sync"
+    "raft/internal/node/nodeState"
 )
 
 type pairMex struct{
@@ -222,22 +223,26 @@ func (s *Server) run() {
             var resp *rpcs.Rpc
             var byEnc []byte
             var errEn error
+            var f any
+            var ok bool
+            var senderState nodeState.VolatileNodeState
+            f, ok = s.otherNodes.Load(generateID(sender))
+            var senderNode node.Node = f.(node.Node)
 
+            if !ok {
+                log.Printf("Node %s not found", sender)
+                continue
+            }
+
+            senderNode = f.(node.Node)
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
             sender = mess.sender
-            resp = (*rpcCall).Execute(&s._state)
+            senderState= *senderNode.GetNodeState()
+            resp = (*rpcCall).Execute(&s._state,&senderState)
 
             if resp != nil {
                 log.Println("reponse to send to: ", sender)
-                var f any
-                var ok bool
-                f, ok = s.otherNodes.Load(generateID(sender))
-
-                if !ok {
-                    log.Printf("Node %s not found", sender)
-                    continue
-                }
 
                 log.Println("sending mex to: ",sender)
                 byEnc, errEn = genericmessage.Encode(resp)

@@ -3,6 +3,7 @@ package AppendResponse
 import (
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
+	"raft/internal/node/nodeState"
 	"raft/pkg/rpcEncoding/out/protobuf"
 	"strconv"
 	//
@@ -33,7 +34,7 @@ func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError in
 }
 
 // Manage implements rpcs.Rpc.
-func (this *AppendResponse) Execute(state *raftstate.State) *rpcs.Rpc {
+func (this *AppendResponse) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
 	var resp *rpcs.Rpc = nil
 
 	var id string = this.pMex.GetId()
@@ -43,11 +44,11 @@ func (this *AppendResponse) Execute(state *raftstate.State) *rpcs.Rpc {
 			(*state).SetTerm(term)
 			(*state).BecomeFollower()
 		} else {
-			(*state).SetNextIndex(id, int(this.pMex.GetLogIndexError()))
+			(*senderState).SetNextIndex(id, int(this.pMex.GetLogIndexError()))
 		}
 	} else {
-		(*state).SetNextIndex(id, (*state).GetLastLogIndex()+1)
-		(*state).SetMatchIndex(id, (*state).GetLastLogIndex())
+		(*senderState).SetNextIndex(id, (*state).GetLastLogIndex()+1)
+		(*senderState).SetMatchIndex(id, (*state).GetLastLogIndex())
 	}
 
 	return resp
