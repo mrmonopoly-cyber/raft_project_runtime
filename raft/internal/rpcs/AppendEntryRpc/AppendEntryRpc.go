@@ -56,6 +56,9 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 }
 
 func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, entries []protobuf.LogEntry) bool {
+    if entries == nil {
+        return true
+    }
 	return entries[prevLogIndex].GetTerm() == prevLogTerm
 }
 
