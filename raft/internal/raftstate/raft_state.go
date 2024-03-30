@@ -30,7 +30,6 @@ type raftStateImpl struct {
 	role             Role
 	voteFor          string
 	voting           bool
-  leaderState      *VolatileLeaderState
 	electionTimeout  *time.Timer
 	heartbeatTimeout *time.Timer
 	log              l.LogEntry
@@ -70,9 +69,6 @@ type State interface {
 	GetNumNodeInCluster() uint64
 	ResetElection()
   BecomeFollower()
-  SetNextIndex(id string, index int)
-  SetMatchIndex(id string, index int)
-  InitVolatileLeaderState()
   GetLastLogIndex() int
   UpdateLastApplied() int
 }
@@ -137,7 +133,6 @@ func (this *raftStateImpl) Leader() bool {
 
 func (this *raftStateImpl) BecomeFollower() {
   this.role = FOLLOWER
-  this.leaderState = nil
 }
 
 func (this *raftStateImpl) CanVote() bool {
@@ -205,24 +200,6 @@ func (this *raftStateImpl) ResetElection() {
 	this.nNotSupporting = 0
 }
 
-func (this *raftStateImpl) InitVolatileLeaderState() {
-  this.leaderState = new(VolatileLeaderState)
-  this.leaderState.InitMatchIndex(this.serverList)
-  this.leaderState.InitNextIndex(this.serverList, this.log.LastLogIndex())
-}
-
-func (this *raftStateImpl) InitVolatileServer() {
-  this.log.InitState()
-}
-
-func (this *raftStateImpl) SetNextIndex(id string, index int) {
-  this.leaderState.SetNextIndex(id, index)
-}
-
-func (this *raftStateImpl) SetMatchIndex(id string, index int) {
-  this.leaderState.SetMatchIndex(id, index)
-}
-
 func (this *raftStateImpl) GetLastLogIndex() int {
   return this.log.LastLogIndex()
 }
@@ -245,6 +222,5 @@ func NewState(term uint64, id string, role Role) State {
 	s.nNodeInCluster = 1
     s.voting = true
   s.log = l.NewLogEntry()
-  s.InitVolatileServer()
 	return s
 }

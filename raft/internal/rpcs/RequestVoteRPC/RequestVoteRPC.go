@@ -7,6 +7,7 @@ import (
 	"raft/pkg/rpcEncoding/out/protobuf"
 	"strconv"
     "raft/internal/rpcs/RequestVoteResponse"
+	"raft/internal/node/nodeState"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -74,7 +75,7 @@ func (this *RequestVoteRPC) GetLastLogTerm() uint64 {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *RequestVoteRPC) Execute(state *raftstate.State) *rpcs.Rpc {
+func (this *RequestVoteRPC) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
 	var myVote string = (*state).GetVoteFor()
 	var sender = this.pMex.GetCandidateId()
 
@@ -97,7 +98,7 @@ func (this *RequestVoteRPC) Execute(state *raftstate.State) *rpcs.Rpc {
         return this.respondeVote(state,&sender,true)
     }
 
-	return this.respondeVote(state, &sender, true)
+	return this.respondeVote(state, &sender, false)
 }
 
 func (this *RequestVoteRPC) respondeVote(state *raftstate.State, sender *string, vote bool) *rpcs.Rpc{

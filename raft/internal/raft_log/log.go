@@ -37,8 +37,17 @@ func (this *log) LastLogIndex() int {
 }
 
 func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) bool {
-    //TODO implement More recent log
+    if last_log_index >= this.commitIndex{
+        var entrys []p.LogEntry = this.GetEntries()
+        if len(entrys) <= int(last_log_index) {
+            return true
+        }
+        if last_log_term >= *(entrys[last_log_index]).Term {
+            return true
+        }
+    }
     return false
+
 }
 
 func (this *log) AppendEntries(newEntries []*p.LogEntry, index int) {

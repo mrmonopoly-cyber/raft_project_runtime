@@ -4,6 +4,7 @@ import (
 	"log"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
+	"raft/internal/node/nodeState"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -17,7 +18,7 @@ func NewNEW_RPCRPC(term uint64) rpcs.Rpc {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *NEW_RPC) Execute(state *raftstate.State) *rpcs.Rpc {
+func (this *NEW_RPC) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
     panic("dummy implementation")
 }
 
