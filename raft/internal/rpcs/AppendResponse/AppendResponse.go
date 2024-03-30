@@ -15,20 +15,14 @@ type AppendResponse struct {
 }
 
 func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError int) rpcs.Rpc {
-	var error *int32
+	var error int32 = int32(logIndexError) 
 
-	if logIndexError == -1 {
-		error = nil
-	} else {
-		error = proto.Int32(int32(logIndexError))
-	}
-
-	return &AppendResponse{
+  return &AppendResponse{
 		pMex: protobuf.AppendEntryResponse{
 			Id:            &id,
 			Term:          &term,
 			Success:       &success,
-			LogIndexError: error,
+			LogIndexError: &error,
 		},
 	}
 }
