@@ -218,7 +218,7 @@ func (s *Server) run() {
         case mess = <-s.messageChannel:
             log.Println("processing message: ", (*mess.payload).ToString())
             var rpcCall *rpcs.Rpc
-            var sender string
+            var sender string = mess.sender
             var oldRole raftstate.Role
             var resp *rpcs.Rpc
             var byEnc []byte
@@ -237,7 +237,6 @@ func (s *Server) run() {
             senderNode = f.(node.Node)
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
-            sender = mess.sender
             senderState= *senderNode.GetNodeState()
             resp = (*rpcCall).Execute(&s._state,&senderState)
 
