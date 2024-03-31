@@ -141,6 +141,11 @@ func (s *Server) acceptIncomingConn() {
 			new_node.AddConn(conn)
 			s.otherNodes.Store(id_node, new_node)
             s._state.IncreaseNodeInCluster()
+            var _,fo = s.otherNodes.Load(id_node)
+            if !fo {
+                panic("")
+            }
+            
 		}
 	}
 }
