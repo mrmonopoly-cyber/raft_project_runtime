@@ -15,13 +15,13 @@ type Node interface {
 	Recv() ([]byte, error)
 	GetIp() string
 	GetPort() string
-	AddConn(conn net.Conn)
+	AddConn(conn *net.Conn)
     GetNodeState() *nodeState.VolatileNodeState
 }
 
 type node struct {
 	addr address.NodeAddress
-    conn net.Conn
+    conn *net.Conn
     nodeState nodeState.VolatileNodeState
 }
 
@@ -46,7 +46,7 @@ func (this *node) Recv() ([]byte, error) {
     var errSavi error
     for bytesRead == len(tmp){
 		// Read data from the connection
-		bytesRead, errConn = this.conn.Read(tmp)
+		bytesRead, errConn = (*this.conn).Read(tmp)
 
         // Write the read data into the buffer
         _, errSavi = buffer.Write(tmp[:bytesRead])
@@ -82,7 +82,7 @@ func NewNode(remoteAddr string, remotePort string) (Node) {
 	}
 }
 
-func (this *node) AddConn(conn net.Conn) {
+func (this *node) AddConn(conn *net.Conn) {
 	this.conn = conn
 }
 
@@ -91,7 +91,7 @@ func (this *node) Send(mex []byte) error{
         return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
     }
     log.Printf("start sending message to %v", this.GetIp())
-    this.conn.Write(mex)
+    (*this.conn).Write(mex)
     log.Printf("message sended to %v", this.GetIp())
     return nil
 	
