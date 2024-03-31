@@ -75,6 +75,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
         nodeConn,erroConn = net.Dial("tcp",serversIp[i]+":"+port)
         if erroConn != nil {
             log.Println("Failed to connect to node: ", serversIp[i])
+            panic("")
             continue
         }
         new_node.AddConn(nodeConn)
@@ -141,11 +142,6 @@ func (s *Server) acceptIncomingConn() {
 			new_node.AddConn(conn)
 			s.otherNodes.Store(id_node, new_node)
             s._state.IncreaseNodeInCluster()
-            var _,fo = s.otherNodes.Load(id_node)
-            if !fo {
-                panic("")
-            }
-            
 		}
 	}
 }
