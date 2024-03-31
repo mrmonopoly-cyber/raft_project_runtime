@@ -4,6 +4,7 @@ import (
 	"log"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
+    "raft/internal/node/nodeState"
 	app_resp "raft/internal/rpcs/AppendResponse"
 	"raft/pkg/rpcEncoding/out/protobuf"
 	"strconv"
@@ -63,7 +64,7 @@ func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, entries []protobu
 }
 
 // Manage implements rpcs.Rpc.
-func (this *AppendEntryRpc) Execute(state *raftstate.State) *rpcs.Rpc {
+func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
 	(*state).StopElectionTimeout()
 	defer (*state).StartElectionTimeout()
 

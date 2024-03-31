@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"raft/internal/node/address"
+	"raft/internal/node/nodeState"
 )
 
 type Node interface {
@@ -15,11 +16,13 @@ type Node interface {
 	GetIp() string
 	GetPort() string
 	AddConn(conn net.Conn)
+    GetNodeState() *nodeState.VolatileNodeState
 }
 
 type node struct {
 	addr address.NodeAddress
     conn net.Conn
+    nodeState nodeState.VolatileNodeState
 }
 
 
@@ -67,6 +70,10 @@ func (this *node) Recv() ([]byte, error) {
     log.Println("found no error, received message: ", buffer)
 	return buffer.Bytes(), nil 
 
+}
+
+func (this *node)GetNodeState() *nodeState.VolatileNodeState{
+    return &this.nodeState   
 }
 
 func NewNode(remoteAddr string, remotePort string) (Node) {
