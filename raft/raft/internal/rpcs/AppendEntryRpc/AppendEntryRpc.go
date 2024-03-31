@@ -64,7 +64,7 @@ func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, entries []protobu
 }
 
 // Manage implements rpcs.Rpc.
-func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeState.VolatileLeaderState) *rpcs.Rpc {
+func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
 	(*state).StopElectionTimeout()
 	defer (*state).StartElectionTimeout()
 
