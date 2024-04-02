@@ -310,5 +310,19 @@ func (s *Server) leaderHearthBit(){
             s._state.StartHearthbeatTimeout()
         }
     }
+
+    s.otherNodes.Range(func(key, value any) bool {
+            var nNode node.Node
+            var err bool
+
+            nNode,err = key.(node.Node)
+            if !err {
+                panic("error type is not a node.Node")
+            }
+
+            (*nNode.GetNodeState()).InitVolatileState()
+        return true;
+    })
+
     log.Println("no longer LEADER, stop sending hearthbit")
 }

@@ -5,6 +5,7 @@ type VolatileNodeState interface{
     SetMatchIndex(id string, index int)
     GetMatchIndex() int
     GetNextIndex() int
+    InitState()
 }
 
 type volatileNodeState struct {
@@ -26,4 +27,9 @@ func (this *volatileNodeState) GetMatchIndex() int {
 
 func (this *volatileNodeState) GetNextIndex() int {
   return this.nextIndex
+}
+
+func (this* volatileNodeState) InitState(){
+    (*this).nextIndex = 0;
+    (*this).matchIndex = 0;
 }
