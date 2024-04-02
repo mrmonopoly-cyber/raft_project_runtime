@@ -225,7 +225,7 @@ func (s *Server) run() {
             var errEn error
             var f any
             var ok bool
-            var senderState nodeState.VolatileNodeState
+            var senderState *nodeState.VolatileNodeState
             f, ok = s.otherNodes.Load(generateID(sender))
             var senderNode node.Node
 
@@ -237,8 +237,8 @@ func (s *Server) run() {
             senderNode = f.(node.Node)
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
-            senderState= *senderNode.GetNodeState()
-            resp = (*rpcCall).Execute(&s._state,&senderState)
+            senderState = senderNode.GetNodeState()
+            resp = (*rpcCall).Execute(&s._state, senderState)
 
             if resp != nil {
                 log.Println("reponse to send to: ", sender)
@@ -320,7 +320,7 @@ func (s *Server) leaderHearthBit(){
                 panic("error type is not a node.Node")
             }
 
-            (*nNode.GetNodeState()).InitVolatileState()
+            (*nNode.GetNodeState()).InitState()
         return true;
     })
 

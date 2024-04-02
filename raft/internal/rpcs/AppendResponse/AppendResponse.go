@@ -31,19 +31,19 @@ func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError in
 // Manage implements rpcs.Rpc.
 func (this *AppendResponse) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
 	var resp *rpcs.Rpc = nil
-
-	var id string = this.pMex.GetId()
+log.Println(senderState)
 	var term uint64 = this.pMex.GetTerm()
 	if !this.pMex.GetSuccess() {
 		if term > (*state).GetTerm() {
 			(*state).SetTerm(term)
 			(*state).BecomeFollower()
 		} else {
-			(*senderState).SetNextIndex(id, int(this.pMex.GetLogIndexError()))
+			(*senderState).SetNextIndex(int(this.pMex.GetLogIndexError()))
 		}
 	} else {
-		(*senderState).SetNextIndex(id, (*state).GetLastLogIndex()+1)
-		(*senderState).SetMatchIndex(id, (*state).GetLastLogIndex())
+    log.Println((*senderState).GetNextIndex())
+		(*senderState).SetNextIndex((*state).GetLastLogIndex()+1)
+		(*senderState).SetMatchIndex((*state).GetLastLogIndex())
 	}
 
 	return resp

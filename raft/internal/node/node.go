@@ -38,8 +38,8 @@ func (this *node) Recv() ([]byte, error) {
     if this.conn == nil {
         return nil, errors.New("connection not instantiated")
     }
-    log.Println("want to read")
-    log.Printf("start reading from %v\n", this.GetIp())
+    //log.Println("want to read")
+    //log.Printf("start reading from %v\n", this.GetIp())
 
     var bytesRead int = len(tmp)
     var errConn error
@@ -65,9 +65,9 @@ func (this *node) Recv() ([]byte, error) {
 		}
 	}
 
-    log.Printf("end reading from %v : %v\n", this.GetIp(), buffer)
+    //log.Printf("end reading from %v : %v\n", this.GetIp(), buffer)
     
-    log.Println("found no error, received message: ", buffer)
+    //log.Println("found no error, received message: ", buffer)
 	return buffer.Bytes(), nil 
 
 }
@@ -77,9 +77,11 @@ func (this *node)GetNodeState() *nodeState.VolatileNodeState{
 }
 
 func NewNode(remoteAddr string, remotePort string) (Node) {
-	return &node{
+  var node = &node{
 		addr: address.NewNodeAddress(remoteAddr, remotePort),
 	}
+  node.nodeState = nodeState.NewState()
+  return node
 }
 
 func (this *node) AddConn(conn net.Conn) {

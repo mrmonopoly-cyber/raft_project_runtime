@@ -1,8 +1,8 @@
 package nodeState
 
 type VolatileNodeState interface{
-    SetNextIndex(id string, index int)
-    SetMatchIndex(id string, index int)
+    SetNextIndex(index int)
+    SetMatchIndex(index int)
     GetMatchIndex() int
     GetNextIndex() int
     InitState()
@@ -13,11 +13,11 @@ type volatileNodeState struct {
   matchIndex int
 }
 
-func (this *volatileNodeState) SetNextIndex(id string, index int) {
+func (this *volatileNodeState) SetNextIndex(index int) {
   this.nextIndex = index
 }
 
-func (this *volatileNodeState) SetMatchIndex(id string, index int) {
+func (this *volatileNodeState) SetMatchIndex(index int) {
   this.matchIndex = index
 }
 
@@ -29,7 +29,14 @@ func (this *volatileNodeState) GetNextIndex() int {
   return this.nextIndex
 }
 
-func (this* volatileNodeState) InitState(){
+func (this* volatileNodeState) InitState() {
     (*this).nextIndex = 0;
     (*this).matchIndex = 0;
+}
+
+func NewState() VolatileNodeState {
+  return &volatileNodeState{
+    nextIndex: 0,
+    matchIndex: 0,
+  }
 }
