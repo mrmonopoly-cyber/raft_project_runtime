@@ -15,8 +15,8 @@ type Node interface {
 	Recv() ([]byte, error)
 	GetIp() string
 	GetPort() string
-	AddConn(conn net.Conn)
     GetNodeState() *nodeState.VolatileNodeState
+    ResetState()
 }
 
 type node struct {
@@ -25,6 +25,13 @@ type node struct {
     nodeState nodeState.VolatileNodeState
 }
 
+func NewNode(remoteAddr string, remotePort string, nodeConn net.Conn) (Node) {
+	return &node{
+		addr: address.NewNodeAddress(remoteAddr, remotePort),
+        conn: nodeConn,
+        nodeState: nodeState.NewVolatileState(),
+	}
+}
 
 // Read_rpc implements Node.
 func (this *node) Recv() ([]byte, error) {
@@ -76,16 +83,6 @@ func (this *node)GetNodeState() *nodeState.VolatileNodeState{
     return &this.nodeState   
 }
 
-func NewNode(remoteAddr string, remotePort string) (Node) {
-	return &node{
-		addr: address.NewNodeAddress(remoteAddr, remotePort),
-	}
-}
-
-func (this *node) AddConn(conn net.Conn) {
-	this.conn = conn
-}
-
 func (this *node) Send(mex []byte) error{
     if this.conn == nil {
         return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
@@ -103,4 +100,7 @@ func (this *node) GetIp() string {
 
 func (this *node) GetPort() string {
 	return this.addr.GetPort()
+}
+func (this *node) ResetState(){
+    (*this).nodeState.InitVolatileState()
 }
