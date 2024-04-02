@@ -313,7 +313,7 @@ func (s *Server) leaderHearthBit(){
             var nNode node.Node
             var err bool
 
-            nNode,err = key.(node.Node)
+            nNode,err = value.(node.Node)
             if !err {
                 panic("error type is not a node.Node")
             }
