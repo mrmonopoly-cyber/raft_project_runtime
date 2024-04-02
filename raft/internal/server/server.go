@@ -218,7 +218,7 @@ func (s *Server) run() {
         case mess = <-s.messageChannel:
             log.Println("processing message: ", (*mess.payload).ToString())
             var rpcCall *rpcs.Rpc
-            var sender string
+            var sender string = mess.sender
             var oldRole raftstate.Role
             var resp *rpcs.Rpc
             var byEnc []byte
@@ -227,7 +227,7 @@ func (s *Server) run() {
             var ok bool
             var senderState nodeState.VolatileNodeState
             f, ok = s.otherNodes.Load(generateID(sender))
-            var senderNode node.Node = f.(node.Node)
+            var senderNode node.Node
 
             if !ok {
                 log.Printf("Node %s not found", sender)
@@ -237,7 +237,6 @@ func (s *Server) run() {
             senderNode = f.(node.Node)
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
-            sender = mess.sender
             senderState= *senderNode.GetNodeState()
             resp = (*rpcCall).Execute(&s._state,&senderState)
 
