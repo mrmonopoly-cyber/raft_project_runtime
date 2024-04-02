@@ -3,8 +3,8 @@ package nodeState
 type VolatileNodeState interface{
     SetNextIndex(id string, index int)
     SetMatchIndex(id string, index int)
-    GetMatchIndex(id string, index int)
-    GetNextIndex(id string, index int)
+    GetMatchIndex() int
+    GetNextIndex() int
 }
 
 type volatileNodeState struct {
@@ -20,10 +20,10 @@ func (this *volatileNodeState) SetMatchIndex(id string, index int) {
   this.matchIndex = index
 }
 
-func (this *volatileNodeState) GetMatchIndex(id string, index int) {
-  this.matchIndex = index
+func (this *volatileNodeState) GetMatchIndex() int {
+  return this.matchIndex
 }
 
-func (this *volatileNodeState) GetNextIndex(id string, index int) {
-  this.nextIndex = index
+func (this *volatileNodeState) GetNextIndex() int {
+  return this.nextIndex
 }
