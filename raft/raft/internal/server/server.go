@@ -66,7 +66,6 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
     log.Println("number of others ip: ", len(serversIp))
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
-		new_node = node.NewNode(serversIp[i], port)
         log.Printf("connecting to the server: %v\n", serversIp[i])
         var nodeConn net.Conn
         var erroConn error
@@ -77,7 +76,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
             log.Println("Failed to connect to node: ", serversIp[i])
             continue
         }
-        new_node.AddConn(nodeConn)
+        new_node = node.NewNode(serversIp[i], port, nodeConn)
         log.Println("storing new node with ip :", serversIp[i])
         nodeId = generateID(serversIp[i])
         server.otherNodes.Store(nodeId, new_node)
@@ -137,8 +136,7 @@ func (s *Server) acceptIncomingConn() {
             continue
 		} else {
             log.Printf("node with ip %v not found", newConncetionIp)
-			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort)
-			new_node.AddConn(conn)
+			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
 			s.otherNodes.Store(id_node, new_node)
             s._state.IncreaseNodeInCluster()
 		}
@@ -310,5 +308,19 @@ func (s *Server) leaderHearthBit(){
             s._state.StartHearthbeatTimeout()
         }
     }
+
+    s.otherNodes.Range(func(key, value any) bool {
+            var nNode node.Node
+            var err bool
+
+            nNode,err = key.(node.Node)
+            if !err {
+                panic("error type is not a node.Node")
+            }
+
+            nNode.ResetState()
+        return true;
+    })
+
     log.Println("no longer LEADER, stop sending hearthbit")
 }
