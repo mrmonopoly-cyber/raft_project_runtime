@@ -1,6 +1,7 @@
 package AppendResponse
 
 import (
+	"log"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/internal/node/nodeState"
@@ -61,15 +62,9 @@ func (this *AppendResponse) Encode() ([]byte, error) {
 }
 
 func (this *AppendResponse) Decode(b []byte) error {
-	var pb = new(protobuf.AppendEntryResponse)
-	err := proto.Unmarshal(b, pb)
-
-	if err != nil {
-		this.pMex.Term = pb.Term
-		this.pMex.Id = pb.Id
-		this.pMex.Success = pb.Success
-		this.pMex.LogIndexError = pb.LogIndexError
-	}
-
+	err := proto.Unmarshal(b, &this.pMex)
+    if err != nil {
+        log.Panicln("error in Decoding Append Response: ", err)
+    }
 	return err
 }
