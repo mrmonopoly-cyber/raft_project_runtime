@@ -20,6 +20,8 @@ const (
   MIN_ELECTION_TIMEOUT time.Duration = 10000000000
   MAX_ELECTION_TIMEOUT time.Duration = 15000000000
 	H_TIMEOUT        time.Duration = 3000000000
+  /* testing */
+  APPEND_TM time.Duration = 6000000000
 )
 
 type raftStateImpl struct {
@@ -36,6 +38,8 @@ type raftStateImpl struct {
 	nSupporting      uint64
 	nNotSupporting   uint64
 	nNodeInCluster   uint64
+  /* testing */
+  fakenEntryTimeout *time.Timer
 }
 
 
@@ -54,7 +58,7 @@ type State interface {
 	IncrementTerm()
 	VoteFor(id string)
 	CanVote() bool
-	GetEntries() []p.LogEntry
+	GetEntries() []*p.LogEntry
 	GetCommitIndex() int64
     SetCommitIndex(val int64)
     SetRole(newRole Role)
@@ -71,6 +75,11 @@ type State interface {
   BecomeFollower()
   GetLastLogIndex() int
   UpdateLastApplied() int
+
+  /* testing */
+  AppendDummyEntry() 
+  DummyEntryTimeout() *time.Timer
+  ResetDummyTimeout()
 }
 
 func (this *raftStateImpl) GetId() string {
@@ -93,7 +102,7 @@ func (this *raftStateImpl) SetRole(newRole Role) {
 	this.role = newRole
 }
 
-func (this *raftStateImpl) GetEntries() []p.LogEntry{
+func (this *raftStateImpl) GetEntries() []*p.LogEntry{
 	return this.log.GetEntries()
 }
 
@@ -217,10 +226,24 @@ func NewState(term uint64, id string, role Role) State {
   s.id = id
 	s.electionTimeout = time.NewTimer(MAX_ELECTION_TIMEOUT)
 	s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)
+  s.fakenEntryTimeout = time.NewTimer(APPEND_TM)
 	s.nNotSupporting = 0
 	s.nSupporting = 0
 	s.nNodeInCluster = 1
     s.voting = true
   s.log = l.NewLogEntry()
 	return s
+}
+
+/* testing */
+func (this *raftStateImpl) AppendDummyEntry() {
+  this.log.AppendDummyEntry(this.GetTerm())
+}
+
+func (this *raftStateImpl) DummyEntryTimeout() *time.Timer {
+  return this.fakenEntryTimeout
+}
+
+func (this *raftStateImpl) ResetDummyTimeout() {
+  this.fakenEntryTimeout.Reset(APPEND_TM)
 }

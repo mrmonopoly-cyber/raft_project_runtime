@@ -3,14 +3,16 @@ package raft_log
 import p "raft/pkg/rpcEncoding/out/protobuf"
 
 type LogEntry interface{
-    GetEntries() []p.LogEntry
+    GetEntries() []*p.LogEntry
     GetCommitIndex() int64
     More_recent_log(last_log_index int64, last_log_term uint64) bool 
     SetCommitIndex(val int64)
     AppendEntries(newEntries []*p.LogEntry, index int)
     LastLogIndex() int
     UpdateLastApplied() int 
-    InitState() 
+    InitState()
+    /* testing */
+    AppendDummyEntry(term uint64)
 }
 
 type log struct {
@@ -28,8 +30,12 @@ func NewLogEntry() LogEntry {
   return l
 }
 
-func (this *log) GetEntries() []p.LogEntry{
-  return this.entries
+func (this *log) GetEntries() []*p.LogEntry{
+  var e []*p.LogEntry = make([]*p.LogEntry, 0)
+  for i, en := range this.entries {
+    e[i] = &en
+  }
+  return e
 }
 
 func (this *log) LastLogIndex() int {
@@ -38,11 +44,11 @@ func (this *log) LastLogIndex() int {
 
 func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) bool {
     if last_log_index >= this.commitIndex{
-        var entrys []p.LogEntry = this.GetEntries()
-        if len(entrys) <= int(last_log_index) {
+        var entries []*p.LogEntry = this.GetEntries()
+        if len(entries) <= int(last_log_index) {
             return true
         }
-        if last_log_term >= *(entrys[last_log_index]).Term {
+        if last_log_term >= *(entries[last_log_index]).Term {
             return true
         }
     }
@@ -75,4 +81,18 @@ func (this *log) SetCommitIndex(val int64) {
 func (this *log) InitState() {
   this.commitIndex = 0
   this.lastApplied = 0
+}
+
+/* testing */
+func (this *log) AppendDummyEntry(term uint64) {
+  desc := "ciao"
+  op := p.Operation_WRITE
+
+  newEntry := &p.LogEntry{
+     Description: &desc,
+    Term: &term,
+    OpType: &op, 
+  }
+  
+  this.entries = append(this.entries, *newEntry)
 }

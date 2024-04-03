@@ -90,18 +90,17 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 func (s *Server) Start() {
 	s.wg.Add(3)
 
-
-    log.Println("Start accepting connections")
+   log.Println("Start accepting connections")
 	go s.acceptIncomingConn()
 
 
-    log.Println("Start election Timeout")
+  //  log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
 
-    log.Println("start main run")
+  //  log.Println("start main run")
 	go s.run()
 
-    log.Println("start handle response")
+  //  log.Println("start handle response")
 	go s.handleResponse()
 
     log.Println("wait to finish")
@@ -111,7 +110,7 @@ func (s *Server) Start() {
 func (s *Server) acceptIncomingConn() {
 	defer s.wg.Done()
 	for {
-        log.Println("waiting new connection")
+  //      log.Println("waiting new connection")
 		conn, err := s.listener.Accept()
 		if err != nil {
 			log.Println("Failed on accept: ", err)
@@ -133,7 +132,7 @@ func (s *Server) acceptIncomingConn() {
         log.Println("enstablish connection with node: ", newConncetionIp)
 
 		if found {
-            log.Printf("node with ip %v found", newConncetionIp)
+//            log.Printf("node with ip %v found", newConncetionIp)
             continue
 		} else {
             log.Printf("node with ip %v not found", newConncetionIp)
@@ -176,7 +175,7 @@ func (s *Server) handleResponse() {
 			}
             if message != nil {
                 log.Println("received message from: " + (nNode).GetIp())
-                log.Println("data of message: " + string(message))
+  //              log.Println("data of message: " + string(message))
                 s.messageChannel <- 
                 pairMex{genericmessage.Decode(message),(nNode).GetIp()}
             }
@@ -202,7 +201,7 @@ func (s *Server) sendAll(rpc *rpcs.Rpc){
         if err != nil {
             log.Panicln("error in Encoding this rpc: ",(*rpc).ToString())
         }
-        log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
+    //    log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
         nNode.Send(raw_mex)
         return true
     })
@@ -241,7 +240,7 @@ func (s *Server) run() {
             resp = (*rpcCall).Execute(&s._state, senderState)
 
             if resp != nil {
-                log.Println("reponse to send to: ", sender)
+      //          log.Println("reponse to send to: ", sender)
 
                 log.Println("sending mex to: ",sender)
                 byEnc, errEn = genericmessage.Encode(resp)
@@ -264,7 +263,7 @@ func (s *Server) run() {
 }
 
 func (s *Server) startNewElection(){
-    var entries []p.LogEntry
+    var entries []*p.LogEntry
     var len_ent int
     var voteRequest rpcs.Rpc
     var entryTerm uint64 = 0
@@ -298,7 +297,7 @@ func (s *Server) startNewElection(){
 
 func (s *Server) leaderHearthBit(){
     defer s.wg.Done()
-    log.Println("start sending hearthbit")
+    //log.Println("start sending hearthbit")
     for s._state.Leader(){
         select{
         case <- s._state.HeartbeatTimeout().C:
@@ -308,6 +307,33 @@ func (s *Server) leaderHearthBit(){
             log.Println("sending hearthbit")
             s.sendAll(&hearthBit)
             s._state.StartHearthbeatTimeout()
+        
+    /* testing */
+        case <- s._state.DummyEntryTimeout().C:
+            s._state.AppendDummyEntry()
+            
+            s.otherNodes.Range(func (key, value any) bool {
+                var nNode node.Node
+                var err bool
+                var byEnc []byte
+                var errEn error
+
+                nNode,err = key.(node.Node)
+                if !err {
+                    panic("error type is not a node.Node")
+                }
+
+                var fakeAppendEntry = AppendEntryRpc.DummyAppendEntry(s._state, (*nNode.GetNodeState()).GetNextIndex())
+                log.Println("Sending Dummy AppendEntryRpc")  
+                byEnc, errEn = genericmessage.Encode(&fakeAppendEntry)
+                if errEn != nil{
+                    log.Panicln("error encoding this rpc: ", fakeAppendEntry.ToString())
+                }
+                nNode.Send(byEnc)
+                return true
+            })
+            s._state.ResetDummyTimeout()
+            
         }
     }
 

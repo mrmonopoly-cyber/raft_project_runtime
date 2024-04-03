@@ -17,7 +17,7 @@ type AppendEntryRpc struct {
 }
 
 func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
-	var entries []protobuf.LogEntry = state.GetEntries()
+	var entries []*protobuf.LogEntry = state.GetEntries()
 	prevLogIndex := len(entries)
 	var prevLogTerm uint64 = 0
 	if prevLogIndex > 0 {
@@ -56,7 +56,7 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 	}
 }
 
-func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, entries []protobuf.LogEntry) bool {
+func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, entries []*protobuf.LogEntry) bool {
     if len(entries) <= 0 {
         return false
     }
@@ -75,7 +75,7 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
 	var success bool
 	var prevLogIndex uint64 = this.pMex.GetPrevLogIndex()
 	var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
-	var entries []protobuf.LogEntry = (*state).GetEntries()
+	var entries []*protobuf.LogEntry = (*state).GetEntries()
 
 	if role != raftstate.FOLLOWER {
 		(*state).BecomeFollower()
@@ -144,4 +144,27 @@ func (this *AppendEntryRpc) Decode(rawMex []byte) (error) {
         log.Panicln("error in Decoding Append Entry: ", err)
     }
 	return err
+}
+
+func DummyAppendEntry(state raftstate.State, index int) rpcs.Rpc {
+  var entries []*protobuf.LogEntry = state.GetEntries()[index:]
+	prevLogIndex := len(entries)
+	var prevLogTerm uint64 = 0
+	if prevLogIndex > 0 {
+		prevLogIndex -= 2
+		prevLogTerm = entries[prevLogIndex].GetTerm()
+	}
+
+	var app = &AppendEntryRpc{
+		pMex: protobuf.AppendEntriesRequest{
+			Term:         state.GetTerm(),
+			LeaderId:     state.GetId(),
+			PrevLogIndex: uint64(prevLogIndex),
+			PrevLogTerm:  prevLogTerm,
+      Entries:      entries,
+			LeaderCommit: state.GetCommitIndex(),
+		},
+	}
+	return app
+
 }
