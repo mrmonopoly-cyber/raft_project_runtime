@@ -18,10 +18,9 @@ type AppendEntryRpc struct {
 
 func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
 	var entries []*protobuf.LogEntry = state.GetEntries()
-	prevLogIndex := len(entries)
+	prevLogIndex := len(entries) - 1
 	var prevLogTerm uint64 = 0
 	if prevLogIndex > 0 {
-		prevLogIndex -= 2
 		prevLogTerm = entries[prevLogIndex].GetTerm()
 	}
 
@@ -147,11 +146,16 @@ func (this *AppendEntryRpc) Decode(rawMex []byte) (error) {
 }
 
 func DummyAppendEntry(state raftstate.State, index int) rpcs.Rpc {
-  var entries []*protobuf.LogEntry = state.GetEntries()[index:]
-	prevLogIndex := len(entries)
+log.Println("index: ",index)
+  log.Println("len: ", len(state.GetEntries()))
+  var entries []*protobuf.LogEntry = state.GetEntries()
+  log.Println("entries: ", entries[index])
+  if index != 0 {
+      entries = entries[index:]
+  }
+	prevLogIndex := len(entries) - 1
 	var prevLogTerm uint64 = 0
 	if prevLogIndex > 0 {
-		prevLogIndex -= 2
 		prevLogTerm = entries[prevLogIndex].GetTerm()
 	}
 

@@ -66,7 +66,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
     log.Println("number of others ip: ", len(serversIp))
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
-        log.Printf("connecting to the server: %v\n", serversIp[i])
+        //log.Printf("connecting to the server: %v\n", serversIp[i])
         var nodeConn net.Conn
         var erroConn error
         var nodeId string
@@ -77,7 +77,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
             continue
         }
         new_node = node.NewNode(serversIp[i], port, nodeConn)
-        log.Println("storing new node with ip :", serversIp[i])
+        //log.Println("storing new node with ip :", serversIp[i])
         nodeId = generateID(serversIp[i])
         server.otherNodes.Store(nodeId, new_node)
         server._state.IncreaseNodeInCluster()
@@ -128,7 +128,7 @@ func (s *Server) acceptIncomingConn() {
         var found bool
 		_, found = s.otherNodes.Load(id_node)
         
-        log.Println("enstablish connection with node: ", newConncetionIp)
+        //log.Println("enstablish connection with node: ", newConncetionIp)
 
 		if found {
 //            log.Printf("node with ip %v found", newConncetionIp)
@@ -183,7 +183,7 @@ func (s *Server) handleResponse() {
 }
 
 func (s *Server) sendAll(rpc *rpcs.Rpc){
-    log.Println("start broadcast")
+//    log.Println("start broadcast")
     s.otherNodes.Range(func(key, value any) bool {
         var nNode node.Node 
         var found bool 
@@ -203,7 +203,7 @@ func (s *Server) sendAll(rpc *rpcs.Rpc){
         nNode.Send(raw_mex)
         return true
     })
-    log.Println("end broadcast")
+  //  log.Println("end broadcast")
 }
 
 func (s *Server) run() {
@@ -240,7 +240,7 @@ func (s *Server) run() {
             if resp != nil {
       //          log.Println("reponse to send to: ", sender)
 
-                log.Println("sending mex to: ",sender)
+                //log.Println("sending mex to: ",sender)
                 byEnc, errEn = genericmessage.Encode(resp)
                 if errEn != nil{
                     log.Panicln("error encoding this rpc: ", (*resp).ToString())
@@ -316,7 +316,7 @@ func (s *Server) leaderHearthBit(){
                 var byEnc []byte
                 var errEn error
 
-                nNode,err = key.(node.Node)
+                nNode,err = value.(node.Node)
                 if !err {
                     panic("error type is not a node.Node")
                 }
