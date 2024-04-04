@@ -172,7 +172,7 @@ func (s *Server) handleResponse() {
 				return false
 			}
             if message != nil {
-                log.Println("received message from: " + (nNode).GetIp())
+//                log.Println("received message from: " + (nNode).GetIp())
   //              log.Println("data of message: " + string(message))
                 s.messageChannel <- 
                 pairMex{genericmessage.Decode(message),(nNode).GetIp()}
@@ -210,10 +210,15 @@ func (s *Server) run() {
 	defer s.wg.Done()
 	for {
 		var mess pairMex
+    /* To keep LastApplied and Leader's commitIndex always up to dated  */
+    s._state.UpdateLastApplied()
+    if s._state.Leader() {
+        s._state.CheckCommitIndex(s.getMatchIndexes())
+    }
 
         select {
         case mess = <-s.messageChannel:
-            log.Println("processing message: ", (*mess.payload).ToString())
+ //           log.Println("processing message: ", (*mess.payload).ToString())
             var rpcCall *rpcs.Rpc
             var sender string = mess.sender
             var oldRole raftstate.Role
@@ -253,9 +258,11 @@ func (s *Server) run() {
                 go s.leaderHearthBit()
             }
 
-            log.Println("rpc processed")
+   //         log.Println("rpc processed")
         case <-s._state.ElectionTimeout().C:
-            s.startNewElection()
+            if !s._state.Leader() {
+                s.startNewElection()
+            }
         }
 	}
 }
@@ -270,8 +277,8 @@ func (s *Server) startNewElection(){
 
     entries = s._state.GetEntries()
     len_ent = len(entries)
-    if len_ent > 0{
-        entryTerm = entries[len_ent].GetTerm()
+    if len_ent-1 > 0{
+        entryTerm = entries[len_ent-1].GetTerm()
     }
 
     voteRequest = RequestVoteRPC.NewRequestVoteRPC(
@@ -281,14 +288,14 @@ func (s *Server) startNewElection(){
         entryTerm)
 
     s._state.IncreaseSupporters()
-    log.Println("node in cluster: ",s._state.GetNumNodeInCluster())
+    //log.Println("node in cluster: ",s._state.GetNumNodeInCluster())
     if s._state.GetNumNodeInCluster() == 1 {
         log.Println("became leader: ",s._state.GetRole())
         s._state.SetRole(raftstate.LEADER)
         s._state.ResetElection()
         go s.leaderHearthBit()
     }else {
-        log.Println("sending to everybody request vote :" + voteRequest.ToString())
+     //   log.Println("sending to everybody request vote :" + voteRequest.ToString())
         s.sendAll(&voteRequest)
     }
 }
@@ -331,7 +338,7 @@ func (s *Server) leaderHearthBit(){
                 return true
             })
             s._state.ResetDummyTimeout()
-            
+           /* end testing */ 
         }
     }
 
@@ -343,9 +350,26 @@ func (s *Server) leaderHearthBit(){
             if !err {
                 panic("error type is not a node.Node")
             }
-            nNode.ResetState()
+            nNode.ResetState(s._state.GetLastLogIndex())
         return true;
     })
 
     log.Println("no longer LEADER, stop sending hearthbit")
+}
+
+func (s *Server) getMatchIndexes() []int {
+  var idxList = make([]int, 0) 
+  s.otherNodes.Range(func(key, value any) bool {
+    var nNode node.Node
+    var err bool
+
+    nNode,err = value.(node.Node)
+    if !err {
+      panic("error type is not a node.Node")
+    }
+
+    idxList = append(idxList, (*nNode.GetNodeState()).GetMatchIndex())
+    return true
+  })
+  return idxList
 }
