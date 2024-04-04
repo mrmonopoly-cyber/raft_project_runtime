@@ -219,6 +219,7 @@ func (s *Server) run() {
         select {
         case mess = <-s.messageChannel:
  //           log.Println("processing message: ", (*mess.payload).ToString())
+            s._state.StopElectionTimeout()
             var rpcCall *rpcs.Rpc
             var sender string = mess.sender
             var oldRole raftstate.Role
@@ -253,12 +254,13 @@ func (s *Server) run() {
                 f.(node.Node).Send(byEnc)
             }
 
-            if s._state.Leader() && oldRole != state.LEADER{
+            if s._state.Leader() && oldRole != state.LEADER {
+                s.setVolState()
                 s.wg.Add(1)
                 go s.leaderHearthBit()
             }
-
    //         log.Println("rpc processed")
+            s._state.StartElectionTimeout()
         case <-s._state.ElectionTimeout().C:
             if !s._state.Leader() {
                 s.startNewElection()
@@ -341,18 +343,7 @@ func (s *Server) leaderHearthBit(){
            /* end testing */ 
         }
     }
-
-    s.otherNodes.Range(func(key, value any) bool {
-            var nNode node.Node
-            var err bool
-
-            nNode,err = value.(node.Node)
-            if !err {
-                panic("error type is not a node.Node")
-            }
-            nNode.ResetState(s._state.GetLastLogIndex())
-        return true;
-    })
+    s.setVolState()
 
     log.Println("no longer LEADER, stop sending hearthbit")
 }
@@ -372,4 +363,18 @@ func (s *Server) getMatchIndexes() []int {
     return true
   })
   return idxList
+}
+
+func (s *Server) setVolState() {
+    s.otherNodes.Range(func(key, value any) bool {
+            var nNode node.Node
+            var err bool
+
+            nNode,err = value.(node.Node)
+            if !err {
+                panic("error type is not a node.Node")
+            }
+            nNode.ResetState(s._state.GetLastLogIndex())
+        return true;
+    })
 }

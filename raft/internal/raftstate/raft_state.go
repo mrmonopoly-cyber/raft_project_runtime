@@ -223,13 +223,14 @@ func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
 	var commitIndex int = int(this.GetCommitIndex())
 	var majority int = len(idxList) / 2
 	var count int = 0
+  var entries = this.log.GetEntries()
 
 	/* find N such that N > commitIndex */
-	for ; n <= commitIndex; n++ {
+	for ; n < commitIndex; n++ {
 	}
 
 	/* computing how many has a matchIndex greater than N*/
-	if n != 0 {
+	if !(len(entries) == 0) {
 		for i := range idxList {
 			if idxList[i] >= n {
 				count++
@@ -237,8 +238,8 @@ func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
 		}
 
 		/* check if there is a majority of matchIndex[i] >= N and if log[N].term == currentTerm*/
-		if (count >= majority) && (this.log.GetEntries()[n].GetTerm() == this.GetTerm()) {
-			this.SetTerm(uint64(n))
+		if (count >= majority) && (entries[n].GetTerm() == this.GetTerm()) {
+			this.SetCommitIndex(int64(n))
 		}
 	}
 

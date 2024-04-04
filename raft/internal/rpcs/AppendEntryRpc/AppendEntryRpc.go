@@ -55,22 +55,25 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 	}
 }
 
-func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, entries []*protobuf.LogEntry) bool {
-    if len(entries) <= 0 {
-        return false
+func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, entries []*protobuf.LogEntry) (bool, int) {
+  var logSize = len(entries)  
+  if logSize <= 0 {
+        return false, 0 
     }
-	return entries[prevLogIndex].GetTerm() == prevLogTerm
+  if logSize-1 < int(prevLogIndex) {
+    return false, (logSize - 1)
+  }
+	return (entries[prevLogIndex].GetTerm() == prevLogTerm), int(prevLogIndex)
 }
 
 // Manage implements rpcs.Rpc.
 func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
-	(*state).StopElectionTimeout()
-	defer (*state).StartElectionTimeout()
 
 	var role raftstate.Role = (*state).GetRole()
 	var id string = (*state).GetId()
 	var myTerm uint64 = (*state).GetTerm()
-	var error uint64
+	var error int
+  var consistent bool
 	var success bool
 	var prevLogIndex uint64 = this.pMex.GetPrevLogIndex()
 	var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
@@ -82,24 +85,20 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
     log.Println("received Append Entry", entries)
   }
 
+  consistent, error = checkConsistency(prevLogIndex, prevLogTerm, entries)
+
 
 	if role != raftstate.FOLLOWER {
 		(*state).BecomeFollower()
 	}
 
 	if this.pMex.GetTerm() < myTerm {
-
 		success = false
 		return respondeAppend(id, success, myTerm, -1)
-
-	} else if checkConsistency(prevLogIndex, prevLogTerm, entries) {
-
+	} else if !consistent {
 		success = false
-		error = prevLogIndex
 		return respondeAppend(id, success, myTerm, int(error))
-
 	} else {
-
 		(*state).AppendEntries(this.pMex.GetEntries(), int(prevLogIndex))
 		success = true
 		var leaderCommit int64 = this.pMex.GetLeaderCommit()
