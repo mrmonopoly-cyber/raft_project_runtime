@@ -1,6 +1,7 @@
 package AppendResponse
 
 import (
+	"log"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/internal/node/nodeState"
@@ -15,20 +16,14 @@ type AppendResponse struct {
 }
 
 func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError int) rpcs.Rpc {
-	var error *int32
+	var error int32 = int32(logIndexError) 
 
-	if logIndexError == -1 {
-		error = nil
-	} else {
-		error = proto.Int32(int32(logIndexError))
-	}
-
-	return &AppendResponse{
+  return &AppendResponse{
 		pMex: protobuf.AppendEntryResponse{
 			Id:            &id,
 			Term:          &term,
 			Success:       &success,
-			LogIndexError: error,
+			LogIndexError: &error,
 		},
 	}
 }
@@ -67,15 +62,9 @@ func (this *AppendResponse) Encode() ([]byte, error) {
 }
 
 func (this *AppendResponse) Decode(b []byte) error {
-	var pb = new(protobuf.AppendEntryResponse)
-	err := proto.Unmarshal(b, pb)
-
-	if err != nil {
-		this.pMex.Term = pb.Term
-		this.pMex.Id = pb.Id
-		this.pMex.Success = pb.Success
-		this.pMex.LogIndexError = pb.LogIndexError
-	}
-
+	err := proto.Unmarshal(b, &this.pMex)
+    if err != nil {
+        log.Panicln("error in Decoding Append Response: ", err)
+    }
 	return err
 }
