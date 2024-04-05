@@ -68,6 +68,10 @@ func (this *node) Recv() ([]byte, error) {
 				// Handle other errConnors
 				return nil, errConn
 			}
+
+            if errConn == io.EOF {
+                return nil, errConn
+            }
 			break
 		}
 	}

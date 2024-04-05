@@ -5,19 +5,20 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
+	"raft/internal/node/nodeState"
 	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
-    "raft/internal/rpcs/RequestVoteRPC"
+	"raft/internal/rpcs/RequestVoteRPC"
 	p "raft/pkg/rpcEncoding/out/protobuf"
 	"reflect"
 	"sync"
-    "raft/internal/node/nodeState"
 )
 
 type pairMex struct{
@@ -164,13 +165,18 @@ func (s *Server) handleResponse() {
 			var message []byte
 			var errMes error
 			message, errMes = (nNode).Recv()
-            if errMes == errors.New("connection not instantiated"){
-                return false
-            }
 			if errMes != nil {
-				fmt.Printf("error in reading from node %v with error %v",
-					(nNode).GetIp(), errMes)
-				return false
+                switch errMes{
+                case errors.New("connection not instantiated"):
+                    return false
+                case io.EOF:
+                    s.otherNodes.Delete(k);
+                    return false
+                default:
+                    fmt.Printf("error in reading from node %v with error %v",
+                    (nNode).GetIp(), errMes)
+                    return false
+                }
 			}
             if message != nil {
                 log.Println("received message from: " + (nNode).GetIp())
