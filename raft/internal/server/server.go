@@ -174,6 +174,7 @@ func (s *Server) handleResponse() {
                     if !s._state.Leader() {
                         s.startNewElection()
                     }
+                    s._state.DecreaseNodeInCluster()
                     return false
                 default:
                     fmt.Printf("error in reading from node %v with error %v",
