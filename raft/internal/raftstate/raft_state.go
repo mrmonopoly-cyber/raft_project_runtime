@@ -66,6 +66,7 @@ type State interface {
 	IncreaseSupporters()
 	IncreaseNotSupporters()
 	IncreaseNodeInCluster()
+	DecreaseNodeInCluster()
 	GetNumSupporters() uint64
 	GetNumNotSupporters() uint64
 	GetNumNodeInCluster() uint64
@@ -200,6 +201,11 @@ func (this *raftStateImpl) GetNumNodeInCluster() uint64 {
 // IncreaseNodeInCluster implements State.
 func (this *raftStateImpl) IncreaseNodeInCluster() {
 	this.nNodeInCluster++
+}
+
+// DecreaseNodeInCluster implements State.
+func (this *raftStateImpl) DecreaseNodeInCluster() {
+	this.nNodeInCluster--
 }
 
 func (this *raftStateImpl) ResetElection() {
