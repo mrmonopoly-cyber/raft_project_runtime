@@ -1,10 +1,11 @@
 package AppendEntryRpc
 
 import (
+	"fmt"
 	"log"
+	"raft/internal/node/nodeState"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
-    "raft/internal/node/nodeState"
 	app_resp "raft/internal/rpcs/AppendResponse"
 	"raft/pkg/rpcEncoding/out/protobuf"
 	"strconv"
@@ -56,13 +57,17 @@ func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex uint64,
 }
 
 func checkConsistency(prevLogIndex uint64, prevLogTerm uint64, entries []*protobuf.LogEntry) (bool, int) {
+  //fmt.Println("------", entries)
   var logSize = len(entries)  
-  if logSize <= 0 {
-        return false, 0 
+  if logSize == 0 {
+    fmt.Print("case 1")
+        return true, 1 
     }
   if logSize-1 < int(prevLogIndex) {
+    fmt.Print("case 2")
     return false, (logSize - 1)
   }
+    fmt.Print("case 3")
 	return (entries[prevLogIndex].GetTerm() == prevLogTerm), int(prevLogIndex)
 }
 
@@ -78,15 +83,16 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
 	var prevLogIndex uint64 = this.pMex.GetPrevLogIndex()
 	var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
 	var entries []*protobuf.LogEntry = (*state).GetEntries()
+  var newEntries = this.pMex.GetEntries()
 
-  if len(entries) == 0 {
+  if len(newEntries) == 0 {
     log.Println("heartbit")
   } else {
-    log.Println("received Append Entry", entries)
+    log.Println("received Append Entry", newEntries)
   }
 
   consistent, error = checkConsistency(prevLogIndex, prevLogTerm, entries)
-
+  fmt.Println(!consistent)
 
 	if role != raftstate.FOLLOWER {
 		(*state).BecomeFollower()
@@ -96,10 +102,11 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
 		success = false
 		return respondeAppend(id, success, myTerm, -1)
 	} else if !consistent {
+    fmt.Println("Not consistent")
 		success = false
 		return respondeAppend(id, success, myTerm, int(error))
 	} else {
-		(*state).AppendEntries(this.pMex.GetEntries(), int(prevLogIndex))
+		(*state).AppendEntries(newEntries, int(prevLogIndex))
 		success = true
 		var leaderCommit int64 = this.pMex.GetLeaderCommit()
 		var lastNewEntryIdx int64 = int64(len(entries) - 1)
@@ -155,18 +162,19 @@ func (this *AppendEntryRpc) Decode(rawMex []byte) (error) {
 
 /* testing */
 func DummyAppendEntry(state raftstate.State, index int) rpcs.Rpc {
-log.Println("index: ",index)
-  log.Println("len: ", len(state.GetEntries()))
+  log.Printf("index: %d, len: %d",index, len(state.GetEntries()))
   var entries []*protobuf.LogEntry = state.GetEntries()
-  log.Println("entries: ", entries[index])
+  //log.Println("entries: ", entries[index])
   if index != 0 {
       entries = entries[index:]
   }
-	prevLogIndex := len(entries) - 1
+	prevLogIndex := index - 1
 	var prevLogTerm uint64 = 0
-	if prevLogIndex > 0 {
+	if prevLogIndex >= 0 {
 		prevLogTerm = entries[prevLogIndex].GetTerm()
-	}
+	} else {
+    prevLogIndex = 0
+  }
 
 	var app = &AppendEntryRpc{
 		pMex: protobuf.AppendEntriesRequest{
@@ -178,7 +186,7 @@ log.Println("index: ",index)
 			LeaderCommit: state.GetCommitIndex(),
 		},
 	}
-  log.Println(app.pMex.String())
+  //log.Println(app.pMex.String())
 	return app
 
 }

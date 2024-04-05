@@ -218,7 +218,7 @@ func (s *Server) run() {
 
         select {
         case mess = <-s.messageChannel:
- //           log.Println("processing message: ", (*mess.payload).ToString())
+            //log.Println("processing message: ", (*mess.payload).ToString())
             s._state.StopElectionTimeout()
             var rpcCall *rpcs.Rpc
             var sender string = mess.sender
@@ -331,11 +331,14 @@ func (s *Server) leaderHearthBit(){
                 }
 
                 var fakeAppendEntry = AppendEntryRpc.DummyAppendEntry(s._state, (*nNode.GetNodeState()).GetNextIndex())
-                log.Println("Sending Dummy AppendEntryRpc")  
+                log.Println("Sending Dummy AppendEntryRpc") 
+                //log.Println(fakeAppendEntry.ToString())
                 byEnc, errEn = genericmessage.Encode(&fakeAppendEntry)
                 if errEn != nil{
                     log.Panicln("error encoding this rpc: ", fakeAppendEntry.ToString())
                 }
+                //pc := genericmessage.Decode(byEnc)
+                //log.Println((*pc).ToString())
                 nNode.Send(byEnc)
                 return true
             })

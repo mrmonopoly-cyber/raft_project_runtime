@@ -1,7 +1,6 @@
 package raftstate
 
 import (
-	"log"
 	"math/rand"
 	l "raft/internal/raft_log"
 	p "raft/pkg/rpcEncoding/out/protobuf"
@@ -120,7 +119,7 @@ func (this *raftStateImpl) SetCommitIndex(val int64) {
 
 func (this *raftStateImpl) StartElectionTimeout() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
-	t := rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1) + int(MIN_ELECTION_TIMEOUT))
+	t := rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
 	this.electionTimeout.Reset(time.Duration(t))
 }
 
@@ -149,7 +148,6 @@ func (this *raftStateImpl) CanVote() bool {
 }
 
 func (this *raftStateImpl) HeartbeatTimeout() *time.Timer {
-	log.Println("timeout hearthbit")
 	return this.heartbeatTimeout
 }
 
