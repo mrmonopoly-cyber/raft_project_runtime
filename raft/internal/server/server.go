@@ -172,7 +172,7 @@ func (s *Server) handleResponse() {
                 case io.EOF:
                     s.otherNodes.Delete(k);
                     if !s._state.Leader() {
-                        s.startNewElection()
+                        s._state.StartElectionTimeout()
                     }
                     s._state.DecreaseNodeInCluster()
                     return false
