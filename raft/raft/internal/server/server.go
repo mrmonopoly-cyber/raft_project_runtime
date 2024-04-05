@@ -171,6 +171,9 @@ func (s *Server) handleResponse() {
                     return false
                 case io.EOF:
                     s.otherNodes.Delete(k);
+                    if !s._state.Leader() {
+                        s.startNewElection()
+                    }
                     return false
                 default:
                     fmt.Printf("error in reading from node %v with error %v",
