@@ -265,7 +265,7 @@ func (s *Server) run() {
             }
 
             if s._state.Leader() && oldRole != state.LEADER {
-                s.setVolState()
+                s.setVolState() //Problemmmmmmm
                 s.wg.Add(1)
                 go s.leaderHearthBit()
             }
@@ -339,16 +339,13 @@ func (s *Server) leaderHearthBit(){
                 if !err {
                     panic("error type is not a node.Node")
                 }
-
+        log.Println("In server next index: ", (*nNode.GetNodeState()).GetNextIndex())
                 var fakeAppendEntry = AppendEntryRpc.DummyAppendEntry(s._state, (*nNode.GetNodeState()).GetNextIndex())
                 log.Println("Sending Dummy AppendEntryRpc") 
-                //log.Println(fakeAppendEntry.ToString())
                 byEnc, errEn = genericmessage.Encode(&fakeAppendEntry)
                 if errEn != nil{
                     log.Panicln("error encoding this rpc: ", fakeAppendEntry.ToString())
                 }
-                //pc := genericmessage.Decode(byEnc)
-                //log.Println((*pc).ToString())
                 nNode.Send(byEnc)
                 return true
             })

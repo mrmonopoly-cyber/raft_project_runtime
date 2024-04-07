@@ -37,7 +37,10 @@ func (this *AppendResponse) Execute(state *raftstate.State, senderState *nodeSta
 			(*state).SetTerm(term)
 			(*state).BecomeFollower()
 		} else {
+      log.Println("consistency fail")
+      log.Println(this.pMex.GetLogIndexError())
 			(*senderState).SetNextIndex(int(this.pMex.GetLogIndexError()))
+      log.Println((*senderState).GetNextIndex())
 		}
 	} else {
 		(*senderState).SetNextIndex((*state).GetLastLogIndex()+1)

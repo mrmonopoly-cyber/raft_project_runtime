@@ -1,6 +1,7 @@
 package raft_log
 
 import (
+	"fmt"
 	p "raft/pkg/rpcEncoding/out/protobuf"
 )
 
@@ -68,13 +69,18 @@ func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) boo
 }
 
 func (this *log) AppendEntries(newEntries []*p.LogEntry, index int) {
+  if index < 0 {
+    index = 0
+  }
 
 	if len(newEntries) > 0 {
 		this.entries = extend(this.entries, len(newEntries))
-		for i, en := range newEntries {
-			this.entries[index+i] = *en
+		for _, en := range newEntries {
+			this.entries[index] = *en
 		}
 	}
+
+  fmt.Println("my entries: ", this.entries)
 }
 
 func (this *log) UpdateLastApplied() int {
