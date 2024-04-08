@@ -256,7 +256,7 @@ func (s *Server) run() {
                 if errEn != nil{
                     log.Panicln("error encoding this rpc: ", (*resp).ToString())
                 }
-                f.(node.Node).Send(byEnc)
+                senderNode.Send(byEnc)
             }
 
             if s._state.Leader() && oldRole != state.LEADER{
