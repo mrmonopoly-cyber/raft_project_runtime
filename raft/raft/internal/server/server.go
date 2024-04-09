@@ -67,7 +67,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
     log.Println("number of others ip: ", len(serversIp))
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
-        log.Printf("connecting to the server: %v\n", serversIp[i])
+        //log.Printf("connecting to the server: %v\n", serversIp[i])
         var nodeConn net.Conn
         var erroConn error
         var nodeId string
@@ -78,7 +78,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
             continue
         }
         new_node = node.NewNode(serversIp[i], port, nodeConn)
-        log.Println("storing new node with ip :", serversIp[i])
+        //log.Println("storing new node with ip :", serversIp[i])
         nodeId = generateID(serversIp[i])
         server.otherNodes.Store(nodeId, new_node)
         server._state.IncreaseNodeInCluster()
@@ -90,18 +90,17 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 func (s *Server) Start() {
 	s.wg.Add(3)
 
-
-    log.Println("Start accepting connections")
+   log.Println("Start accepting connections")
 	go s.acceptIncomingConn()
 
 
-    log.Println("Start election Timeout")
+  //  log.Println("Start election Timeout")
 	s._state.StartElectionTimeout()
 
-    log.Println("start main run")
+  //  log.Println("start main run")
 	go s.run()
 
-    log.Println("start handle response")
+  //  log.Println("start handle response")
 	go s.handleResponse()
 
     log.Println("wait to finish")
@@ -111,7 +110,7 @@ func (s *Server) Start() {
 func (s *Server) acceptIncomingConn() {
 	defer s.wg.Done()
 	for {
-        log.Println("waiting new connection")
+  //      log.Println("waiting new connection")
 		conn, err := s.listener.Accept()
 		if err != nil {
 			log.Println("Failed on accept: ", err)
@@ -130,10 +129,10 @@ func (s *Server) acceptIncomingConn() {
         var found bool
 		_, found = s.otherNodes.Load(id_node)
         
-        log.Println("enstablish connection with node: ", newConncetionIp)
+        //log.Println("enstablish connection with node: ", newConncetionIp)
 
 		if found {
-            log.Printf("node with ip %v found", newConncetionIp)
+//            log.Printf("node with ip %v found", newConncetionIp)
             continue
 		} else {
             log.Printf("node with ip %v not found", newConncetionIp)
@@ -183,8 +182,8 @@ func (s *Server) handleResponse() {
                 }
 			}
             if message != nil {
-                log.Println("received message from: " + (nNode).GetIp())
-                log.Println("data of message: " + string(message))
+//                log.Println("received message from: " + (nNode).GetIp())
+  //              log.Println("data of message: " + string(message))
                 s.messageChannel <- 
                 pairMex{genericmessage.Decode(message),(nNode).GetIp()}
             }
@@ -194,7 +193,7 @@ func (s *Server) handleResponse() {
 }
 
 func (s *Server) sendAll(rpc *rpcs.Rpc){
-    log.Println("start broadcast")
+//    log.Println("start broadcast")
     s.otherNodes.Range(func(key, value any) bool {
         var nNode node.Node 
         var found bool 
@@ -210,21 +209,27 @@ func (s *Server) sendAll(rpc *rpcs.Rpc){
         if err != nil {
             log.Panicln("error in Encoding this rpc: ",(*rpc).ToString())
         }
-        log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
+    //    log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
         nNode.Send(raw_mex)
         return true
     })
-    log.Println("end broadcast")
+  //  log.Println("end broadcast")
 }
 
 func (s *Server) run() {
 	defer s.wg.Done()
 	for {
 		var mess pairMex
+    /* To keep LastApplied and Leader's commitIndex always up to dated  */
+    s._state.UpdateLastApplied()
+    if s._state.Leader() {
+        s._state.CheckCommitIndex(s.getMatchIndexes())
+    }
 
         select {
         case mess = <-s.messageChannel:
-            log.Println("processing message: ", (*mess.payload).ToString())
+            //log.Println("processing message: ", (*mess.payload).ToString())
+            s._state.StopElectionTimeout()
             var rpcCall *rpcs.Rpc
             var sender string = mess.sender
             var oldRole raftstate.Role
@@ -233,10 +238,12 @@ func (s *Server) run() {
             var errEn error
             var f any
             var ok bool
-            var senderState nodeState.VolatileNodeState
-            f, ok = s.otherNodes.Load(generateID(sender))
+            var senderState *nodeState.VolatileNodeState
             var senderNode node.Node
 
+            f, ok = s.otherNodes.Load(generateID(sender))
+
+            f, ok = s.otherNodes.Load(generateID(sender))
             if !ok {
                 log.Printf("Node %s not found", sender)
                 continue
@@ -245,13 +252,13 @@ func (s *Server) run() {
             senderNode = f.(node.Node)
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
-            senderState= *senderNode.GetNodeState()
-            resp = (*rpcCall).Execute(&s._state,&senderState)
+            senderState = senderNode.GetNodeState()
+            resp = (*rpcCall).Execute(&s._state, senderState)
 
             if resp != nil {
-                log.Println("reponse to send to: ", sender)
+      //          log.Println("reponse to send to: ", sender)
 
-                log.Println("sending mex to: ",sender)
+                //log.Println("sending mex to: ",sender)
                 byEnc, errEn = genericmessage.Encode(resp)
                 if errEn != nil{
                     log.Panicln("error encoding this rpc: ", (*resp).ToString())
@@ -259,21 +266,24 @@ func (s *Server) run() {
                 senderNode.Send(byEnc)
             }
 
-            if s._state.Leader() && oldRole != state.LEADER{
+            if s._state.Leader() && oldRole != state.LEADER {
+                s.setVolState() //Problemmmmmmm
                 s.wg.Add(1)
                 go s.leaderHearthBit()
             }
-
-            log.Println("rpc processed")
+   //         log.Println("rpc processed")
+            s._state.StartElectionTimeout()
         case <-s._state.ElectionTimeout().C:
-            s.startNewElection()
+            if !s._state.Leader() {
+                s.startNewElection()
+            }
         }
 	}
 }
 
 func (s *Server) startNewElection(){
     log.Println("started new election");
-    var entries []p.LogEntry
+    var entries []*p.LogEntry
     var len_ent int
     var voteRequest rpcs.Rpc
     var entryTerm uint64 = 0
@@ -282,8 +292,8 @@ func (s *Server) startNewElection(){
 
     entries = s._state.GetEntries()
     len_ent = len(entries)
-    if len_ent > 0{
-        entryTerm = entries[len_ent].GetTerm()
+    if len_ent-1 > 0{
+        entryTerm = entries[len_ent-1].GetTerm()
     }
 
     voteRequest = RequestVoteRPC.NewRequestVoteRPC(
@@ -293,21 +303,21 @@ func (s *Server) startNewElection(){
         entryTerm)
 
     s._state.IncreaseSupporters()
-    log.Println("node in cluster: ",s._state.GetNumNodeInCluster())
+    //log.Println("node in cluster: ",s._state.GetNumNodeInCluster())
     if s._state.GetNumNodeInCluster() == 1 {
         log.Println("became leader: ",s._state.GetRole())
         s._state.SetRole(raftstate.LEADER)
         s._state.ResetElection()
         go s.leaderHearthBit()
     }else {
-        log.Println("sending to everybody request vote :" + voteRequest.ToString())
+     //   log.Println("sending to everybody request vote :" + voteRequest.ToString())
         s.sendAll(&voteRequest)
     }
 }
 
 func (s *Server) leaderHearthBit(){
     defer s.wg.Done()
-    log.Println("start sending hearthbit")
+    //log.Println("start sending hearthbit")
     for s._state.Leader(){
         select{
         case <- s._state.HeartbeatTimeout().C:
@@ -317,9 +327,58 @@ func (s *Server) leaderHearthBit(){
             log.Println("sending hearthbit")
             s.sendAll(&hearthBit)
             s._state.StartHearthbeatTimeout()
+        
+    /* testing */
+        case <- s._state.DummyEntryTimeout().C:
+            s._state.AppendDummyEntry()
+            
+            s.otherNodes.Range(func (key, value any) bool {
+                var nNode node.Node
+                var err bool
+                var byEnc []byte
+                var errEn error
+
+                nNode,err = value.(node.Node)
+                if !err {
+                    panic("error type is not a node.Node")
+                }
+        log.Println("In server next index: ", (*nNode.GetNodeState()).GetNextIndex())
+                var fakeAppendEntry = AppendEntryRpc.DummyAppendEntry(s._state, (*nNode.GetNodeState()).GetNextIndex())
+                log.Println("Sending Dummy AppendEntryRpc") 
+                byEnc, errEn = genericmessage.Encode(&fakeAppendEntry)
+                if errEn != nil{
+                    log.Panicln("error encoding this rpc: ", fakeAppendEntry.ToString())
+                }
+                nNode.Send(byEnc)
+                return true
+            })
+            s._state.ResetDummyTimeout()
+           /* end testing */ 
         }
     }
+    s.setVolState()
 
+    log.Println("no longer LEADER, stop sending hearthbit")
+}
+
+func (s *Server) getMatchIndexes() []int {
+  var idxList = make([]int, 0) 
+  s.otherNodes.Range(func(key, value any) bool {
+    var nNode node.Node
+    var err bool
+
+    nNode,err = value.(node.Node)
+    if !err {
+      panic("error type is not a node.Node")
+    }
+
+    idxList = append(idxList, (*nNode.GetNodeState()).GetMatchIndex())
+    return true
+  })
+  return idxList
+}
+
+func (s *Server) setVolState() {
     s.otherNodes.Range(func(key, value any) bool {
             var nNode node.Node
             var err bool
@@ -328,10 +387,7 @@ func (s *Server) leaderHearthBit(){
             if !err {
                 panic("error type is not a node.Node")
             }
-
-            nNode.ResetState()
+            nNode.ResetState(s._state.GetLastLogIndex())
         return true;
     })
-
-    log.Println("no longer LEADER, stop sending hearthbit")
 }

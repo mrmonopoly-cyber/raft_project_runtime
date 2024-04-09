@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"log"
+//	"log"
 	"net"
 	"raft/internal/node/address"
 	"raft/internal/node/nodeState"
@@ -16,7 +16,7 @@ type Node interface {
 	GetIp() string
 	GetPort() string
     GetNodeState() *nodeState.VolatileNodeState
-    ResetState()
+    ResetState(lastLogIndex int)
 }
 
 type node struct {
@@ -45,8 +45,8 @@ func (this *node) Recv() ([]byte, error) {
     if this.conn == nil {
         return nil, errors.New("connection not instantiated")
     }
-    log.Println("want to read")
-    log.Printf("start reading from %v\n", this.GetIp())
+    //log.Println("want to read")
+    //log.Printf("start reading from %v\n", this.GetIp())
 
     var bytesRead int = len(tmp)
     var errConn error
@@ -76,9 +76,9 @@ func (this *node) Recv() ([]byte, error) {
 		}
 	}
 
-    log.Printf("end reading from %v : %v\n", this.GetIp(), buffer)
+    //log.Printf("end reading from %v : %v\n", this.GetIp(), buffer)
     
-    log.Println("found no error, received message: ", buffer)
+    //log.Println("found no error, received message: ", buffer)
 	return buffer.Bytes(), nil 
 
 }
@@ -87,13 +87,17 @@ func (this *node)GetNodeState() *nodeState.VolatileNodeState{
     return &this.nodeState   
 }
 
+func (this *node) AddConn(conn net.Conn) {
+	this.conn = conn
+}
+
 func (this *node) Send(mex []byte) error{
     if this.conn == nil {
         return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
     }
-    log.Printf("start sending message to %v", this.GetIp())
+//    log.Printf("start sending message to %v", this.GetIp())
     this.conn.Write(mex)
-    log.Printf("message sended to %v", this.GetIp())
+  //  log.Printf("message sended to %v", this.GetIp())
     return nil
 	
 }
@@ -105,6 +109,6 @@ func (this *node) GetIp() string {
 func (this *node) GetPort() string {
 	return this.addr.GetPort()
 }
-func (this *node) ResetState(){
-    (*this).nodeState.InitVolatileState()
+func (this *node) ResetState(lastLogIndex int){
+    (*this).nodeState.InitVolatileState(lastLogIndex)
 }

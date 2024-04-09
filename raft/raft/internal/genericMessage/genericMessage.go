@@ -23,7 +23,7 @@ func Decode(raw_mex []byte) (*rpcs.Rpc){
         log.Panicln("error decoding generic message: ", string(raw_mex))
         return nil
     }
-    log.Println("generic message Decoded with type :", genericMex.GetOpType())
+    //log.Println("generic message Decoded with type :", genericMex.GetOpType())
 
     var payload []byte = genericMex.GetPayload()
 

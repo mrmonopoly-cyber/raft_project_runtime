@@ -8,7 +8,7 @@ option go_package ="protobuf/";
 
 message AppendEntriesRequest {
 	uint64 Term=2;
-	uint64 PrevLogIndex=3;
+	int64 PrevLogIndex=3;
 	uint64 PrevLogTerm=4;
 	uint64 CommitIndex=5;
 	string LeaderId=6;
