@@ -272,6 +272,7 @@ func (s *Server) run() {
 }
 
 func (s *Server) startNewElection(){
+    log.Println("started new election");
     var entries []p.LogEntry
     var len_ent int
     var voteRequest rpcs.Rpc
