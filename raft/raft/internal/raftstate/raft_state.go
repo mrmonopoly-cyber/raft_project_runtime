@@ -227,6 +227,7 @@ func NewState(term uint64, id string, role Role) State {
     s.nSupporting = 0
     s.nNodeInCluster = 1
     s.voting = true
+    s.log = l.NewLogEntry()
     s.electionTime = rand.Intn((int(MAX_ELECTION_TIMEOUT)-int(MIN_ELECTION_TIMEOUT) + 1) + int(MIN_ELECTION_TIMEOUT))
     return s
 }
