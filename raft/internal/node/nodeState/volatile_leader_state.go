@@ -1,18 +1,17 @@
 package nodeState
 
 type VolatileNodeState interface{
-    SetNextIndex(id string, index int)
-    SetMatchIndex(id string, index int)
-    GetMatchIndex(id string, index int)
-    GetNextIndex(id string, index int)
-    InitVolatileState()
+    SetNextIndex(index int)
+    SetMatchIndex(index int)
+    GetMatchIndex() int
+    GetNextIndex() int
+    InitVolatileState(lastLogIndex int)
 }
 
 type volatileNodeState struct {
   nextIndex int
   matchIndex int
 }
-
 func NewVolatileState() VolatileNodeState{
     return &volatileNodeState{
         nextIndex: 0,
@@ -20,23 +19,24 @@ func NewVolatileState() VolatileNodeState{
     }
 }
 
-func (this *volatileNodeState) SetNextIndex(id string, index int) {
+func (this *volatileNodeState) SetNextIndex(index int) {
   this.nextIndex = index
 }
 
-func (this *volatileNodeState) SetMatchIndex(id string, index int) {
+func (this *volatileNodeState) SetMatchIndex(index int) {
   this.matchIndex = index
 }
 
-func (this *volatileNodeState) GetMatchIndex(id string, index int) {
-  this.matchIndex = index
+func (this *volatileNodeState) GetMatchIndex() int {
+  return this.matchIndex
 }
 
-func (this *volatileNodeState) GetNextIndex(id string, index int) {
-  this.nextIndex = index
+func (this *volatileNodeState) GetNextIndex() int {
+  return this.nextIndex
 }
 
-func (this* volatileNodeState) InitVolatileState(){
+func (this* volatileNodeState) InitVolatileState(lastLogIndex int){
     (*this).nextIndex = 0;
     (*this).matchIndex = 0;
 }
+
