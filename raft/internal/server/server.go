@@ -234,9 +234,9 @@ func (s *Server) run() {
             var f any
             var ok bool
             var senderState nodeState.VolatileNodeState
-            f, ok = s.otherNodes.Load(generateID(sender))
             var senderNode node.Node
 
+            f, ok = s.otherNodes.Load(generateID(sender))
             if !ok {
                 log.Printf("Node %s not found", sender)
                 continue
