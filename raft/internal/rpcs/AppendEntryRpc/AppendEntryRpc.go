@@ -85,7 +85,6 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
     var myTerm uint64 = (*state).GetTerm()
     var error int
     var consistent bool
-    var success bool
     var prevLogIndex int64 = this.pMex.GetPrevLogIndex()
     var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
     var entries []*protobuf.LogEntry = (*state).GetEntries()
@@ -125,9 +124,7 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
         }
     } else {
         log.Println("hearthbeat")
-        success = true
-
-        resp = respondeAppend(id, success, myTerm, -1)
+        resp = respondeAppend(id, true, myTerm, -1)
     }
     (*state).StartElectionTimeout()
     return resp
