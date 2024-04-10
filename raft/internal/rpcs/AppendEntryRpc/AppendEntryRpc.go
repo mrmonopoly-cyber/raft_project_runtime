@@ -88,7 +88,10 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
     var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
     var entries []*protobuf.LogEntry = (*state).GetEntries()
     var newEntries []*protobuf.LogEntry = this.pMex.GetEntries()
+
     var resp *rpcs.Rpc = nil
+    var leaderCommit int64
+    var lastNewEntryIdx int64
 
     if this.pMex.GetTerm() < myTerm {
         return respondeAppend(id, false, myTerm, -1)
@@ -101,6 +104,7 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
     }
 
     if len(newEntries) > 0 {
+
         log.Println("received Append Entry", newEntries)
         consistent, error = checkConsistency(prevLogIndex, prevLogTerm, entries)
         fmt.Println(!consistent)
@@ -110,8 +114,9 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
             resp = respondeAppend(id, false, myTerm, int(error))
         } else {
             (*state).AppendEntries(newEntries, int(prevLogIndex))
-            var leaderCommit int64 = this.pMex.GetLeaderCommit()
-            var lastNewEntryIdx int64 = int64(len(entries) - 1)
+            leaderCommit = this.pMex.GetLeaderCommit()
+            lastNewEntryIdx = int64(len(entries) - 1)
+
             if leaderCommit > (*state).GetCommitIndex() {
                 if leaderCommit > lastNewEntryIdx {
                     (*state).SetCommitIndex(lastNewEntryIdx)
@@ -120,12 +125,14 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
                 }
             }
             resp = respondeAppend(id, true , myTerm, -1)
-
         }
-    } else {
+    } 
+
+    if resp == nil {
         log.Println("hearthbeat")
         resp = respondeAppend(id, true, myTerm, -1)
     }
+
     (*state).StartElectionTimeout()
     return resp
 }
