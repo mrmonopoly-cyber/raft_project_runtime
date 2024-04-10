@@ -193,7 +193,7 @@ func (s *Server) handleResponse() {
 }
 
 func (s *Server) sendAll(rpc *rpcs.Rpc){
-//    log.Println("start broadcast")
+   log.Println("start broadcast")
     s.otherNodes.Range(func(key, value any) bool {
         var nNode node.Node 
         var found bool 
@@ -213,7 +213,7 @@ func (s *Server) sendAll(rpc *rpcs.Rpc){
         nNode.Send(raw_mex)
         return true
     })
-  //  log.Println("end broadcast")
+   log.Println("end broadcast")
 }
 
 func (s *Server) run() {
