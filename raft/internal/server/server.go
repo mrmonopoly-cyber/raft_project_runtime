@@ -340,7 +340,6 @@ func (s *Server) leaderHearthBit(){
                 if !err {
                     panic("error type is not a node.Node")
                 }
-        log.Println("In server next index: ", (*nNode.GetNodeState()).GetNextIndex())
                 var fakeAppendEntry = AppendEntryRpc.DummyAppendEntry(s._state, (*nNode.GetNodeState()).GetNextIndex())
                 log.Println("Sending Dummy AppendEntryRpc") 
                 byEnc, errEn = genericmessage.Encode(&fakeAppendEntry)
