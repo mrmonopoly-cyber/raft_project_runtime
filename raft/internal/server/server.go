@@ -266,7 +266,7 @@ func (s *Server) run() {
             }
 
             if s._state.Leader() && oldRole != state.LEADER {
-                s.setVolState() //Problemmmmmmm
+                s.setVolState() 
                 go s.leaderHearthBit()
             }
    //         log.Println("rpc processed")
@@ -325,32 +325,6 @@ func (s *Server) leaderHearthBit(){
             log.Println("sending hearthbit")
             s.sendAll(&hearthBit)
             s._state.StartHearthbeatTimeout()
-        
-    /* testing */
-        case <- s._state.DummyEntryTimeout().C:
-            s._state.AppendDummyEntry()
-            
-            s.otherNodes.Range(func (key, value any) bool {
-                var nNode node.Node
-                var err bool
-                var byEnc []byte
-                var errEn error
-
-                nNode,err = value.(node.Node)
-                if !err {
-                    panic("error type is not a node.Node")
-                }
-                var fakeAppendEntry = AppendEntryRpc.DummyAppendEntry(s._state, (*nNode.GetNodeState()).GetNextIndex())
-                log.Println("Sending Dummy AppendEntryRpc") 
-                byEnc, errEn = genericmessage.Encode(&fakeAppendEntry)
-                if errEn != nil{
-                    log.Panicln("error encoding this rpc: ", fakeAppendEntry.ToString())
-                }
-                nNode.Send(byEnc)
-                return true
-            })
-            s._state.ResetDummyTimeout()
-           /* end testing */ 
         }
     }
     s.setVolState()
