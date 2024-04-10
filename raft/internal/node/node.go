@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"io"
-//	"log"
+	"log"
+
+	//	"log"
 	"net"
 	"raft/internal/node/address"
 	"raft/internal/node/nodeState"
@@ -96,7 +98,10 @@ func (this *node) Send(mex []byte) error{
         return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
     }
 //    log.Printf("start sending message to %v", this.GetIp())
-    this.conn.Write(mex)
+    var _,err = this.conn.Write(mex)
+    if err != nil {
+        log.Panicf("error sending to %v, error %v\n", (*this).GetIp(), err)
+    }
   //  log.Printf("message sended to %v", this.GetIp())
     return nil
 	
