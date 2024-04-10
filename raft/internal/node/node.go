@@ -13,6 +13,7 @@ import (
 )
 
 type Node interface {
+    CloseConnection()
 	Send(mex []byte) error
 	Recv() ([]byte, error)
 	GetIp() string
@@ -87,6 +88,10 @@ func (this *node) Recv() ([]byte, error) {
 
 func (this *node)GetNodeState() *nodeState.VolatileNodeState{
     return &this.nodeState   
+}
+
+func (this *node) CloseConnection(){
+    (*this).conn.Close()
 }
 
 func (this *node) AddConn(conn net.Conn) {
