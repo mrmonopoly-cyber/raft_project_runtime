@@ -168,18 +168,6 @@ func (s *Server) handleResponseSingleNode(id_node string, workingNode *node.Node
     }
 
 }
-/*
- * Handle incoming rpcs and send it to the corresponding channel
- */
-func (s *Server) handleResponse() {
-	// iterating over the connections map and receive byte message
-	for {
-		s.otherNodes.Range(func(k, conn interface{}) bool {
-            // var node *node.Node = conn.(*node.Node)
-			return true
-		})
-	}
-}
 
 func (s *Server) sendAll(rpc *rpcs.Rpc){
    log.Println("start broadcast")
