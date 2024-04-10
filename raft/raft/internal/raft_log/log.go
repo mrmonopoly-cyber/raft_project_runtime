@@ -14,8 +14,6 @@ type LogEntry interface {
 	LastLogIndex() int
 	UpdateLastApplied() int
 	InitState()
-	/* testing */
-	AppendDummyEntry(term uint64)
 }
 
 type log struct {
@@ -102,19 +100,4 @@ func (this *log) SetCommitIndex(val int64) {
 func (this *log) InitState() {
 	this.commitIndex = 0
 	this.lastApplied = 0
-}
-
-/* testing */
-func (this *log) AppendDummyEntry(term uint64) {
-	var desc string = "ciao"
-	var op p.Operation = p.Operation_WRITE
-	newEntry := &p.LogEntry{
-		Description: &desc,
-		Term:        &term,
-		OpType:      &op,
-	}
-
-	this.entries = extend(this.entries, 1)
-
-	this.entries[len(this.entries)-1] = *newEntry
 }

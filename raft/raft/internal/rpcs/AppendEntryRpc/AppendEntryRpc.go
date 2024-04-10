@@ -182,36 +182,3 @@ func respondeAppend(id string, success bool, term uint64, error int) *rpcs.Rpc {
         }
         return err
     }
-
-    /* testing */
-    func DummyAppendEntry(state raftstate.State, index int) rpcs.Rpc {
-        var entries []*protobuf.LogEntry = state.GetEntries()
-        //log.Println("entries: ", entries[index])
-        var enToApp []*protobuf.LogEntry
-        if index > 0 {
-            enToApp = entries[index:]
-        } else {
-            enToApp = entries[:]
-        }
-        log.Printf("index: %d, len: %d", index, len(state.GetEntries()))
-        log.Println("entries: ", entries)
-        prevLogIndex := index - 1
-        var prevLogTerm uint64 = 0
-        if prevLogIndex >= 0 {
-            prevLogTerm = entries[prevLogIndex].GetTerm()
-        }
-
-        var app = &AppendEntryRpc{
-            pMex: protobuf.AppendEntriesRequest{
-                Term:         state.GetTerm(),
-                LeaderId:     state.GetId(),
-                PrevLogIndex: int64(prevLogIndex),
-                PrevLogTerm:  prevLogTerm,
-                Entries:      enToApp,
-                LeaderCommit: state.GetCommitIndex(),
-            },
-        }
-        //log.Println(app.pMex.String())
-        return app
-
-    }

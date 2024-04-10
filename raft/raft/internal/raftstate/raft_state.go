@@ -19,8 +19,6 @@ const (
 	MIN_ELECTION_TIMEOUT time.Duration = 10000000000
 	MAX_ELECTION_TIMEOUT time.Duration = 15000000000
 	H_TIMEOUT            time.Duration = 3000000000
-	/* testing */
-	APPEND_TM time.Duration = 6000000000
 )
 
 type raftStateImpl struct {
@@ -38,8 +36,6 @@ type raftStateImpl struct {
 	nNotSupporting   uint64
 	nNodeInCluster   uint64
     electionTimeoutRaw  int
-	/* testing */
-	fakenEntryTimeout *time.Timer
 }
 
 type State interface {
@@ -76,11 +72,6 @@ type State interface {
 	GetLastLogIndex() int
 	UpdateLastApplied() int
 	CheckCommitIndex(idxList []int)
-
-	/* testing */
-	AppendDummyEntry()
-	DummyEntryTimeout() *time.Timer
-	ResetDummyTimeout()
 }
 
 func (this *raftStateImpl) GetId() string {
@@ -256,7 +247,6 @@ func NewState(term uint64, id string, role Role) State {
 	s.id = id
 	s.electionTimeout = time.NewTimer(MAX_ELECTION_TIMEOUT)
 	s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)
-	s.fakenEntryTimeout = time.NewTimer(APPEND_TM)
 	s.nNotSupporting = 0
 	s.nSupporting = 0
 	s.nNodeInCluster = 1
@@ -264,17 +254,4 @@ func NewState(term uint64, id string, role Role) State {
 	s.log = l.NewLogEntry()
     s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
 	return s
-}
-
-/* testing */
-func (this *raftStateImpl) AppendDummyEntry() {
-	this.log.AppendDummyEntry(this.GetTerm())
-}
-
-func (this *raftStateImpl) DummyEntryTimeout() *time.Timer {
-	return this.fakenEntryTimeout
-}
-
-func (this *raftStateImpl) ResetDummyTimeout() {
-	this.fakenEntryTimeout.Reset(APPEND_TM)
 }
