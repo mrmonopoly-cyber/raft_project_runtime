@@ -210,6 +210,7 @@ func (s *Server) sendAll(rpc *rpcs.Rpc){
             log.Panicln("error in Encoding this rpc: ",(*rpc).ToString())
         }
     //    log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
+        log.Printf("sending to %v\n", nNode.GetIp())
         nNode.Send(raw_mex)
         return true
     })
