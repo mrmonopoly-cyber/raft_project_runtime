@@ -37,6 +37,7 @@ type raftStateImpl struct {
 	nSupporting      uint64
 	nNotSupporting   uint64
 	nNodeInCluster   uint64
+    electionTimeoutRaw  int
 	/* testing */
 	fakenEntryTimeout *time.Timer
 }
@@ -119,9 +120,7 @@ func (this *raftStateImpl) SetCommitIndex(val int64) {
 }
 
 func (this *raftStateImpl) StartElectionTimeout() {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
-	t := rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
-	this.electionTimeout.Reset(time.Duration(t))
+	this.electionTimeout.Reset(time.Duration((*this).electionTimeoutRaw))
 }
 
 func (this *raftStateImpl) StopElectionTimeout() {
@@ -250,6 +249,7 @@ func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
 }
 
 func NewState(term uint64, id string, role Role) State {
+    rand.New(rand.NewSource(time.Now().UnixNano()))
 	var s = new(raftStateImpl)
 	s.role = role
 	s.term = term
@@ -262,6 +262,7 @@ func NewState(term uint64, id string, role Role) State {
 	s.nNodeInCluster = 1
 	s.voting = true
 	s.log = l.NewLogEntry()
+    s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
 	return s
 }
 

@@ -79,6 +79,7 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
 // Manage implements rpcs.Rpc.
 func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
 
+    (*state).StopElectionTimeout()
 	var role raftstate.Role = (*state).GetRole()
 	var id string = (*state).GetId()
 	var myTerm uint64 = (*state).GetTerm()
@@ -88,7 +89,8 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
 	var prevLogIndex int64 = this.pMex.GetPrevLogIndex()
 	var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
 	var entries []*protobuf.LogEntry = (*state).GetEntries()
-	var newEntries = this.pMex.GetEntries()
+	var newEntries []*protobuf.LogEntry = this.pMex.GetEntries()
+    var resp *rpcs.Rpc = nil
 
 	if role != raftstate.FOLLOWER {
 		(*state).BecomeFollower()
@@ -96,7 +98,8 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
 
 	if this.pMex.GetTerm() < myTerm {
 		success = false
-		return respondeAppend(id, success, myTerm, -1)
+		resp = respondeAppend(id, success, myTerm, -1)
+        
 	}
 
 	if len(newEntries) > 0 {
@@ -107,7 +110,7 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
 		if !consistent {
 			fmt.Println("Not consistent")
 			success = false
-			return respondeAppend(id, success, myTerm, int(error))
+			resp = respondeAppend(id, success, myTerm, int(error))
 		} else {
 			(*state).AppendEntries(newEntries, int(prevLogIndex))
 			success = true
@@ -120,14 +123,17 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
 					(*state).SetCommitIndex(leaderCommit)
 				}
 			}
-			return respondeAppend(id, success, myTerm, -1)
+			resp = respondeAppend(id, success, myTerm, -1)
 
 		}
 	} else {
     log.Println("hearthbeat")
     success = true
-    return respondeAppend(id, success, myTerm, -1)
+
+    resp = respondeAppend(id, success, myTerm, -1)
   }
+  (*state).StartElectionTimeout()
+  return resp
 }
 
 func respondeAppend(id string, success bool, term uint64, error int) *rpcs.Rpc {
