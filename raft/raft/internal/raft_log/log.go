@@ -1,7 +1,7 @@
 package raft_log
 
 import (
-	"fmt"
+	l "log"
 	p "raft/pkg/rpcEncoding/out/protobuf"
 )
 
@@ -25,6 +25,7 @@ type log struct {
 }
 
 func extend(slice []p.LogEntry, addedCapacity int) []p.LogEntry {
+//  l.Println("enxtend")
 	n := len(slice)
 	newSlice := make([]p.LogEntry, n+addedCapacity)
 	for i := range slice {
@@ -72,15 +73,14 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry, index int) {
   if index < 0 {
     index = 0
   }
-
-	if len(newEntries) > 0 {
-		this.entries = extend(this.entries, len(newEntries))
-		for _, en := range newEntries {
-			this.entries[index] = *en
-		}
+l.Println(index)
+	this.entries = extend(this.entries, len(newEntries))
+	for i, en := range newEntries {
+    l.Printf("i: %d, i + index: %d", i, i+index)
+		this.entries[index + i] = *en
 	}
 
-  fmt.Println("my entries: ", this.entries)
+  l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
 }
 
 func (this *log) UpdateLastApplied() int {

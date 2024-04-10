@@ -38,13 +38,13 @@ func (this *AppendResponse) Execute(state *raftstate.State, senderState *nodeSta
 			(*state).BecomeFollower()
 		} else {
       log.Println("consistency fail")
-      log.Println(this.pMex.GetLogIndexError())
+      //log.Println(this.pMex.GetLogIndexError())
 			(*senderState).SetNextIndex(int(this.pMex.GetLogIndexError()))
-      log.Println((*senderState).GetNextIndex())
+      //log.Println((*senderState).GetNextIndex())
 		}
 	} else {
-		(*senderState).SetNextIndex((*state).GetLastLogIndex()+1)
-		(*senderState).SetMatchIndex((*state).GetLastLogIndex())
+		(*senderState).SetNextIndex(int(this.pMex.GetLogIndexError())+1)
+		(*senderState).SetMatchIndex(int(this.pMex.GetLogIndexError()))
 	}
 
 	return resp
