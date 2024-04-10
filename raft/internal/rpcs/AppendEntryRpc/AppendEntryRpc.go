@@ -79,7 +79,6 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
 // Manage implements rpcs.Rpc.
 func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
 
-    (*state).StopElectionTimeout()
     var role raftstate.Role = (*state).GetRole()
     var id string = (*state).GetId()
     var myTerm uint64 = (*state).GetTerm()
@@ -91,13 +90,14 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
     var newEntries []*protobuf.LogEntry = this.pMex.GetEntries()
     var resp *rpcs.Rpc = nil
 
-    if role != raftstate.FOLLOWER {
-        (*state).BecomeFollower()
+    if this.pMex.GetTerm() < myTerm {
+        return respondeAppend(id, false, myTerm, -1)
     }
 
-    if this.pMex.GetTerm() < myTerm {
-        (*state).StartElectionTimeout()
-        return respondeAppend(id, false, myTerm, -1)
+    (*state).StopElectionTimeout()
+
+    if role != raftstate.FOLLOWER {
+        (*state).BecomeFollower()
     }
 
     if len(newEntries) > 0 {
