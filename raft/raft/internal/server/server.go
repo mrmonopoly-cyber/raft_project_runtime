@@ -229,7 +229,6 @@ func (s *Server) run() {
         select {
         case mess = <-s.messageChannel:
             //log.Println("processing message: ", (*mess.payload).ToString())
-            s._state.StopElectionTimeout()
             var rpcCall *rpcs.Rpc
             var sender string = mess.sender
             var oldRole raftstate.Role
@@ -268,11 +267,9 @@ func (s *Server) run() {
 
             if s._state.Leader() && oldRole != state.LEADER {
                 s.setVolState() //Problemmmmmmm
-                s.wg.Add(1)
                 go s.leaderHearthBit()
             }
    //         log.Println("rpc processed")
-            s._state.StartElectionTimeout()
         case <-s._state.ElectionTimeout().C:
             if !s._state.Leader() {
                 s.startNewElection()
@@ -316,6 +313,7 @@ func (s *Server) startNewElection(){
 }
 
 func (s *Server) leaderHearthBit(){
+    s.wg.Add(1)
     defer s.wg.Done()
     //log.Println("start sending hearthbit")
     for s._state.Leader(){
