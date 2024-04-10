@@ -80,6 +80,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
         nodeId = generateID(serversIp[i])
         server.otherNodes.Store(nodeId, new_node)
         server._state.IncreaseNodeInCluster()
+        go server.handleResponseSingleNode(nodeId, &new_node)
 
 	}
 	return server
