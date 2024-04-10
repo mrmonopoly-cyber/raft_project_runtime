@@ -3,9 +3,7 @@ package server
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	genericmessage "raft/internal/genericMessage"
@@ -88,7 +86,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 }
 
 func (s *Server) Start() {
-	s.wg.Add(3)
+	s.wg.Add(2)
 
    log.Println("Start accepting connections")
 	go s.acceptIncomingConn()
@@ -99,9 +97,6 @@ func (s *Server) Start() {
 
   //  log.Println("start main run")
 	go s.run()
-
-  //  log.Println("start handle response")
-	go s.handleResponse()
 
     log.Println("wait to finish")
 	s.wg.Wait()
@@ -127,69 +122,51 @@ func (s *Server) acceptIncomingConn() {
 		var newConncetionPort string = string(rune(tcpAddr.Port))
 		var id_node string = generateID(newConncetionIp)
         var found bool
-		_, found = s.otherNodes.Load(id_node)
+        var value any
+		value, found = s.otherNodes.Load(id_node)
         
         //log.Println("enstablish connection with node: ", newConncetionIp)
 
 		if found {
 //            log.Printf("node with ip %v found", newConncetionIp)
+            var oldNode node.Node = value.(node.Node)
+            go s.handleResponseSingleNode(id_node,&oldNode)
             continue
 		} else {
             log.Printf("node with ip %v not found", newConncetionIp)
 			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
 			s.otherNodes.Store(id_node, new_node)
             s._state.IncreaseNodeInCluster()
+            go s.handleResponseSingleNode(id_node,&new_node)
 		}
+
 	}
 }
 
-/*
- * Handle incoming rpcs and send it to the corresponding channel
- */
-func (s *Server) handleResponse() {
-	defer s.wg.Done()
-	// iterating over the connections map and receive byte message
-	for {
-		s.otherNodes.Range(func(k, conn interface{}) bool {
-            // var node *node.Node = conn.(*node.Node)
-            var nNode node.Node
-            var err bool
+func (s *Server) handleResponseSingleNode(id_node string, workingNode *node.Node) {
+    s.wg.Add(1)
+    defer s.wg.Done()
 
-            nNode,err = conn.(node.Node)
-
-            if !err {
-                panic("error type is not a node.Node")
+    for{
+        var message []byte
+        var errMes error
+        message, errMes = (*workingNode).Recv()
+        if errMes != nil {
+            fmt.Printf("error in reading from node %v with error %v",(*workingNode).GetIp(), errMes)
+            if !s._state.Leader() {
+                s._state.StartElectionTimeout()
             }
+            (*workingNode).CloseConnection()
+            s.otherNodes.Delete(id_node);
+            s._state.DecreaseNodeInCluster()
+            break
+        }
+        if message != nil {
+            s.messageChannel <- 
+            pairMex{genericmessage.Decode(message),(*workingNode).GetIp()}
+        }
+    }
 
-			var message []byte
-			var errMes error
-			message, errMes = (nNode).Recv()
-			if errMes != nil {
-                switch errMes{
-                case errors.New("connection not instantiated"):
-                    return false
-                case io.EOF:
-                    s.otherNodes.Delete(k);
-                    if !s._state.Leader() {
-                        s._state.StartElectionTimeout()
-                    }
-                    s._state.DecreaseNodeInCluster()
-                    return false
-                default:
-                    fmt.Printf("error in reading from node %v with error %v",
-                    (nNode).GetIp(), errMes)
-                    return false
-                }
-			}
-            if message != nil {
-//                log.Println("received message from: " + (nNode).GetIp())
-  //              log.Println("data of message: " + string(message))
-                s.messageChannel <- 
-                pairMex{genericmessage.Decode(message),(nNode).GetIp()}
-            }
-			return true
-		})
-	}
 }
 
 func (s *Server) sendAll(rpc *rpcs.Rpc){
