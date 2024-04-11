@@ -5,6 +5,7 @@ import (
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/internal/node/nodeState"
+    "raft/pkg/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
 )

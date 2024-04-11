@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package protobuf;
+
+
+option go_package = "protobuf/";
+
+enum ClientOperation{
+    READ = 0;
+    WRTE = 1;
+    DELETE = 2;
+}
+
+message ClientReq{
+    ClientOperation op = 1;
+    bytes Payload=2;
+};
