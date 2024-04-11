@@ -2,8 +2,9 @@ package main
 
 import (
 	"net"
-
 	"libvirt.org/go/libvirt"
+
+    "raft/client/protobuf/protobuf"
 )
 
 //virsh --connect=qemu:///system list
@@ -32,6 +33,12 @@ func main()  {
     if err != nil {
         panic("error dialing connection")
     }
+    
+    var newMex = protobuf.ClientReq{
+        Op: protobuf.Operation_READ,
+        Payload: []byte("pippo.txt"),
+    }
+
 
 
 }
