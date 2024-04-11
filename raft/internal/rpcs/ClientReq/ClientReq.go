@@ -17,7 +17,7 @@ type ClientReq struct {
 
 // Manage implements rpcs.Rpc.
 func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
-    var operation protobuf.ClientOperation = (*this).pMex.Op
+    var operation protobuf.Operation = (*this).pMex.Op
     var newLogEntryArr []*protobuf.LogEntry = make([]*protobuf.LogEntry, 1)
     var newLogEntry protobuf.LogEntry
     var op string = "NULL"
@@ -26,15 +26,15 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
     *newLogEntry.Term =  (*state).GetTerm()
 
     switch operation{
-    case protobuf.ClientOperation_READ:
+    case protobuf.Operation_READ:
         log.Printf("testing operation READ, TO IMPLEMENT")
         *newLogEntry.OpType = protobuf.Operation_READ
         op = "READ"
-    case protobuf.ClientOperation_WRTE:
+    case protobuf.Operation_WRITE:
         log.Printf("testing operation WRITE, TO IMPLEMENT")
         *newLogEntry.OpType = protobuf.Operation_WRITE
         op = "WRITE"
-    case protobuf.ClientOperation_DELETE:
+    case protobuf.Operation_DELETE:
         log.Printf("testing operation DELETE, TO IMPLEMENT")
         *newLogEntry.OpType = protobuf.Operation_DELETE
         op = "DELETE"
