@@ -1,20 +1,22 @@
+syntax = "proto3";
+
 package protobuf;
 
 option go_package = "protobuf/";
 
 enum Operation {
-  WRITE = 1;
-  READ = 2;
-  DELETE = 3;
-  JOIN_CONF = 4;
-  NODE_UPDATED = 5;
-  NODE_DELETED = 6;
+  WRITE = 0;
+  READ = 1;
+  DELETE = 2;
+  JOIN_CONF = 3;
+  NODE_UPDATED = 4;
+  NODE_DELETED = 5;
 }
 
 message logEntry {
-	required uint64 Term=1;
-	required string Description=2;
-	required Operation OpType=3;
+	uint64 Term=1;
+	string Description=2;
+	Operation OpType=3;
 }
 
 
