@@ -19,14 +19,14 @@ func main() {
   if erro != nil {
     panic("could not find other ips")
   }
-  var stringMyIp = strings.Split(string(fileMyIp), "\n")
+  var stringMyIp []string= strings.Split(string(fileMyIp), "\n")
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
 
 
   log.Println("listening on port: " + "8080" + " with ip: " + stringMyIp[0])
 
-  var server1 *ser.Server = ser.NewServer(0, stringMyIp[0], "8080", addresses)
+  var server1 *ser.Server = ser.NewServer(0, stringMyIp[0], stringMyIp[1], "8080", addresses)
 
   var wg sync.WaitGroup
 

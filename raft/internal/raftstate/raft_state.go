@@ -22,10 +22,12 @@ const (
 )
 
 type raftStateImpl struct {
-	id                 string
+	idPrivate          string
+	idPublic           string
 	serverList         []string
 	term               uint64
-	leaderId           string
+	leaderIdPrivate    string
+	leaderIdPublic     string
 	role               Role
 	voteFor            string
 	voting             bool
@@ -38,18 +40,10 @@ type raftStateImpl struct {
 	electionTimeoutRaw int
 }
 
-// GetLeaderIp implements State.
-func (this *raftStateImpl) GetLeaderIp() string {
-	return (*this).leaderId
-}
-
-// SetLeaderIP implements State.
-func (this *raftStateImpl) SetLeaderIP(ip string) {
-    (*this).leaderId = ip
-}
 
 type State interface {
-	GetId() string
+	GetIdPrivate() string
+	GetIdPublic() string
 	GetTerm() uint64
 	GetRole() Role
 	StartElectionTimeout()
@@ -82,12 +76,18 @@ type State interface {
 	GetLastLogIndex() int
 	UpdateLastApplied() int
 	CheckCommitIndex(idxList []int)
-	GetLeaderIp() string
-	SetLeaderIP(ip string)
+	GetLeaderIpPrivate() string
+	GetLeaderIpPublic() string
+	SetLeaderIpPublic(ip string)
+	SetLeaderIpPrivate(ip string)
 }
 
-func (this *raftStateImpl) GetId() string {
-	return this.id
+func (this *raftStateImpl) GetIdPrivate() string {
+	return this.idPrivate
+}
+
+func (this *raftStateImpl) GetIdPublic() string {
+	return this.idPublic
 }
 
 func (this *raftStateImpl) GetTerm() uint64 {
@@ -251,12 +251,34 @@ func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
 
 }
 
-func NewState(term uint64, id string, role Role) State {
+// GetLeaderIpPrivate implements State.
+func (this *raftStateImpl) GetLeaderIpPrivate() string {
+	return (*this).leaderIdPrivate
+}
+
+// GetLeaderIpPublic implements State.
+func (this *raftStateImpl) GetLeaderIpPublic() string {
+    return (*this).leaderIdPublic
+}
+
+// SetLeaderIpPublic implements State.
+func (this *raftStateImpl) SetLeaderIpPublic(ip string) {
+	(*this).leaderIdPublic = ip
+}
+
+// SetLeaderIpPrivate implements State.
+func (this *raftStateImpl) SetLeaderIpPrivate(ip string) {
+	(*this).leaderIdPrivate = ip
+}
+
+
+func NewState(term uint64, idPrivate string, idPublic string, role Role) State {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	var s = new(raftStateImpl)
 	s.role = role
 	s.term = term
-	s.id = id
+	s.idPrivate = idPrivate
+	s.idPublic = idPublic
 	s.electionTimeout = time.NewTimer(MAX_ELECTION_TIMEOUT)
 	s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)
 	s.nNotSupporting = 0

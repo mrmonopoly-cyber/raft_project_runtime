@@ -49,7 +49,7 @@ func generateID(input string) string {
 	return id
 }
 
-func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Server {
+func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port string, serversIp []string) *Server {
 	listener, err := net.Listen("tcp",":"+port)
 
 	if err != nil {
@@ -57,7 +57,7 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 	}
 
 	var server = &Server{
-		_state:         state.NewState(term, ip_addr, state.FOLLOWER),
+		_state:         state.NewState(term, ipAddPrivate, ipAddrPublic, state.FOLLOWER),
 		otherNodes:     &sync.Map{},
 		messageChannel: make(chan pairMex),
 		listener:       listener,
@@ -136,7 +136,7 @@ func (s *Server) acceptIncomingConn() {
             if s._state.Leader(){
                 conn.Write([]byte("ok\n"))
             }else{
-                conn.Write([]byte(s._state.GetLeaderIp()+"\n"))
+                conn.Write([]byte(s._state.GetLeaderIpPublic()+"\n"))
             }
         }
 
@@ -274,7 +274,7 @@ func (s *Server) startNewElection(){
 
     voteRequest = RequestVoteRPC.NewRequestVoteRPC(
         s._state.GetTerm(),
-        s._state.GetId(),
+        s._state.GetIdPrivate(),
         int64(len_ent),
         entryTerm)
 
@@ -283,7 +283,8 @@ func (s *Server) startNewElection(){
     if s._state.GetNumNodeInCluster() == 1 {
         log.Println("became leader: ",s._state.GetRole())
         s._state.SetRole(raftstate.LEADER)
-        s._state.SetLeaderIP(s._state.GetId())
+        s._state.SetLeaderIpPrivate(s._state.GetIdPrivate())
+        s._state.SetLeaderIpPublic(s._state.GetIdPublic())
         s._state.ResetElection()
         go s.leaderHearthBit()
     }else {
