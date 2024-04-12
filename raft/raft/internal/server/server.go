@@ -122,38 +122,31 @@ func (s *Server) acceptIncomingConn() {
 
 		var newConncetionIp string = tcpAddr.IP.String()
 		var newConncetionPort string = string(rune(tcpAddr.Port))
-
-        if strings.Contains(newConncetionIp, "192.168.122") {
-            log.Println("new client request to cluster")
-            if s._state.Leader(){
-                conn.Write([]byte("ok\n"))
-            }else {
-                conn.Write([]byte(s._state.GetLeaderIp()+"\n"))
-            }
-
-            continue
-            
-        }
-        
         var id_node string = generateID(newConncetionIp)
         var found bool
         var value any
+        var connNode node.Node
 		value, found = s.otherNodes.Load(id_node)
         
-        //log.Println("enstablish connection with node: ", newConncetionIp)
-
-		if found {
-//            log.Printf("node with ip %v found", newConncetionIp)
-            var oldNode node.Node = value.(node.Node)
-            go s.handleResponseSingleNode(id_node,&oldNode)
-            continue
-		} else {
-            log.Printf("node with ip %v not found", newConncetionIp)
-			var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
-			s.otherNodes.Store(id_node, new_node)
-            s._state.IncreaseNodeInCluster()
-            go s.handleResponseSingleNode(id_node,&new_node)
-		}
+        if !strings.Contains(newConncetionIp, "10.0.0") {
+            if found {
+                connNode = value.(node.Node)
+            } else {
+                log.Printf("node with ip %v not found", newConncetionIp)
+                var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
+                s.otherNodes.Store(id_node, new_node)
+                s._state.IncreaseNodeInCluster()
+                connNode = new_node
+            }
+            go s.handleResponseSingleNode(id_node,&connNode)
+        }else{
+            log.Println("new client request to cluster")
+            if s._state.Leader(){
+                conn.Write([]byte("ok\n"))
+            }else{
+                conn.Write([]byte(s._state.GetLeaderIp()+"\n"))
+            }
+        }
 
 	}
 }
