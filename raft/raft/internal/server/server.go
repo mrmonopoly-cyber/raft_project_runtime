@@ -127,7 +127,7 @@ func (s *Server) acceptIncomingConn() {
         var value any
         var connNode node.Node
 		value, found = s.otherNodes.Load(id_node)
-        
+        log.Printf("new connec: %v\n", newConncetionIp)
         if !strings.Contains(newConncetionIp, "10.0.0") {
             if found {
                 connNode = value.(node.Node)
