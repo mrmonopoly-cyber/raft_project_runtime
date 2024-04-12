@@ -72,6 +72,8 @@ type State interface {
 	GetLastLogIndex() int
 	UpdateLastApplied() int
 	CheckCommitIndex(idxList []int)
+	GetLeaderIp() string
+    SetLeaderIP(ip string)
 }
 
 func (this *raftStateImpl) GetId() string {

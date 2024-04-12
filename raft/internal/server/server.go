@@ -16,6 +16,7 @@ import (
 	"raft/internal/rpcs/RequestVoteRPC"
 	p "raft/pkg/rpcEncoding/out/protobuf"
 	"reflect"
+	"strings"
 	"sync"
 )
 
@@ -121,7 +122,20 @@ func (s *Server) acceptIncomingConn() {
 
 		var newConncetionIp string = tcpAddr.IP.String()
 		var newConncetionPort string = string(rune(tcpAddr.Port))
-		var id_node string = generateID(newConncetionIp)
+
+        if strings.Contains(newConncetionIp, "192.168.122") {
+            log.Println("new client request to cluster")
+            if s._state.Leader(){
+                conn.Write([]byte("ok\n"))
+            }else {
+                conn.Write([]byte(s._state.GetLeaderIp()+"\n"))
+            }
+
+            continue
+            
+        }
+        
+        var id_node string = generateID(newConncetionIp)
         var found bool
         var value any
 		value, found = s.otherNodes.Load(id_node)
@@ -283,6 +297,7 @@ func (s *Server) startNewElection(){
     if s._state.GetNumNodeInCluster() == 1 {
         log.Println("became leader: ",s._state.GetRole())
         s._state.SetRole(raftstate.LEADER)
+        s._state.SetLeaderIP(s._state.GetId())
         s._state.ResetElection()
         go s.leaderHearthBit()
     }else {
