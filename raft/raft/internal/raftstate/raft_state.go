@@ -10,9 +10,9 @@ import (
 type Role int
 
 const (
-    LEADER Role = iota
-    FOLLOWER
-    CANDIDATE
+	LEADER Role = iota
+	FOLLOWER
+	CANDIDATE
 )
 
 const (
@@ -22,20 +22,30 @@ const (
 )
 
 type raftStateImpl struct {
-	id               string
-	serverList       []string
-	term             uint64
-	leaderId         string
-	role             Role
-	voteFor          string
-	voting           bool
-	electionTimeout  *time.Timer
-	heartbeatTimeout *time.Timer
-	log              l.LogEntry
-	nSupporting      uint64
-	nNotSupporting   uint64
-	nNodeInCluster   uint64
-    electionTimeoutRaw  int
+	id                 string
+	serverList         []string
+	term               uint64
+	leaderId           string
+	role               Role
+	voteFor            string
+	voting             bool
+	electionTimeout    *time.Timer
+	heartbeatTimeout   *time.Timer
+	log                l.LogEntry
+	nSupporting        uint64
+	nNotSupporting     uint64
+	nNodeInCluster     uint64
+	electionTimeoutRaw int
+}
+
+// GetLeaderIp implements State.
+func (this *raftStateImpl) GetLeaderIp() string {
+	return (*this).leaderId
+}
+
+// SetLeaderIP implements State.
+func (this *raftStateImpl) SetLeaderIP(ip string) {
+    (*this).leaderId = ip
 }
 
 type State interface {
@@ -73,27 +83,27 @@ type State interface {
 	UpdateLastApplied() int
 	CheckCommitIndex(idxList []int)
 	GetLeaderIp() string
-    SetLeaderIP(ip string)
+	SetLeaderIP(ip string)
 }
 
 func (this *raftStateImpl) GetId() string {
-    return this.id
+	return this.id
 }
 
 func (this *raftStateImpl) GetTerm() uint64 {
-    return this.term
+	return this.term
 }
 
 func (this *raftStateImpl) SetTerm(newTerm uint64) {
-    this.term = newTerm
+	this.term = newTerm
 }
 
 func (this *raftStateImpl) GetRole() Role {
-    return this.role
+	return this.role
 }
 
 func (this *raftStateImpl) SetRole(newRole Role) {
-    this.role = newRole
+	this.role = newRole
 }
 
 func (this *raftStateImpl) GetEntries() []*p.LogEntry {
@@ -105,7 +115,7 @@ func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry, index int) {
 }
 
 func (this *raftStateImpl) GetCommitIndex() int64 {
-    return this.log.GetCommitIndex()
+	return this.log.GetCommitIndex()
 }
 
 func (this *raftStateImpl) SetCommitIndex(val int64) {
@@ -121,7 +131,7 @@ func (this *raftStateImpl) StopElectionTimeout() {
 }
 
 func (this *raftStateImpl) StartHearthbeatTimeout() {
-    this.heartbeatTimeout.Reset(H_TIMEOUT)
+	this.heartbeatTimeout.Reset(H_TIMEOUT)
 }
 
 func (this *raftStateImpl) StopHearthbeatTimeout() {
@@ -129,7 +139,7 @@ func (this *raftStateImpl) StopHearthbeatTimeout() {
 }
 
 func (this *raftStateImpl) Leader() bool {
-    return this.role == LEADER
+	return this.role == LEADER
 }
 
 func (this *raftStateImpl) BecomeFollower() {
@@ -137,7 +147,7 @@ func (this *raftStateImpl) BecomeFollower() {
 }
 
 func (this *raftStateImpl) CanVote() bool {
-    return this.voting
+	return this.voting
 }
 
 func (this *raftStateImpl) HeartbeatTimeout() *time.Timer {
@@ -145,64 +155,64 @@ func (this *raftStateImpl) HeartbeatTimeout() *time.Timer {
 }
 
 func (this *raftStateImpl) ElectionTimeout() *time.Timer {
-    return this.electionTimeout
+	return this.electionTimeout
 }
 
 func (this *raftStateImpl) GetVoteFor() string {
-    return this.voteFor
+	return this.voteFor
 }
 
 func (this *raftStateImpl) IncrementTerm() {
-    this.term += 1
+	this.term += 1
 }
 
 func (this *raftStateImpl) VoteFor(id string) {
-    this.voteFor = id
+	this.voteFor = id
 }
 
 // MoreRecentLog implements State.
 func (this *raftStateImpl) MoreRecentLog(lastLogIndex int64, lastLogTerm uint64) bool {
-    return this.log.More_recent_log(lastLogIndex, lastLogTerm)
+	return this.log.More_recent_log(lastLogIndex, lastLogTerm)
 }
 
 // GetNumSupporters implements State.
 func (this *raftStateImpl) GetNumSupporters() uint64 {
-    return this.nSupporting
+	return this.nSupporting
 }
 
 // IncreaseNotSupporters implements State.
 func (this *raftStateImpl) IncreaseNotSupporters() {
-    this.nNotSupporting++
+	this.nNotSupporting++
 }
 
 // IncreaseSupporters implements State.
 func (this *raftStateImpl) IncreaseSupporters() {
-    this.nSupporting++
+	this.nSupporting++
 }
 
 // GetNumNotSupporters implements State.
 func (this *raftStateImpl) GetNumNotSupporters() uint64 {
-    return this.nNotSupporting
+	return this.nNotSupporting
 }
 
 // GetNumNodeInCluster implements State.
 func (this *raftStateImpl) GetNumNodeInCluster() uint64 {
-    return this.nNodeInCluster
+	return this.nNodeInCluster
 }
 
 // IncreaseNodeInCluster implements State.
 func (this *raftStateImpl) IncreaseNodeInCluster() {
-    this.nNodeInCluster++
+	this.nNodeInCluster++
 }
 
 // DecreaseNodeInCluster implements State.
 func (this *raftStateImpl) DecreaseNodeInCluster() {
-    this.nNodeInCluster--
+	this.nNodeInCluster--
 }
 
 func (this *raftStateImpl) ResetElection() {
-    this.nSupporting = 0
-    this.nNotSupporting = 0
+	this.nSupporting = 0
+	this.nNotSupporting = 0
 }
 
 func (this *raftStateImpl) GetLastLogIndex() int {
@@ -219,7 +229,7 @@ func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
 	var commitIndex int = int(this.GetCommitIndex())
 	var majority int = len(idxList) / 2
 	var count int = 0
-  var entries = this.log.GetEntries()
+	var entries = this.log.GetEntries()
 
 	/* find N such that N > commitIndex */
 	for ; n < commitIndex; n++ {
@@ -242,7 +252,7 @@ func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
 }
 
 func NewState(term uint64, id string, role Role) State {
-    rand.New(rand.NewSource(time.Now().UnixNano()))
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 	var s = new(raftStateImpl)
 	s.role = role
 	s.term = term
@@ -254,6 +264,6 @@ func NewState(term uint64, id string, role Role) State {
 	s.nNodeInCluster = 1
 	s.voting = true
 	s.log = l.NewLogEntry()
-    s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
+	s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
 	return s
 }
