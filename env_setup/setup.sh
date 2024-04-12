@@ -19,6 +19,11 @@ sudo systemctl enable --now libvirtd
 echo "adding libvirt group to user $first_user"
 sudo usermod  -aG libvirt $first_user
 
+echo "setting up network"
+virsh --connect=qemu:///system net-define --file ./raft_net.xml
+virsh --connect=qemu:///system net-autostart --network raftAccessNetwork
+virsh --connect=qemu:///system net-start --network raftAccessNetwork
+
 echo "creating iso"
 sudo mkarchiso -A raft_install.sh  -w work -o out -v -r ./iso_creation 
 sudo mv ./out/* /var/lib/libvirt/images/raft_live_install.iso
