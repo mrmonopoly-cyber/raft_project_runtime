@@ -28,7 +28,8 @@ func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
     var app = &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
             Term:         state.GetTerm(),
-            LeaderId:     state.GetId(),
+            LeaderIdPrivate:     state.GetIdPrivate(),
+            LeaderIdPublic:     state.GetIdPublic(),
             PrevLogIndex: int64(prevLogIndex),
             PrevLogTerm:  prevLogTerm,
             Entries:      make([]*protobuf.LogEntry, 0),
@@ -41,13 +42,14 @@ func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
     return app
 }
 
-func NewAppendEntryRPC(term uint64, leaderId string, prevLogIndex int64,
+func NewAppendEntryRPC(term uint64, leaderIdPrivate string, leaderIdPublic string, prevLogIndex int64,
 prevLogTerm uint64, entries []*protobuf.LogEntry,
 leaderCommit int64) rpcs.Rpc {
     return &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
             Term:         term,
-            LeaderId:     leaderId,
+            LeaderIdPrivate: leaderIdPrivate,
+            LeaderIdPublic: leaderIdPublic,
             PrevLogIndex: prevLogIndex,
             PrevLogTerm:  prevLogTerm,
             Entries:      entries,
@@ -89,7 +91,7 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
 func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
 
     var role raftstate.Role = (*state).GetRole()
-    var id string = (*state).GetId()
+    var id string = (*state).GetIdPrivate()
     var myTerm uint64 = (*state).GetTerm()
     var nextIdx int
     var consistent bool
@@ -110,7 +112,8 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
 
     if role != raftstate.FOLLOWER {
         (*state).BecomeFollower()
-        (*state).SetLeaderIP(this.pMex.LeaderId)
+        (*state).SetLeaderIpPrivate(this.pMex.LeaderIdPrivate)
+        (*state).SetLeaderIpPublic(this.pMex.LeaderIdPublic)
     }
 
     if len(newEntries) > 0 {
@@ -162,7 +165,13 @@ func respondeAppend(id string, success bool, term uint64, error int) *rpcs.Rpc {
         for _, el := range this.pMex.Entries {
             entries += el.String()
         }
-        return "{term : " + strconv.Itoa(int(this.pMex.GetTerm())) + ", leaderId: " + this.pMex.GetLeaderId() + ", prevLogIndex: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) + ", prevLogTerm: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) + ", entries: " + entries + ", leaderCommit: " + strconv.Itoa(int(this.pMex.LeaderCommit)) + "}"
+        return "{term : " + strconv.Itoa(int(this.pMex.GetTerm())) + 
+        ", leaderIdPrivate: " + this.pMex.GetLeaderIdPrivate() +
+        ", leaderIdPublic: " + this.pMex.GetLeaderIdPublic() +
+        ", prevLogIndex: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) +
+        ", prevLogTerm: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) + 
+        ", entries: " + entries +
+        ", leaderCommit: " + strconv.Itoa(int(this.pMex.LeaderCommit)) + "}"
     }
 
     func (this *AppendEntryRpc) Encode() ([]byte, error) {

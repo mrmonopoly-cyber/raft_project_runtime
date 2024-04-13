@@ -49,15 +49,17 @@ func generateID(input string) string {
 	return id
 }
 
-func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Server {
+func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port string, serversIp []string) *Server {
 	listener, err := net.Listen("tcp",":"+port)
 
 	if err != nil {
 		log.Fatalf("Failed to listen on port %s: %s", port, err)
 	}
 
+    log.Printf("my ip are: %v, %v\n",  ipAddPrivate, ipAddrPublic)
+
 	var server = &Server{
-		_state:         state.NewState(term, ip_addr, state.FOLLOWER),
+		_state:         state.NewState(term, ipAddPrivate, ipAddrPublic, state.FOLLOWER),
 		otherNodes:     &sync.Map{},
 		messageChannel: make(chan pairMex),
 		listener:       listener,
@@ -66,7 +68,6 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
     log.Println("number of others ip: ", len(serversIp))
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
-        //log.Printf("connecting to the server: %v\n", serversIp[i])
         var nodeConn net.Conn
         var erroConn error
         var nodeId string
@@ -77,7 +78,6 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
             continue
         }
         new_node = node.NewNode(serversIp[i], port, nodeConn)
-        //log.Println("storing new node with ip :", serversIp[i])
         nodeId = generateID(serversIp[i])
         server.otherNodes.Store(nodeId, new_node)
         server._state.IncreaseNodeInCluster()
@@ -88,23 +88,16 @@ func NewServer(term uint64, ip_addr string, port string, serversIp []string) *Se
 }
 
 func (s *Server) Start() {
-	s.wg.Add(2)
+    log.Println("Start accepting connections")
+    go s.acceptIncomingConn()
+    s._state.StartElectionTimeout()
+    go s.run()
 
-   log.Println("Start accepting connections")
-	go s.acceptIncomingConn()
-
-
-  //  log.Println("Start election Timeout")
-	s._state.StartElectionTimeout()
-
-  //  log.Println("start main run")
-	go s.run()
-
-    log.Println("wait to finish")
-	s.wg.Wait()
+    s.wg.Wait()
 }
 
 func (s *Server) acceptIncomingConn() {
+    s.wg.Add(1)
 	defer s.wg.Done()
 	for {
   //      log.Println("waiting new connection")
@@ -145,7 +138,7 @@ func (s *Server) acceptIncomingConn() {
             if s._state.Leader(){
                 conn.Write([]byte("ok\n"))
             }else{
-                conn.Write([]byte(s._state.GetLeaderIp()+"\n"))
+                conn.Write([]byte(s._state.GetLeaderIpPublic()+"\n"))
             }
         }
 
@@ -204,6 +197,7 @@ func (s *Server) sendAll(rpc *rpcs.Rpc){
 }
 
 func (s *Server) run() {
+    s.wg.Add(1)
 	defer s.wg.Done()
 	for {
 		var mess pairMex
@@ -282,7 +276,7 @@ func (s *Server) startNewElection(){
 
     voteRequest = RequestVoteRPC.NewRequestVoteRPC(
         s._state.GetTerm(),
-        s._state.GetId(),
+        s._state.GetIdPrivate(),
         int64(len_ent),
         entryTerm)
 
@@ -291,7 +285,8 @@ func (s *Server) startNewElection(){
     if s._state.GetNumNodeInCluster() == 1 {
         log.Println("became leader: ",s._state.GetRole())
         s._state.SetRole(raftstate.LEADER)
-        s._state.SetLeaderIP(s._state.GetId())
+        s._state.SetLeaderIpPrivate(s._state.GetIdPrivate())
+        s._state.SetLeaderIpPublic(s._state.GetIdPublic())
         s._state.ResetElection()
         go s.leaderHearthBit()
     }else {

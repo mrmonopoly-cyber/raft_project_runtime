@@ -47,6 +47,8 @@ func (this *RequestVoteResponse) Execute(state *raftstate.State, senderState *no
     if supp > nVictory {
         log.Println("election won");
         (*state).SetRole(raftstate.LEADER)
+        (*state).SetLeaderIpPrivate((*state).GetIdPrivate())
+        (*state).SetLeaderIpPublic((*state).GetIdPublic())
         (*state).ResetElection()
         return nil
     }
