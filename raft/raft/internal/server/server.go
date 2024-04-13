@@ -138,6 +138,7 @@ func (s *Server) acceptIncomingConn() {
             if s._state.Leader(){
                 conn.Write([]byte("ok\n"))
             }else{
+                log.Printf("sending public ip of leader: %v\n", s._state.GetLeaderIpPublic())
                 conn.Write([]byte(s._state.GetLeaderIpPublic()+"\n"))
             }
         }
