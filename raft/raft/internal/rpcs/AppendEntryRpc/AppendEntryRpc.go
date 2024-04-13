@@ -112,9 +112,10 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
 
     if role != raftstate.FOLLOWER {
         (*state).BecomeFollower()
-        (*state).SetLeaderIpPrivate(this.pMex.LeaderIdPrivate)
-        (*state).SetLeaderIpPublic(this.pMex.LeaderIdPublic)
     }
+
+    (*state).SetLeaderIpPrivate(this.pMex.LeaderIdPrivate)
+    (*state).SetLeaderIpPublic(this.pMex.LeaderIdPublic)
 
     if len(newEntries) > 0 {
 
