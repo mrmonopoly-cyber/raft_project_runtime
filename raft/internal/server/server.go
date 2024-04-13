@@ -56,6 +56,8 @@ func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port strin
 		log.Fatalf("Failed to listen on port %s: %s", port, err)
 	}
 
+    log.Printf("my ip are: %v, %v\n",  ipAddPrivate, ipAddrPublic)
+
 	var server = &Server{
 		_state:         state.NewState(term, ipAddPrivate, ipAddrPublic, state.FOLLOWER),
 		otherNodes:     &sync.Map{},
