@@ -88,6 +88,7 @@ func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port strin
 }
 
 func (s *Server) Start() {
+    s.wg.Add(2)
     log.Println("Start accepting connections")
     go s.acceptIncomingConn()
     s._state.StartElectionTimeout()
@@ -97,7 +98,6 @@ func (s *Server) Start() {
 }
 
 func (s *Server) acceptIncomingConn() {
-    s.wg.Add(1)
 	defer s.wg.Done()
 	for {
   //      log.Println("waiting new connection")
@@ -197,7 +197,6 @@ func (s *Server) sendAll(rpc *rpcs.Rpc){
 }
 
 func (s *Server) run() {
-    s.wg.Add(1)
 	defer s.wg.Done()
 	for {
 		var mess pairMex
