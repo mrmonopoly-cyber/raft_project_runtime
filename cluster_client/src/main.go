@@ -20,7 +20,23 @@ func main()  {
     var conn net.Conn
     var mex []byte
     var ipAddr string
-    var req = protobuf.ClientReq{Op: protobuf.Operation_READ,}
+
+    /*
+    TODO:   
+        implement different operation type with an interaction by the user,
+        also implement add data in the payload field, when needed.
+        OPERATION TO ADD:
+            1- CREATE create ad file with name specified in the payload
+            2- READ (add the name of the file to read in the payload)
+            3- WRITE (write data in the file, if it does not exist the file will be created)
+            4- RENAME (rename a file)
+            5- DELETE (delete a file from the cluster)
+    */
+    
+    var req = protobuf.ClientReq{
+        Op: protobuf.Operation_READ,
+        Payload: nil,
+    }
 
     ipAddr = GetCluterNodeIp()
     conn = ConnectToLeader(ipAddr)
