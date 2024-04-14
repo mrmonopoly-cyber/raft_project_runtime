@@ -52,7 +52,7 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
 
 // ToString implements rpcs.Rpc.
 func (this *ClientReq) ToString() string {
-    panic("dummy implementation")
+    return "{" + (*this).pMex.GetOp().String() + "}"
 }
 
 func (this *ClientReq) Encode() ([]byte, error) {

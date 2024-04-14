@@ -13,6 +13,7 @@ import (
 	state "raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
+	"raft/internal/rpcs/ClientReq"
 	"raft/internal/rpcs/RequestVoteRPC"
 	p "raft/pkg/rpcEncoding/out/protobuf"
 	"reflect"
@@ -29,6 +30,7 @@ type Server struct {
 	_state         state.State
 	messageChannel chan pairMex
 	otherNodes     *sync.Map
+    clientNodes    *sync.Map
 	listener       net.Listener
 	wg             sync.WaitGroup
 }
@@ -61,6 +63,7 @@ func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port strin
 	var server = &Server{
 		_state:         state.NewState(term, ipAddPrivate, ipAddrPublic, state.FOLLOWER),
 		otherNodes:     &sync.Map{},
+        clientNodes:    &sync.Map{},
 		messageChannel: make(chan pairMex),
 		listener:       listener,
 	}
@@ -117,39 +120,67 @@ func (s *Server) acceptIncomingConn() {
 		var newConncetionPort string = string(rune(tcpAddr.Port))
         var id_node string = generateID(newConncetionIp)
         var found bool
-        var value any
-        var connNode node.Node
-		value, found = s.otherNodes.Load(id_node)
+		_, found = s.otherNodes.Load(id_node)
         log.Printf("new connec: %v\n", newConncetionIp)
 
-        if strings.Contains(newConncetionIp, "10.0.0") {
-            if found {
-                connNode = value.(node.Node)
-            } else {
-                log.Printf("node with ip %v not found", newConncetionIp)
-                var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
-                s.otherNodes.Store(id_node, new_node)
-                s._state.IncreaseNodeInCluster()
-                connNode = new_node
-            }
-            go s.handleResponseSingleNode(id_node,&connNode)
-        }else{
-            log.Println("new client request to cluster")
-            if s._state.Leader(){
-                conn.Write([]byte("ok\n"))
-            }else{
-                log.Printf("sending public ip of leader: %v\n", s._state.GetLeaderIpPublic())
-                conn.Write([]byte(s._state.GetLeaderIpPublic()+"\n"))
-            }
+        if found {
+            log.Println("adding a new node who is already in the cluster, probably a bug:",newConncetionIp)
+            continue
         }
 
+        log.Printf("node with ip %v not found", newConncetionIp)
+        var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
+        go s.handleConnection(id_node,&new_node)
 	}
 }
 
-func (s *Server) handleResponseSingleNode(id_node string, workingNode *node.Node) {
+func (s* Server) handleConnection(idNode string, workingNode *node.Node){
     s.wg.Add(1)
     defer s.wg.Done()
 
+    var nodeIp string = (*workingNode).GetIp()
+
+    if strings.Contains(nodeIp, "10.0.0") {
+        s.otherNodes.Store(idNode, workingNode)
+        s._state.IncreaseNodeInCluster()
+        s.handleResponseSingleNode(idNode,workingNode)
+    }else{
+        s.handleNewClientConnection(workingNode)
+    }
+}
+
+func (s* Server) handleNewClientConnection(client *node.Node){
+    log.Println("new client request to cluster")
+    if s._state.Leader(){
+        (*client).Send([]byte("ok\n"))
+        var mex []byte
+        var err error
+        var clientReq ClientReq.ClientReq
+
+        mex,err = (*client).Recv()
+        if err != nil {
+            fmt.Printf("error in reading from node %v with error %v",(*client).GetIp(), err)
+            (*client).CloseConnection()
+            return
+        }
+
+        err = clientReq.Decode(mex)
+        if err != nil {
+            fmt.Printf("error in decoding client request from node %v with error %v",(*client).GetIp(), err)
+            (*client).CloseConnection()
+            return
+        }
+        log.Println("managing client Request: ", clientReq.ToString())
+        clientReq.Execute(&s._state,(*client).GetNodeState())
+
+    }else{
+        log.Printf("sending public ip of leader: %v\n", s._state.GetLeaderIpPublic())
+        (*client).Send([]byte(s._state.GetLeaderIpPublic()+"\n"))
+    }
+    (*client).CloseConnection()
+}
+
+func (s *Server) handleResponseSingleNode(id_node string, workingNode *node.Node) {
     for{
         var message []byte
         var errMes error
