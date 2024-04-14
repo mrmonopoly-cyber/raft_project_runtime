@@ -59,7 +59,7 @@ func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) boo
 		if len(entries) <= int(last_log_index) {
 			return true
 		}
-		if last_log_term >= *(entries[last_log_index]).Term {
+		if last_log_term >= (entries[last_log_index]).Term {
 			return true
 		}
 	}
