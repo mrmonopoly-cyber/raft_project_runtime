@@ -170,6 +170,7 @@ func (s* Server) handleNewClientConnection(client *node.Node){
             (*client).CloseConnection()
             return
         }
+        log.Println("managing client Request: ", clientReq.ToString())
         clientReq.Execute(&s._state,(*client).GetNodeState())
 
     }else{
