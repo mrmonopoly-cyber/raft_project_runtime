@@ -156,7 +156,8 @@ func (s* Server) handleNewClientConnection(client *node.Node){
     log.Println("new client request to cluster")
     if s._state.Leader(){
         var clientReq ClientReq.ClientReq
-        var leaderIp protobuf.PublicIp = p.PublicIp{IP: "ok",}
+        var ok = "ok"
+        var leaderIp protobuf.PublicIp = p.PublicIp{IP: ok,}
         var mex,err = proto.Marshal(&leaderIp)
 
         if err != nil {
