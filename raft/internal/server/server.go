@@ -15,10 +15,13 @@ import (
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/ClientReq"
 	"raft/internal/rpcs/RequestVoteRPC"
+	"raft/pkg/rpcEncoding/out/protobuf"
 	p "raft/pkg/rpcEncoding/out/protobuf"
 	"reflect"
 	"strings"
 	"sync"
+
+	"google.golang.org/protobuf/proto"
 )
 
 type pairMex struct{
@@ -152,10 +155,15 @@ func (s* Server) handleConnection(idNode string, workingNode *node.Node){
 func (s* Server) handleNewClientConnection(client *node.Node){
     log.Println("new client request to cluster")
     if s._state.Leader(){
-        (*client).Send([]byte("ok\n"))
-        var mex []byte
-        var err error
         var clientReq ClientReq.ClientReq
+        var leaderIp protobuf.PublicIp = p.PublicIp{IP: "ok",}
+        var mex,err = proto.Marshal(&leaderIp)
+
+        if err != nil {
+            log.Panicln("error encoding confirmation leader public ip for client:",err)
+        }
+
+        (*client).Send(mex)
 
         mex,err = (*client).Recv()
         if err != nil {
@@ -174,8 +182,15 @@ func (s* Server) handleNewClientConnection(client *node.Node){
         clientReq.Execute(&s._state,(*client).GetNodeState())
 
     }else{
+        var leaderIp protobuf.PublicIp = p.PublicIp{IP: s._state.GetLeaderIpPublic(),}
+        var mex,err = proto.Marshal(&leaderIp)
         log.Printf("sending public ip of leader: %v\n", s._state.GetLeaderIpPublic())
-        (*client).Send([]byte(s._state.GetLeaderIpPublic()+"\n"))
+
+        if err != nil {
+            log.Panicln("error encoding leader public ip for client:",err)
+        }
+
+        (*client).Send(mex)
     }
     (*client).CloseConnection()
 }
