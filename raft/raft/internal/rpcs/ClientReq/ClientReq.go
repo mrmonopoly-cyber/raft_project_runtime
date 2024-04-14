@@ -24,22 +24,22 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
     switch operation{
     case protobuf.Operation_READ:
         log.Printf("testing operation READ, TO IMPLEMENT")
-        *newLogEntry.OpType = protobuf.Operation_READ
+        newLogEntry.OpType = protobuf.Operation_READ
         op = "READ"
     case protobuf.Operation_WRITE:
         log.Printf("testing operation WRITE, TO IMPLEMENT")
-        *newLogEntry.OpType = protobuf.Operation_WRITE
+        newLogEntry.OpType = protobuf.Operation_WRITE
         op = "WRITE"
     case protobuf.Operation_DELETE:
         log.Printf("testing operation DELETE, TO IMPLEMENT")
-        *newLogEntry.OpType = protobuf.Operation_DELETE
+        newLogEntry.OpType = protobuf.Operation_DELETE
         op = "DELETE"
     default:
         log.Printf("NOT IMPLMENTED OPERATION %v\n", operation)
         return nil
     }
 
-    *newLogEntry.Description = "new " + op + " operation on file" + string((*this).pMex.Payload)
+    newLogEntry.Description = "new " + op + " operation on file" + string((*this).pMex.Payload)
 
     return nil
 }
