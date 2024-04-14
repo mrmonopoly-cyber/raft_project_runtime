@@ -9,6 +9,7 @@ enum MexType {
     APPEND_ENTRY_RESPONSE = 1;
     REQUEST_VOTE = 2;
     REQUEST_VOTE_RESPONSE = 3;
+    CLIENT_REQUEST =4;
 }
 
 message Entry {
