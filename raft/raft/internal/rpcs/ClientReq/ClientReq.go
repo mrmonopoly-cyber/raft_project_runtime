@@ -18,8 +18,12 @@ type ClientReq struct {
 // Manage implements rpcs.Rpc.
 func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
     var operation protobuf.Operation = (*this).pMex.Op
+    var newEntries []*protobuf.LogEntry =make([]*protobuf.LogEntry, 1)
     var newLogEntry protobuf.LogEntry
     var op string = "NULL"
+
+    newLogEntry.Term = (*state).GetTerm()
+    newEntries[0] = &newLogEntry
 
     switch operation{
     case protobuf.Operation_READ:
@@ -40,6 +44,9 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
     }
 
     newLogEntry.Description = "new " + op + " operation on file" + string((*this).pMex.Payload)
+
+    (*state).AppendEntries(newEntries,0)
+
 
     return nil
 }
