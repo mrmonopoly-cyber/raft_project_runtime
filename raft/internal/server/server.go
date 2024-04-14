@@ -141,7 +141,7 @@ func (s* Server) handleConnection(idNode string, workingNode *node.Node){
     var nodeIp string = (*workingNode).GetIp()
 
     if strings.Contains(nodeIp, "10.0.0") {
-        s.otherNodes.Store(idNode, workingNode)
+        s.otherNodes.Store(idNode, *workingNode)
         s._state.IncreaseNodeInCluster()
         s.handleResponseSingleNode(idNode,workingNode)
     }else{
