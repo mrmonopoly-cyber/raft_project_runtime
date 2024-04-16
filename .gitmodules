@@ -1,0 +1,3 @@
+[submodule "raft/pkg/raft-rpcProtobuf-messages"]
+	path = raft/pkg/raft-rpcProtobuf-messages
+	url = https://github.com/AlessandroPirolo/raft-rpcProtobuf-messages.git

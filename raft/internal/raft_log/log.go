@@ -2,7 +2,7 @@ package raft_log
 
 import (
 	l "log"
-	p "raft/pkg/rpcEncoding/out/protobuf"
+	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 )
 
 type LogEntry interface {

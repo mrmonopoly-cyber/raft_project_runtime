@@ -3,7 +3,7 @@ package raftstate
 import (
 	"math/rand"
 	l "raft/internal/raft_log"
-	p "raft/pkg/rpcEncoding/out/protobuf"
+	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"time"
 )
 

@@ -15,8 +15,8 @@ import (
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/ClientReq"
 	"raft/internal/rpcs/RequestVoteRPC"
-	"raft/pkg/rpcEncoding/out/protobuf"
-	p "raft/pkg/rpcEncoding/out/protobuf"
+	//"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"reflect"
 	"strings"
 	"sync"
@@ -157,7 +157,7 @@ func (s* Server) handleNewClientConnection(client *node.Node){
     if s._state.Leader(){
         var clientReq rpcs.Rpc = &ClientReq.ClientReq{}
         var ok = "ok"
-        var leaderIp protobuf.PublicIp = p.PublicIp{IP: ok,}
+        var leaderIp p.PublicIp = p.PublicIp{IP: ok,}
         var mex,err = proto.Marshal(&leaderIp)
 
         if err != nil {
@@ -182,7 +182,7 @@ func (s* Server) handleNewClientConnection(client *node.Node){
         log.Println("managing client Request: ", clientReq.ToString())
         clientReq.Execute(&s._state,(*client).GetNodeState())
     }else{
-        var leaderIp protobuf.PublicIp = p.PublicIp{IP: s._state.GetLeaderIpPublic(),}
+        var leaderIp p.PublicIp = p.PublicIp{IP: s._state.GetLeaderIpPublic(),}
         var mex,err = proto.Marshal(&leaderIp)
         log.Printf("sending public ip of leader: %v\n", s._state.GetLeaderIpPublic())
 

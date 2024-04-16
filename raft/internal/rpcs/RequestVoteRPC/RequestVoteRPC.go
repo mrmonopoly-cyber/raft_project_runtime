@@ -4,7 +4,7 @@ import (
 	"log"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
-	"raft/pkg/rpcEncoding/out/protobuf"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strconv"
     "raft/internal/rpcs/RequestVoteResponse"
 	"raft/internal/node/nodeState"

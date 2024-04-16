@@ -8,7 +8,7 @@ import (
 	"raft/internal/rpcs/RequestVoteRPC"
 	"raft/internal/rpcs/RequestVoteResponse"
 
-	"raft/pkg/rpcEncoding/out/protobuf"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
 )
