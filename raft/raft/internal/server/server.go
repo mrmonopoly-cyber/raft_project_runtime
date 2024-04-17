@@ -54,7 +54,7 @@ func generateID(input string) string {
 	return id
 }
 
-func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port string, serversIp []string) *Server {
+func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port string, serversIp []string, fsRootDir string) *Server {
 	listener, err := net.Listen("tcp",":"+port)
 
 	if err != nil {
@@ -64,7 +64,7 @@ func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port strin
     log.Printf("my ip are: %v, %v\n",  ipAddPrivate, ipAddrPublic)
 
 	var server = &Server{
-		_state:         state.NewState(term, ipAddPrivate, ipAddrPublic, state.FOLLOWER),
+		_state:         state.NewState(term, ipAddPrivate, ipAddrPublic, state.FOLLOWER, fsRootDir),
 		otherNodes:     &sync.Map{},
         clientNodes:    &sync.Map{},
 		messageChannel: make(chan pairMex),
@@ -155,7 +155,7 @@ func (s* Server) handleConnection(idNode string, workingNode *node.Node){
 func (s* Server) handleNewClientConnection(client *node.Node){
     log.Println("new client request to cluster")
     if s._state.Leader(){
-        var clientReq ClientReq.ClientReq
+        var clientReq rpcs.Rpc = &ClientReq.ClientReq{}
         var ok = "ok"
         var leaderIp protobuf.PublicIp = p.PublicIp{IP: ok,}
         var mex,err = proto.Marshal(&leaderIp)
@@ -181,7 +181,6 @@ func (s* Server) handleNewClientConnection(client *node.Node){
         }
         log.Println("managing client Request: ", clientReq.ToString())
         clientReq.Execute(&s._state,(*client).GetNodeState())
-
     }else{
         var leaderIp protobuf.PublicIp = p.PublicIp{IP: s._state.GetLeaderIpPublic(),}
         var mex,err = proto.Marshal(&leaderIp)
@@ -256,7 +255,6 @@ func (s *Server) run() {
 
         select {
         case mess = <-s.messageChannel:
-            //log.Println("processing message: ", (*mess.payload).ToString())
             var rpcCall *rpcs.Rpc
             var sender string = mess.sender
             var oldRole raftstate.Role
@@ -267,8 +265,6 @@ func (s *Server) run() {
             var ok bool
             var senderState *nodeState.VolatileNodeState
             var senderNode node.Node
-
-            f, ok = s.otherNodes.Load(generateID(sender))
 
             f, ok = s.otherNodes.Load(generateID(sender))
             if !ok {
