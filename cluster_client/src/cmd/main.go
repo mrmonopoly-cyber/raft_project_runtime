@@ -18,9 +18,9 @@ import (
 //ip range of cluster 192.168.122.2 192.168.122.255
 
 func main()  {
-    var conn net.Conn
-    var mex []byte
-    var ipAddr string
+    //var conn net.Conn
+    //var mex []byte
+    //var ipAddr string
 
     /*
     TODO:   
@@ -34,19 +34,19 @@ func main()  {
             5- DELETE (delete a file from the cluster)
     */
     
-    var req = protobuf.ClientReq{
+    /*var req = protobuf.ClientReq{
         Op: protobuf.Operation_READ,
         Payload: nil,
-    }
+    }*/
 
     var cli = usercli.NewCli()
 
-    cli.Start()
+    log.Println(cli.Start())
 
-    ipAddr = GetCluterNodeIp()
-    conn = ConnectToLeader(ipAddr)
-    mex = EncodeMessage(&req)
-    SendCluster(conn, mex)
+    //ipAddr = GetCluterNodeIp()
+    //conn = ConnectToLeader(ipAddr)
+    //mex = EncodeMessage(&req)
+    //SendCluster(conn, mex)
 }
 
 func EncodeMessage(req *protobuf.ClientReq) []byte{
