@@ -1,0 +1,3 @@
+[submodule "cluster_client/raft-rpcProtobuf-messages"]
+	path = cluster_client/raft-rpcProtobuf-messages
+	url = https://github.com/AlessandroPirolo/raft-rpcProtobuf-messages.git

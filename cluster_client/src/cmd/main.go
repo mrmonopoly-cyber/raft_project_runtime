@@ -5,9 +5,10 @@ import (
 	"io"
 	"log"
 	"net"
-	"raft/client/protobuf/protobuf"
+	"raft/client/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strings"
   "raft/client/src/internal/user_cli"
+  "raft/client/src/internal/rpcs/client_request"
 
 	"google.golang.org/protobuf/proto"
 	"libvirt.org/go/libvirt"
@@ -18,9 +19,9 @@ import (
 //ip range of cluster 192.168.122.2 192.168.122.255
 
 func main()  {
-    //var conn net.Conn
-    //var mex []byte
-    //var ipAddr string
+    var conn net.Conn
+    var mex []byte
+    var ipAddr string
 
     /*
     TODO:   
@@ -29,24 +30,25 @@ func main()  {
         OPERATION TO ADD:
             1- CREATE create ad file with name specified in the payload
             2- READ (add the name of the file to read in the payload)
-            3- WRITE (write data in the file, if it does not exist the file will be created)
+  3- WRITE (write data in the file, if it does not exist the file will be created)
             4- RENAME (rename a file)
             5- DELETE (delete a file from the cluster)
     */
     
-    /*var req = protobuf.ClientReq{
-        Op: protobuf.Operation_READ,
-        Payload: nil,
-    }*/
 
     var cli = usercli.NewCli()
+    parameters := cli.Start()
+    log.Println(parameters)
+    clientReq := clientrequest.NewClientRequest(parameters)
+    mex, err := clientReq.Encode()
+    
+    if err != nil {
+        panic("error encoding")
+    }
 
-    log.Println(cli.Start())
-
-    //ipAddr = GetCluterNodeIp()
-    //conn = ConnectToLeader(ipAddr)
-    //mex = EncodeMessage(&req)
-    //SendCluster(conn, mex)
+    ipAddr = GetCluterNodeIp()
+    conn = ConnectToLeader(ipAddr)
+    SendCluster(conn, mex)
 }
 
 func EncodeMessage(req *protobuf.ClientReq) []byte{
