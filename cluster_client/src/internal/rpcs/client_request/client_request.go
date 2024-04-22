@@ -12,19 +12,23 @@ type ClientRequest struct {
 
 func NewClientRequest(parameters map[string]string) rpc.Rpc  {
   var op protobuf.Operation = protobuf.Operation_READ
-  var payload []byte = []byte(parameters["fileName"])
+  var fileName []byte = []byte(parameters["fileName"])
+  var others []byte = nil
 
   switch parameters["operation"] {
     case "Read": 
       op = protobuf.Operation_READ
     case "Write":
       op = protobuf.Operation_WRITE
+      others = []byte(parameters["addParam"])
     case "Rename":
       op = protobuf.Operation_RENAME  
+      others = []byte(parameters["addParam"])
     case "Delete":
       op = protobuf.Operation_DELETE
     case "Create":
       op = protobuf.Operation_CREATE 
+      others = []byte(parameters["addParam"])
     default: 
       op = protobuf.Operation_READ
   }
@@ -32,7 +36,8 @@ func NewClientRequest(parameters map[string]string) rpc.Rpc  {
   return &ClientRequest{
      pMex: protobuf.ClientReq{
       Op: op,
-      Payload: payload,
+      FileName: fileName,
+      Others: others,
     },
   }
 }
@@ -42,24 +47,11 @@ func (this *ClientRequest) ToString() string {
 } 
 
 func (this *ClientRequest) Encode() ([]byte, error) {
-    var mex []byte
-    var err error
-
-    mex, err = proto.Marshal(&(this).pMex)
-    if err != nil {
-        panic("error encoding")
-    }
-    return mex, err
+    return proto.Marshal(&(this).pMex)
 }
 
 func (this *ClientRequest) Decode(rawMex []byte) error {
-  err := proto.Unmarshal(rawMex, &this.pMex)
-  if err != nil {
-    panic("error decoding")
-  }
-
-  return err
-  
+  return proto.Unmarshal(rawMex, &this.pMex)
 } 
 
 

@@ -5,10 +5,11 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"raft/client/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"raft/client/src/internal/rpcs/client_request"
+	"raft/client/src/internal/user_cli"
 	"strings"
-  "raft/client/src/internal/user_cli"
-  "raft/client/src/internal/rpcs/client_request"
 
 	"google.golang.org/protobuf/proto"
 	"libvirt.org/go/libvirt"
@@ -37,12 +38,24 @@ func main()  {
     
 
     var cli = usercli.NewCli()
-    parameters := cli.Start()
+    parameters, err := cli.Start()
+    if err != nil {
+      log.Panicln("Error in CLI: ", err)
+    }
+
+    if parameters["operation"] == "Create" || parameters["operation"] == "Write" {
+      content, err1 := os.ReadFile(parameters["addParam"])
+      if err1 != nil {
+        log.Printf("Error in reading path %s : %s", parameters["addParam"], err1)
+      }
+      parameters["addParam"] = string(content)
+    }
+
     log.Println(parameters)
     clientReq := clientrequest.NewClientRequest(parameters)
-    mex, err := clientReq.Encode()
+    mex, err2 := clientReq.Encode()
     
-    if err != nil {
+    if err2 != nil {
         panic("error encoding")
     }
 

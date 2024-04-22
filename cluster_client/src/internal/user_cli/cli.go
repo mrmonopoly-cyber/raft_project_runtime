@@ -1,12 +1,12 @@
 package usercli
 
 import (
-	m "raft/client/src/user_cli/model"
-  clusterform "raft/client/src/user_cli/model/cluster_form"
+	m "raft/client/src/internal/user_cli/model"
+  clusterform "raft/client/src/internal/user_cli/model/cluster_form"
 )
 
 type Cli interface {
-  Start() map[string]string
+  Start() (map[string]string, error)
 }
 
 type cli struct {}
@@ -15,11 +15,9 @@ func NewCli() *cli {
   return new(cli)
 }
 
-func (this *cli) Start() map[string]string {
-  var fileNames map[string]string
+func (this *cli) Start() (map[string]string, error) {
   var text_input m.Model = clusterform.NewClusterForm("Read")
-  fileNames = text_input.Show()
-  return fileNames
+  return text_input.Show()
 }
 
 

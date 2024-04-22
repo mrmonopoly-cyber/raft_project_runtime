@@ -3,7 +3,6 @@ package clusterform
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
   m "raft/client/src/internal/user_cli/model"
 	"github.com/charmbracelet/bubbles/list"
@@ -122,12 +121,8 @@ func (this ClusterForm) View() string {
 }
 
 
-func (this ClusterForm) Show() map[string]string {
+func (this ClusterForm) Show() (map[string]string, error) {
   l, err := tea.NewProgram(this).Run()
-	if err != nil {
-		fmt.Println("Error running program:", err)
-		os.Exit(1)
-	}
 
   form := l.(*ClusterForm)
   var value map[string]string = map[string]string{}
@@ -136,7 +131,7 @@ func (this ClusterForm) Show() map[string]string {
   if len(form.inputs) == 2 {
     value["addParam"] = form.inputs[1].Value()
   }
-  return value
+  return value, err
 
 }
 
@@ -182,7 +177,9 @@ func (this *ClusterForm) viewInputsField() string {
 		  this.inputs[0].View(),) + "\n"
   } else {
     return fmt.Sprintf(
-		  `  %s  
+		  `
+
+  %s  
   %s 
 
   %s 
