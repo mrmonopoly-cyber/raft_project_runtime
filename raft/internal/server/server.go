@@ -54,7 +54,7 @@ func generateID(input string) string {
 	return id
 }
 
-func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port string, serversIp []string) *Server {
+func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port string, serversIp []string, fsRootDir string) *Server {
 	listener, err := net.Listen("tcp",":"+port)
 
 	if err != nil {
@@ -64,7 +64,7 @@ func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port strin
     log.Printf("my ip are: %v, %v\n",  ipAddPrivate, ipAddrPublic)
 
 	var server = &Server{
-		_state:         state.NewState(term, ipAddPrivate, ipAddrPublic, state.FOLLOWER),
+		_state:         state.NewState(term, ipAddPrivate, ipAddrPublic, state.FOLLOWER, fsRootDir),
 		otherNodes:     &sync.Map{},
         clientNodes:    &sync.Map{},
 		messageChannel: make(chan pairMex),

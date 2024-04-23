@@ -12,7 +12,7 @@ type LogEntry interface {
 	SetCommitIndex(val int64)
 	AppendEntries(newEntries []*p.LogEntry, index int)
 	LastLogIndex() int
-	UpdateLastApplied() int
+	UpdateLastApplied() error
 	InitState()
 }
 
@@ -20,6 +20,7 @@ type log struct {
 	entries     []p.LogEntry
 	lastApplied int
 	commitIndex int64
+
 }
 
 func extend(slice []p.LogEntry, addedCapacity int) []p.LogEntry {
@@ -81,12 +82,12 @@ l.Println(index)
   l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
 }
 
-func (this *log) UpdateLastApplied() int {
-	if int(this.commitIndex) > this.lastApplied {
+func (this *log) UpdateLastApplied() error{
+	for int(this.commitIndex) > this.lastApplied {
 		this.lastApplied++
-		return this.lastApplied
+        //TODO: apply to local FS
 	}
-	return -1
+	return nil
 }
 
 func (this *log) GetCommitIndex() int64 {

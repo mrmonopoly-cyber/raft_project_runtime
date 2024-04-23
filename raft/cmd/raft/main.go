@@ -11,6 +11,7 @@ import (
 func main() {
 
   var workDir = "/root/mount/raft/"
+  var fsRootDir = workDir + "locafs/"
   var fileMyIp, errm = os.ReadFile(workDir + "my_ip")
   if errm != nil {
     panic("could not find my ip")
@@ -23,10 +24,11 @@ func main() {
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
 
+  os.Mkdir(fsRootDir, os.ModePerm)
 
   log.Println("listening on port: " + "8080" + " with ip: " + stringMyIp[0])
 
-  var server1 *ser.Server = ser.NewServer(0, stringMyIp[0], stringMyIp[1], "8080", addresses)
+  var server1 *ser.Server = ser.NewServer(0, stringMyIp[0], stringMyIp[1], "8080", addresses, fsRootDir)
 
   var wg sync.WaitGroup
 
