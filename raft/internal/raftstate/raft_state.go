@@ -76,7 +76,7 @@ type State interface {
 	ResetElection()
 	BecomeFollower()
 	GetLastLogIndex() int
-	UpdateLastApplied() int
+	UpdateLastApplied() error
 	CheckCommitIndex(idxList []int)
 	GetLeaderIpPrivate() string
 	GetLeaderIpPublic() string
@@ -113,6 +113,9 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 }
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry, index int) {
+    for _, v := range newEntries {
+        (*this).localFs.ApplyLogEntry(v)
+    }
 	this.log.AppendEntries(newEntries, index)
 }
 
@@ -221,7 +224,7 @@ func (this *raftStateImpl) GetLastLogIndex() int {
 	return this.log.LastLogIndex()
 }
 
-func (this *raftStateImpl) UpdateLastApplied() int {
+func (this *raftStateImpl) UpdateLastApplied() error{
 	// TODO: apply log to state machine (?)
 	return this.log.UpdateLastApplied()
 }

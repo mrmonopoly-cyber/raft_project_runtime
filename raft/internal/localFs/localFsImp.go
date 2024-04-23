@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 	"sync"
+    "raft/pkg/rpcEncoding/out/protobuf"
 )
+
 
 
 type fs struct{
@@ -15,7 +17,15 @@ type fs struct{
     files map[string]string
 }
 
-func (this *fs) Create(file string) error{
+func (this *fs)ApplyLogEntry(log *protobuf.LogEntry) error{
+    switch log.GetOpType(){
+    case protobuf.Operation_READ:
+    }
+    panic("not implemented")
+}
+
+//utility
+func (this *fs) create(file string) error{
     (*this).lock.Lock()
     defer (*this).lock.Unlock()
 
@@ -31,7 +41,7 @@ func (this *fs) Create(file string) error{
 
     return err 
 }
-func (this *fs) Read(file string) ([]byte,error){
+func (this *fs) read(file string) ([]byte,error){
     (*this).lock.RLock()
     defer (*this).lock.Unlock()
 
@@ -58,7 +68,7 @@ func (this *fs) Read(file string) ([]byte,error){
     return resultBuffer.Bytes(),nil
 }
 
-func (this *fs) Update(file string, data []byte) error{
+func (this *fs) update(file string, data []byte) error{
     (*this).lock.Lock()
     defer (*this).lock.Unlock()
 
@@ -74,7 +84,7 @@ func (this *fs) Update(file string, data []byte) error{
     fd.Close()
     return err 
 }
-func (this *fs) Delete(file string) error{
+func (this *fs) delete(file string) error{
     (*this).lock.Lock()
     defer (*this).lock.Unlock()
 
@@ -86,7 +96,7 @@ func (this *fs) Delete(file string) error{
     return err
 }
 
-func (this *fs) Rename(file string, newName string) error{
+func (this *fs) rename(file string, newName string) error{
     (*this).lock.Lock()
     defer (*this).lock.Unlock()
 
@@ -99,7 +109,6 @@ func (this *fs) Rename(file string, newName string) error{
     return err
 }
 
-//utility
 
 func (this *fs) getFilePath(file string) string{
     return this.rootDir + file
