@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 	"sync"
-    "raft/pkg/rpcEncoding/out/protobuf"
+    "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 )
 
 

@@ -1,6 +1,6 @@
 package localfs
 
-import "raft/pkg/rpcEncoding/out/protobuf"
+import "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
 type LocalFs interface{
     ApplyLogEntry(log *protobuf.LogEntry) error
