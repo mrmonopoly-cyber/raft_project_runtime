@@ -2,7 +2,6 @@ package AppendEntryRpc
 
 import (
     "fmt"
-    "log"
     "raft/internal/node/nodeState"
     "raft/internal/raftstate"
     "raft/internal/rpcs"
@@ -65,18 +64,12 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
     }
 
     if logSize == 0  && prevLogIndex > 0{
-        log.Println("case 2: logSize = 0")
         return false, 0
     }
 
     if logSize-1 < int(prevLogIndex) {
-        log.Println("case 2")
-        log.Printf("logSize - 1: %d, and prevLogIndex: %d", (logSize-1), int(prevLogIndex))
         return false, (logSize - 1)
     }
-    fmt.Print("case 3")
-  log.Println(entries)
-  log.Printf("prevLogTerm: %d,, getTerm: %d, getDescr: %s,, getType: %o", prevLogTerm, entries[prevLogIndex].GetTerm(), entries[prevLogIndex].GetDescription(), entries[prevLogIndex].GetOpType())
     
     consistent := entries[prevLogIndex].GetTerm() == prevLogTerm
 
@@ -124,7 +117,6 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
         fmt.Println(!consistent)
 
         if !consistent {
-            fmt.Println("Not consistent")
             resp = respondeAppend(id, false, myTerm, nextIdx)
         } else {
             (*state).AppendEntries(newEntries, nextIdx)
@@ -143,7 +135,6 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
     } 
 
     if resp == nil {
-        log.Println("hearthbeat")
         resp = respondeAppend(id, true, myTerm, (*state).GetLastLogIndex())
     }
 
@@ -177,19 +168,9 @@ func respondeAppend(id string, success bool, term uint64, error int) *rpcs.Rpc {
 
     func (this *AppendEntryRpc) Encode() ([]byte, error) {
 
-        var mess []byte
-        var err error
-        mess, err = proto.Marshal(&(*this).pMex)
-        if err != nil {
-            log.Panicln("error in Encoding Append Entry: ", err)
-        }
-        return mess, err
+        return proto.Marshal(&(*this).pMex)
     }
 
     func (this *AppendEntryRpc) Decode(rawMex []byte) error {
-        err := proto.Unmarshal(rawMex, &this.pMex)
-        if err != nil {
-            log.Panicln("error in Decoding Append Entry: ", err)
-        }
-        return err
+        return proto.Unmarshal(rawMex, &this.pMex)
     }

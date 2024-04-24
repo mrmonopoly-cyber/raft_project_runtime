@@ -28,10 +28,6 @@ lastLogIndex int64, lastLogTerm uint64) rpcs.Rpc {
     }
 }
 
-// GetCandidateId rpcs.Rpc.
-func (this *RequestVoteRPC) GetCandidateId() string {
-  return this.pMex.CandidateId
-}
 
 // ToString rpcs.Rpc.
 func (this *RequestVoteRPC) ToString() string {
@@ -44,34 +40,12 @@ func (this *RequestVoteRPC) ToString() string {
 
 // Encode rpcs.Rpc.
 func (this *RequestVoteRPC) Encode() ([]byte, error) {
-	var mess []byte
-	var err error
-
-	mess, err = proto.Marshal(&(*this).pMex)
-	if err != nil {
-		log.Panicln("error in Encoding Request Vote: ", err)
-	}
-
-	return mess, err
+	return proto.Marshal(&(*this).pMex)
 }
 
 // Decode rpcs.Rpc.
 func (this *RequestVoteRPC) Decode(b []byte) error {
-	err := proto.Unmarshal(b,&this.pMex)
-    if err != nil {
-        log.Panicln("error in Encoding Request Vote: ", err)
-    }
-	return err
-}
-
-// GetLastLogIndex  rpcs.Rpc.
-func (this *RequestVoteRPC) GetLastLogIndex() int64 {
-	return this.pMex.LastLogIndex
-}
-
-// GetLastLogTerm rpcs.Rpc.
-func (this *RequestVoteRPC) GetLastLogTerm() uint64 {
-	return this.pMex.LastLogTerm
+	return proto.Unmarshal(b,&this.pMex)
 }
 
 // Manage implements rpcs.Rpc.
@@ -89,11 +63,11 @@ func (this *RequestVoteRPC) Execute(state *raftstate.State, senderState *nodeSta
 		return this.respondeVote(state, &sender, false)
 	}
 
-    if ! (*state).MoreRecentLog(this.GetLastLogIndex(), this.GetLastLogTerm()) {
+    if ! (*state).MoreRecentLog(this.pMex.GetLastLogIndex(), this.pMex.GetLastLogTerm()) {
         log.Printf("request vote: log not recent enough")
         return this.respondeVote(state, &sender,false)
-    }else if myVote == "" || myVote == this.GetCandidateId(){
-        log.Printf("request vote: vote accepted, voting for: %v", this.GetCandidateId())
+    }else if myVote == "" || myVote == this.pMex.GetCandidateId(){
+        log.Printf("request vote: vote accepted, voting for: %v", this.pMex.GetCandidateId())
         (*state).VoteFor(sender)
         return this.respondeVote(state,&sender,true)
     }

@@ -1,7 +1,6 @@
 package address
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -12,7 +11,7 @@ type NodeAddress interface {
 }
 
 
-func NewNodeAddress(ipAddr string, port string) NodeAddress {
+func NewNodeAddress(ipAddr string, port string) (NodeAddress, error) {
 	var sectorsStr = strings.Split(ipAddr, ".")
 	var node nodeAddress
 
@@ -20,8 +19,7 @@ func NewNodeAddress(ipAddr string, port string) NodeAddress {
 	for i := 0; i < sectorsNumber; i++ {
 		out, err := strconv.Atoi(sectorsStr[i])
 		if err != nil {
-			fmt.Println("Error:", err)
-			return nil
+			return nil, err
 		}
 		node.sectors[i] = uint8(out)
 	}
@@ -29,5 +27,5 @@ func NewNodeAddress(ipAddr string, port string) NodeAddress {
 	var port_int, _ = strconv.Atoi(port)
 	node.port = uint16(port_int)
 
-	return &node
+	return &node, nil
 }

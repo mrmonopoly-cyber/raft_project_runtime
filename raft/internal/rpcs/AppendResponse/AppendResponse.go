@@ -1,7 +1,6 @@
 package AppendResponse
 
 import (
-	"log"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/internal/node/nodeState"
@@ -37,10 +36,7 @@ func (this *AppendResponse) Execute(state *raftstate.State, senderState *nodeSta
 			(*state).SetTerm(term)
 			(*state).BecomeFollower()
 		} else {
-      log.Println("consistency fail")
-      //log.Println(this.pMex.GetLogIndexError())
 			(*senderState).SetNextIndex(int(this.pMex.GetLogIndexError()))
-      //log.Println((*senderState).GetNextIndex())
 		}
 	} else {
 		(*senderState).SetNextIndex(int(this.pMex.GetLogIndexError())+1)
@@ -56,16 +52,9 @@ func (this *AppendResponse) ToString() string {
 }
 
 func (this *AppendResponse) Encode() ([]byte, error) {
-	var mess []byte
-	var err error
-	mess, err = proto.Marshal(&(*this).pMex)
-	return mess, err
+	return proto.Marshal(&(*this).pMex)
 }
 
 func (this *AppendResponse) Decode(b []byte) error {
-	err := proto.Unmarshal(b, &this.pMex)
-    if err != nil {
-        log.Panicln("error in Decoding Append Response: ", err)
-    }
-	return err
+	return proto.Unmarshal(b, &this.pMex)
 }

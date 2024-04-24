@@ -84,10 +84,15 @@ func (s *server) acceptIncomingConn() {
             log.Println("adding a new node who is already in the cluster, probably a bug:",newConncetionIp)
             continue
         }
-
         log.Printf("node with ip %v not found", newConncetionIp)
-        var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
-        go s.handleConnection(id_node,&new_node)
+        
+        var newNode node.Node
+        var errNode error
+        newNode, errNode = node.NewNode(newConncetionIp, newConncetionPort,conn)
+        if errNode != nil {
+            log.Println("Error: ", errNode)
+        }
+        go s.handleConnection(id_node,&newNode)
 	}
 }
 

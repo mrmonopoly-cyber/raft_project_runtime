@@ -65,20 +65,8 @@ func (this *ClientReq) ToString() string {
 }
 
 func (this *ClientReq) Encode() ([]byte, error) {
-    var mess []byte
-    var err error
-
-    mess, err = proto.Marshal(&(*this).pMex)
-    if err != nil {
-        log.Panicln("error in Encoding Request Vote: ", err)
-    }
-
-	return mess, err
+    return proto.Marshal(&(*this).pMex)
 }
 func (this *ClientReq) Decode(b []byte) error {
-	err := proto.Unmarshal(b,&this.pMex)
-    if err != nil {
-        log.Panicln("error in Encoding Request Vote: ", err)
-    }
-	return err
+	return proto.Unmarshal(b,&this.pMex)
 }

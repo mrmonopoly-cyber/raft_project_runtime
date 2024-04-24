@@ -17,11 +17,14 @@ type Node interface {
 }
 
 
-func NewNode(remoteAddr string, remotePort string, nodeConn net.Conn) (Node) {
+func NewNode(remoteAddr string, remotePort string, nodeConn net.Conn) (Node, error) {
+  var addr address.NodeAddress
+  var err error
+  addr, err = address.NewNodeAddress(remoteAddr, remotePort)
 	return &node{
-		addr: address.NewNodeAddress(remoteAddr, remotePort),
+		addr: addr,
         conn: nodeConn,
         nodeState: nodeState.NewVolatileState(),
-	}
+	}, err
 }
 

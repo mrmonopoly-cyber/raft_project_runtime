@@ -117,18 +117,11 @@ func (this *fs) getFilePath(file string) string{
 func (this *fs) searchFile(file string) (*os.File,error){
     var found bool
     var filePath string
-    var err error
-    var fd *os.File
 
     filePath,found = (*this).files[file]
     if !found{
         return nil,errors.New("file not found")
     }
 
-    fd, err = os.Open(filePath)
-    if err != nil{
-        return nil,err
-    }
-
-    return fd,err
+    return os.Open(filePath)
 }

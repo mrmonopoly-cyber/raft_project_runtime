@@ -3,8 +3,6 @@ package node
 import (
 	"bytes"
 	"errors"
-	"io"
-	"log"
     "net"
 	"raft/internal/node/address"
 	"raft/internal/node/nodeState"
@@ -40,13 +38,7 @@ func (this *node) Recv() ([]byte, error) {
         }
 
 		if errConn != nil {
-			if errConn != io.EOF {
-				return nil, errConn
-			}
-            if errConn == io.EOF {
-                return nil, errConn
-            }
-			break
+		  return nil, errConn
 		}
 	}
 	return buffer.Bytes(), nil 
@@ -69,10 +61,7 @@ func (this *node) Send(mex []byte) error{
         return errors.New("Connection with node " + this.GetIp() + " not enstablish, Dial Done?")
     }
     var _,err = this.conn.Write(mex)
-    if err != nil {
-        log.Panicf("error sending to %v, error %v\n", (*this).GetIp(), err)
-    }
-    return nil
+    return err
 	
 }
 

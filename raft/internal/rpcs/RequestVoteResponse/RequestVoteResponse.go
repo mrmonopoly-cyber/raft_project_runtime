@@ -84,21 +84,10 @@ func (this *RequestVoteResponse) GetVote() bool{
 }
 
 func (this *RequestVoteResponse) Encode() ([]byte, error) {
-    var mess []byte
-    var err error
-
-    mess, err = proto.Marshal(&(*this).pMex)
-    if err != nil {
-        log.Panicln("error in Encoding Request Vote Response: ", err)
-    }
-
-	return mess, err
+    return proto.Marshal(&(*this).pMex)
 }
+
 func (this *RequestVoteResponse) Decode(b []byte) error {
-	err := proto.Unmarshal(b,&this.pMex)
-    if err != nil {
-        log.Panicln("error in Decoding Request Vote Response: ", err)
-    }
-	return err
+	return proto.Unmarshal(b,&this.pMex)
 }
 
