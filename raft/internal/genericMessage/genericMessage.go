@@ -5,8 +5,10 @@ import (
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/AppendResponse"
+	"raft/internal/rpcs/NewConfiguration"
 	"raft/internal/rpcs/RequestVoteRPC"
 	"raft/internal/rpcs/RequestVoteResponse"
+	"raft/internal/rpcs/UpdateNode"
 
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -40,6 +42,12 @@ func Decode(raw_mex []byte) (*rpcs.Rpc){
     case protobuf.MexType_REQUEST_VOTE_RESPONSE:
         var requestVoteResponse RequestVoteResponse.RequestVoteResponse
         outRpc = &requestVoteResponse
+    case protobuf.MexType_NEW_CONF:
+        var newConf NewConfiguration.NewConfiguration
+        outRpc= &newConf
+    case protobuf.MexType_UPDATE_NODE:
+        var updateNode UpdateNode.UpdateNode
+        outRpc= &updateNode
     default:
         log.Panicln("rpc type not recognize in decoing generic message")
     }
@@ -71,6 +79,10 @@ func Encode(mex *rpcs.Rpc) ([]byte,error){
         genericMessage.OpType = protobuf.MexType_REQUEST_VOTE
     case *RequestVoteResponse.RequestVoteResponse:
         genericMessage.OpType = protobuf.MexType_REQUEST_VOTE_RESPONSE
+    case *NewConfiguration.NewConfiguration:
+        genericMessage.OpType = protobuf.MexType_NEW_CONF
+    case *UpdateNode.UpdateNode:
+        genericMessage.OpType = protobuf.MexType_UPDATE_NODE
     default:
         log.Panicln("rpc not recognize: ", (*mex).ToString())
     }

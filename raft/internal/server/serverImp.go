@@ -32,7 +32,8 @@ type pairMex struct{
 type server struct {
 	_state         state.State
 	messageChannel chan pairMex
-	otherNodes     *sync.Map
+	unstableNodes   *sync.Map
+	stableNodes     *sync.Map
     clientNodes    *sync.Map
 	listener       net.Listener
 	wg             sync.WaitGroup
@@ -49,6 +50,27 @@ func (s *server) Start() {
 }
 
 //utility
+func (this *server) connectToNodes(serversIp []string, port string){
+	for i := 0; i < len(serversIp)-1; i++ {
+		var new_node node.Node
+        var nodeConn net.Conn
+        var erroConn error
+        var nodeId string
+
+        nodeConn,erroConn = net.Dial("tcp",serversIp[i]+":"+port)
+        if erroConn != nil {
+            log.Println("Failed to connect to node: ", serversIp[i])
+            continue
+        }
+        new_node = node.NewNode(serversIp[i], port, nodeConn)
+        nodeId = generateID(serversIp[i])
+        (*this).stableNodes.Store(nodeId, new_node)
+        (*this)._state.IncreaseNodeInCluster()
+        go (*this).handleResponseSingleNode(nodeId, &new_node)
+
+	}
+}
+
 func generateID(input string) string {
 	hasher := sha256.New()
 	hasher.Write([]byte(input))
@@ -60,7 +82,6 @@ func generateID(input string) string {
 func (s *server) acceptIncomingConn() {
 	defer s.wg.Done()
 	for {
-  //      log.Println("waiting new connection")
 		conn, err := s.listener.Accept()
 		if err != nil {
 			log.Println("Failed on accept: ", err)
@@ -77,7 +98,7 @@ func (s *server) acceptIncomingConn() {
 		var newConncetionPort string = string(rune(tcpAddr.Port))
         var id_node string = generateID(newConncetionIp)
         var found bool
-		_, found = s.otherNodes.Load(id_node)
+		_, found = s.stableNodes.Load(id_node)
         log.Printf("new connec: %v\n", newConncetionIp)
 
         if found {
@@ -98,7 +119,7 @@ func (s* server) handleConnection(idNode string, workingNode *node.Node){
     var nodeIp string = (*workingNode).GetIp()
 
     if strings.Contains(nodeIp, "10.0.0") {
-        s.otherNodes.Store(idNode, *workingNode)
+        s.stableNodes.Store(idNode, *workingNode)
         s._state.IncreaseNodeInCluster()
         s.handleResponseSingleNode(idNode,workingNode)
     }else{
@@ -160,7 +181,7 @@ func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node
                 s._state.StartElectionTimeout()
             }
             (*workingNode).CloseConnection()
-            s.otherNodes.Delete(id_node);
+            s.stableNodes.Delete(id_node);
             s._state.DecreaseNodeInCluster()
             break
         }
@@ -174,7 +195,7 @@ func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node
 
 func (s *server) sendAll(rpc *rpcs.Rpc){
    log.Println("start broadcast")
-    s.otherNodes.Range(func(key, value any) bool {
+    s.stableNodes.Range(func(key, value any) bool {
         var nNode node.Node 
         var found bool 
         nNode, found = value.(node.Node)
@@ -220,7 +241,7 @@ func (s *server) run() {
             var senderState *nodeState.VolatileNodeState
             var senderNode node.Node
 
-            f, ok = s.otherNodes.Load(generateID(sender))
+            f, ok = s.stableNodes.Load(generateID(sender))
             if !ok {
                 log.Printf("Node %s not found", sender)
                 continue
@@ -314,7 +335,7 @@ func (s *server) leaderHearthBit(){
 
 func (s *server) getMatchIndexes() []int {
   var idxList = make([]int, 0) 
-  s.otherNodes.Range(func(key, value any) bool {
+  s.stableNodes.Range(func(key, value any) bool {
     var nNode node.Node
     var err bool
 
@@ -330,7 +351,7 @@ func (s *server) getMatchIndexes() []int {
 }
 
 func (s *server) setVolState() {
-    s.otherNodes.Range(func(key, value any) bool {
+    s.stableNodes.Range(func(key, value any) bool {
             var nNode node.Node
             var err bool
 
