@@ -3,6 +3,7 @@ package raftstate
 import (
 	localfs "raft/internal/localFs"
 	l "raft/internal/raft_log"
+	"raft/internal/raftstate/clusterConf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"time"
 )
@@ -26,7 +27,30 @@ type raftStateImpl struct {
 	nNotSupporting     uint64
 	nNodeInCluster     uint64
 	electionTimeoutRaw int
-    localFs            localfs.LocalFs
+	localFs            localfs.LocalFs
+	clusterConf        clusterconf.Configuration
+}
+
+// InitConf implements State.
+func (this *raftStateImpl) InitConf(baseConf []string) {
+    if this.clusterConf  == nil {
+        this.clusterConf = clusterconf.NewConf(baseConf)
+    }
+}
+
+// CommitConfig implements State.
+func (this *raftStateImpl) CommitConfig() {
+	this.clusterConf.CommitConfig()
+}
+
+// GetConfig implements State.
+func (this *raftStateImpl) GetConfig() []string {
+	return this.clusterConf.GetConfig()
+}
+
+// UpdateConfiguration implements State.
+func (this *raftStateImpl) UpdateConfiguration(nodeIps []string) {
+	this.clusterConf.UpdateConfiguration(nodeIps)
 }
 
 func (this *raftStateImpl) GetIdPrivate() string {
@@ -58,9 +82,9 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 }
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry, index int) {
-    for _, v := range newEntries {
-        (*this).localFs.ApplyLogEntry(v)
-    }
+	for _, v := range newEntries {
+		(*this).localFs.ApplyLogEntry(v)
+	}
 	this.log.AppendEntries(newEntries, index)
 }
 
@@ -70,6 +94,16 @@ func (this *raftStateImpl) GetCommitIndex() int64 {
 
 func (this *raftStateImpl) SetCommitIndex(val int64) {
 	this.log.SetCommitIndex(val)
+}
+
+// LastLogIndex implements State.
+func (this *raftStateImpl) LastLogIndex() int {
+	return this.log.LastLogIndex()
+}
+
+// More_recent_log implements State.
+func (this *raftStateImpl) More_recent_log(last_log_index int64, last_log_term uint64) bool {
+	return this.log.More_recent_log(last_log_index, last_log_term)
 }
 
 func (this *raftStateImpl) StartElectionTimeout() {
@@ -169,7 +203,7 @@ func (this *raftStateImpl) GetLastLogIndex() int {
 	return this.log.LastLogIndex()
 }
 
-func (this *raftStateImpl) UpdateLastApplied() error{
+func (this *raftStateImpl) UpdateLastApplied() error {
 	// TODO: apply log to state machine (?)
 	return this.log.UpdateLastApplied()
 }
@@ -208,7 +242,7 @@ func (this *raftStateImpl) GetLeaderIpPrivate() string {
 
 // GetLeaderIpPublic implements State.
 func (this *raftStateImpl) GetLeaderIpPublic() string {
-    return (*this).leaderIdPublic
+	return (*this).leaderIdPublic
 }
 
 // SetLeaderIpPublic implements State.

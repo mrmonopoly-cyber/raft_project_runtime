@@ -69,11 +69,6 @@ func (this *log) SetCommitIndex(val int64) {
 	this.commitIndex = val
 }
 
-func (this *log) InitState() {
-	this.commitIndex = 0
-	this.lastApplied = 0
-}
-
 //utility
 func extend(slice []p.LogEntry, addedCapacity int) []p.LogEntry {
 //  l.Println("enxtend")

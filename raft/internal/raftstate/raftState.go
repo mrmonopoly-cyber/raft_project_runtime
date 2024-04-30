@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	localfs "raft/internal/localFs"
 	l "raft/internal/raft_log"
-	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"time"
+    "raft/internal/raftstate/clusterConf"
 )
 
 const (
@@ -36,13 +36,8 @@ type State interface {
 	IncrementTerm()
 	VoteFor(id string)
 	CanVote() bool
-	GetEntries() []*p.LogEntry
-	GetCommitIndex() int64
-	SetCommitIndex(val int64)
 	SetRole(newRole Role)
-	AppendEntries(newEntries []*p.LogEntry, index int)
 	SetTerm(newTerm uint64)
-	MoreRecentLog(lastLogIndex int64, lastLogTerm uint64) bool
 	IncreaseSupporters()
 	IncreaseNotSupporters()
 	IncreaseNodeInCluster()
@@ -52,13 +47,18 @@ type State interface {
 	GetNumNodeInCluster() uint64
 	ResetElection()
 	BecomeFollower()
-	GetLastLogIndex() int
-	UpdateLastApplied() error
-	CheckCommitIndex(idxList []int)
+
+    CheckCommitIndex(idxList []int)
+    GetLastLogIndex() int
+    l.LogEntry
+
 	GetLeaderIpPrivate() string
 	GetLeaderIpPublic() string
 	SetLeaderIpPublic(ip string)
 	SetLeaderIpPrivate(ip string)
+
+    clusterconf.Configuration
+    InitConf(baseConf []string)
 }
 
 
@@ -79,5 +79,6 @@ func NewState(term uint64, idPrivate string, idPublic string, role Role, fsRootD
 	s.log = l.NewLogEntry()
 	s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
     s.localFs = localfs.NewFs(fsRootDir)
+    s.clusterConf = nil
 	return s
 }
