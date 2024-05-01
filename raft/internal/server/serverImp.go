@@ -1,13 +1,11 @@
 package server
 
-
 import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"log"
 	"net"
-	"sync"
 	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
 	"raft/internal/node/nodeState"
@@ -17,9 +15,12 @@ import (
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/ClientReq"
 	"raft/internal/rpcs/RequestVoteRPC"
+	"raft/internal/rpcs/UpdateNode"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"reflect"
 	"strings"
+	"sync"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -40,12 +41,13 @@ type server struct {
 }
 
 func (s *server) Start() {
-    s.wg.Add(2)
     log.Println("Start accepting connections")
-    go s.acceptIncomingConn()
     s._state.StartElectionTimeout()
-    go s.run()
-
+    func ()  {
+        s.wg.Add(2)
+        go s.acceptIncomingConn()
+        go s.run()
+    }()
     s.wg.Wait()
 }
 
@@ -119,12 +121,10 @@ func (s* server) handleConnection(idNode string, workingNode *node.Node){
     var nodeIp string = (*workingNode).GetIp()
 
     if strings.Contains(nodeIp, "10.0.0") {
-        s.stableNodes.Store(idNode, *workingNode)
-        s._state.IncreaseNodeInCluster()
         s.handleResponseSingleNode(idNode,workingNode)
-    }else{
-        s.handleNewClientConnection(workingNode)
+        return
     }
+    s.handleNewClientConnection(workingNode)
 }
 
 func (s* server) handleNewClientConnection(client *node.Node){
@@ -171,6 +171,15 @@ func (s* server) handleNewClientConnection(client *node.Node){
 }
 
 func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node) {
+    var AppendEnetry rpcs.Rpc = AppendEntryRpc.GenerateHearthbeat(s._state)
+
+    s.unstableNodes.Store(id_node, *workingNode)
+    if s._state.Leader() {
+        s._state.UpdateConfiguration([]string{(*workingNode).GetIp()})
+        s._state.IncreaseNodeInCluster()
+        s.sendAll(&AppendEnetry)
+        s.updateNewNode(workingNode)              
+    }
     for{
         var message []byte
         var errMes error
@@ -191,6 +200,28 @@ func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node
         }
     }
 
+}
+
+func (s *server) updateNewNode(workingNode *node.Node){
+    for  _,e := range s._state.GetEntries() {
+        generateUpdateRequest(workingNode,false,e)
+    }
+    generateUpdateRequest(workingNode,true,nil)
+    //TODO: save the fact that the new node is ready 
+
+}
+
+func generateUpdateRequest(workingNode *node.Node, voting bool, entry *protobuf.LogEntry){
+    var updateReq rpcs.Rpc 
+    var mex []byte
+    var err error
+
+    updateReq = UpdateNode.NewUpdateNodeRPC(voting, entry)
+    mex,err = genericmessage.Encode(&updateReq)
+    if err != nil {
+        log.Panic("error encoding UpdateNode rpc")
+    }
+    (*workingNode).Send(mex)
 }
 
 func (s *server) sendAll(rpc *rpcs.Rpc){

@@ -14,8 +14,12 @@ type UpdateNode struct {
     pMex protobuf.UpdateNode
 }
 
-func NewUpdateNodeRPC(term uint64) rpcs.Rpc {
+func NewUpdateNodeRPC(voteAble bool, log *protobuf.LogEntry) rpcs.Rpc {
     return &UpdateNode{
+        pMex: protobuf.UpdateNode{
+            Votante: false,
+            Log: log,
+        },
     }
 }
 

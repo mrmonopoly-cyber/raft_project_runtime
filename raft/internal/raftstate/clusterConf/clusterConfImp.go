@@ -2,21 +2,21 @@ package clusterconf
 
 type conf struct{
     oldConf []string
-    newCong []string
+    newConf []string
     committed bool
 }
 
 func (this conf) GetConfig() []string{
-    return append(this.oldConf,this.newCong...)
+    return append(this.oldConf,this.newConf...)
 }
 
 func (this conf) UpdateConfiguration(nodeIps []string){
-    this.newCong = append(this.newCong, nodeIps...)
+    this.newConf = append(this.newConf, nodeIps...)
     this.committed = false
 }
 
 func (this conf) CommitConfig(){
-    this.oldConf = this.newCong
-    this.newCong = make([]string, 0)
+    this.oldConf = this.newConf
+    this.newConf = make([]string, 0)
     this.committed = true
 }
