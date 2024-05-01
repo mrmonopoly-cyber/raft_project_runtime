@@ -40,23 +40,24 @@ func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) boo
 }
 
 func (this *log) AppendEntries(newEntries []*p.LogEntry, index int) {
-  if index < 0 {
-    index = 0
-  }
-l.Println(index)
-	this.entries = extend(this.entries, len(newEntries))
-	for i, en := range newEntries {
-    l.Printf("i: %d, i + index: %d", i, i+index)
-		this.entries[index + i] = *en
-	}
+    if index < 0 {
+        index = 0
+    }
+    l.Println(index)
+    this.entries = extend(this.entries, len(newEntries))
+    for i, en := range newEntries {
+        l.Printf("i: %d, i + index: %d, logEntry: %v", i, i+index, en.String())
+        this.entries[index + i] = *en
+    }
 
-  l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
+    l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
 }
 
 func (this *log) UpdateLastApplied() error{
 	for int(this.commitIndex) > this.lastApplied {
 		this.lastApplied++
         //TODO: apply to local FS
+        //TODO: apply new conf
 	}
 	return nil
 }

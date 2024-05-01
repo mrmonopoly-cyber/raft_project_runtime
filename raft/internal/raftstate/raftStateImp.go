@@ -126,12 +126,12 @@ func (this *raftStateImpl) Leader() bool {
 	return this.role == LEADER
 }
 
-func (this *raftStateImpl) BecomeFollower() {
-	this.role = FOLLOWER
-}
-
 func (this *raftStateImpl) CanVote() bool {
 	return this.voting
+}
+
+func (this *raftStateImpl) ToggleVoteRight()  {
+    (*this).voting = !(*this).voting
 }
 
 func (this *raftStateImpl) HeartbeatTimeout() *time.Timer {
@@ -197,10 +197,6 @@ func (this *raftStateImpl) DecreaseNodeInCluster() {
 func (this *raftStateImpl) ResetElection() {
 	this.nSupporting = 0
 	this.nNotSupporting = 0
-}
-
-func (this *raftStateImpl) GetLastLogIndex() int {
-	return this.log.LastLogIndex()
 }
 
 func (this *raftStateImpl) UpdateLastApplied() error {

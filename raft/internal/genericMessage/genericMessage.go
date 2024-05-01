@@ -42,12 +42,12 @@ func Decode(raw_mex []byte) (*rpcs.Rpc){
     case protobuf.MexType_REQUEST_VOTE_RESPONSE:
         var requestVoteResponse RequestVoteResponse.RequestVoteResponse
         outRpc = &requestVoteResponse
-    case protobuf.MexType_NEW_CONF:
-        var newConf NewConfiguration.NewConfiguration
-        outRpc= &newConf
     case protobuf.MexType_UPDATE_NODE:
         var updateNode UpdateNode.UpdateNode
         outRpc= &updateNode
+    case protobuf.MexType_NEW_CONF:
+        var newConf NewConfiguration.NewConfiguration
+        outRpc = &newConf
     default:
         log.Panicln("rpc type not recognize in decoing generic message")
     }

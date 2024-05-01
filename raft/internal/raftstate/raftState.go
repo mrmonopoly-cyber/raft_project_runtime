@@ -36,6 +36,7 @@ type State interface {
 	IncrementTerm()
 	VoteFor(id string)
 	CanVote() bool
+    ToggleVoteRight()
 	SetRole(newRole Role)
 	SetTerm(newTerm uint64)
 	IncreaseSupporters()
@@ -46,10 +47,8 @@ type State interface {
 	GetNumNotSupporters() uint64
 	GetNumNodeInCluster() uint64
 	ResetElection()
-	BecomeFollower()
 
     CheckCommitIndex(idxList []int)
-    GetLastLogIndex() int
     l.LogEntry
 
 	GetLeaderIpPrivate() string

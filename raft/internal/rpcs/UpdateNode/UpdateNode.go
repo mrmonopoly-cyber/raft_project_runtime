@@ -25,7 +25,14 @@ func NewUpdateNodeRPC(voteAble bool, log *protobuf.LogEntry) rpcs.Rpc {
 
 // Manage implements rpcs.Rpc.
 func (this *UpdateNode) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
-    panic("dummy implementation")
+    if this.pMex.Votante {
+        (*state).ToggleVoteRight()
+    }
+    if this.pMex.Log != nil {
+        (*state).AppendEntries([]*protobuf.LogEntry{this.pMex.Log},int((*state).GetCommitIndex()+1))
+    }
+
+    return nil
 }
 
 // ToString implements rpcs.Rpc.

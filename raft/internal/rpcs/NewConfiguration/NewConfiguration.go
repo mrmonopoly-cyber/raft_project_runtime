@@ -11,23 +11,21 @@ import (
 )
 
 type NewConfiguration struct {
-    pMex protobuf.NewConfiguration
+    pMex protobuf.NewConf
 }
 
-func NewNewConfigurationRPC(ip string, term uint64, lastLogIndex uint64, lastLogTerm uint64) rpcs.Rpc {
+func NewNewConfigurationRPC(newConf []string) rpcs.Rpc {
     return &NewConfiguration{
-        pMex: protobuf.NewConfiguration{
-            Ip: ip,
-            Term: term,
-            LastLogIndex: lastLogIndex,
-            LastLogTerm: lastLogTerm,
+        pMex: protobuf.NewConf{
+            NewConfiguration: newConf,
         },
     }
 }
 
 // Manage implements rpcs.Rpc.
 func (this *NewConfiguration) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
-    panic("dummy implementation")
+    (*state).OverwriteConf(this.pMex.NewConfiguration)
+    return nil
 }
 
 // ToString implements rpcs.Rpc.

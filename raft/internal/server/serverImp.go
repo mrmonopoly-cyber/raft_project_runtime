@@ -1,8 +1,6 @@
 package server
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"net"
@@ -43,46 +41,46 @@ type server struct {
 func (s *server) Start() {
     log.Println("Start accepting connections")
     s._state.StartElectionTimeout()
-    func ()  {
-        s.wg.Add(2)
-        go s.acceptIncomingConn()
-        go s.run()
+    go func ()  {
+        s.wg.Add(1)
+        defer s.wg.Done()
+        s.acceptIncomingConn()
+    }()
+    go func ()  {
+        s.wg.Add(1)
+        defer s.wg.Done()
+        s.run()
     }()
     s.wg.Wait()
 }
 
 //utility
-func (this *server) connectToNodes(serversIp []string, port string){
+func (this *server) connectToNodes(serversIp []string, port string) ([]string,error){
+    var failedConn []string = make([]string, 0)
+    var err error
+
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
         var nodeConn net.Conn
         var erroConn error
-        var nodeId string
 
         nodeConn,erroConn = net.Dial("tcp",serversIp[i]+":"+port)
         if erroConn != nil {
             log.Println("Failed to connect to node: ", serversIp[i])
+            failedConn = append(failedConn, serversIp[i])
+            err = erroConn
             continue
         }
         new_node = node.NewNode(serversIp[i], port, nodeConn)
-        nodeId = generateID(serversIp[i])
-        (*this).stableNodes.Store(nodeId, new_node)
-        (*this)._state.IncreaseNodeInCluster()
-        go (*this).handleResponseSingleNode(nodeId, &new_node)
+        (*this).unstableNodes.Store(serversIp[i], new_node)
+        go (*this).handleResponseSingleNode(serversIp[i], &new_node)
 
 	}
-}
 
-func generateID(input string) string {
-	hasher := sha256.New()
-	hasher.Write([]byte(input))
-	hashedBytes := hasher.Sum(nil)
-	id := hex.EncodeToString(hashedBytes)
-	return id
+    return failedConn,err
 }
 
 func (s *server) acceptIncomingConn() {
-	defer s.wg.Done()
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
@@ -98,26 +96,26 @@ func (s *server) acceptIncomingConn() {
 
 		var newConncetionIp string = tcpAddr.IP.String()
 		var newConncetionPort string = string(rune(tcpAddr.Port))
-        var id_node string = generateID(newConncetionIp)
         var found bool
-		_, found = s.stableNodes.Load(id_node)
+		_, found = s.unstableNodes.Load(newConncetionIp)
         log.Printf("new connec: %v\n", newConncetionIp)
 
         if found {
-            log.Println("adding a new node who is already in the cluster, probably a bug:",newConncetionIp)
-            continue
+            //TODO: implement re connection of old node
+            log.Panicln("to implement re connection of old node: ",newConncetionIp)
         }
 
         log.Printf("node with ip %v not found", newConncetionIp)
         var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
-        go s.handleConnection(id_node,&new_node)
+        go func ()  {
+            s.wg.Add(1)
+            defer s.wg.Done()
+            s.handleConnection(newConncetionIp,&new_node)
+        }()
 	}
 }
 
 func (s* server) handleConnection(idNode string, workingNode *node.Node){
-    s.wg.Add(1)
-    defer s.wg.Done()
-
     var nodeIp string = (*workingNode).GetIp()
 
     if strings.Contains(nodeIp, "10.0.0") {
@@ -171,15 +169,11 @@ func (s* server) handleNewClientConnection(client *node.Node){
 }
 
 func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node) {
-    var AppendEnetry rpcs.Rpc = AppendEntryRpc.GenerateHearthbeat(s._state)
-
-    s.unstableNodes.Store(id_node, *workingNode)
-    if s._state.Leader() {
-        s._state.UpdateConfiguration([]string{(*workingNode).GetIp()})
-        s._state.IncreaseNodeInCluster()
-        s.sendAll(&AppendEnetry)
-        s.updateNewNode(workingNode)              
-    }
+    go func (){
+        s.wg.Add(1)
+        defer s.wg.Done()
+        s.joinConf(id_node,workingNode)
+    }()
     for{
         var message []byte
         var errMes error
@@ -191,6 +185,7 @@ func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node
             }
             (*workingNode).CloseConnection()
             s.stableNodes.Delete(id_node);
+            s.unstableNodes.Delete(id_node);
             s._state.DecreaseNodeInCluster()
             break
         }
@@ -202,13 +197,50 @@ func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node
 
 }
 
-func (s *server) updateNewNode(workingNode *node.Node){
-    for  _,e := range s._state.GetEntries() {
-        generateUpdateRequest(workingNode,false,e)
+func (s *server) joinConf(id_node string, workingNode *node.Node){
+    var newConfEntry p.LogEntry = p.LogEntry{
+        OpType: p.Operation_JOIN_CONF,
+        Term: s._state.GetTerm(),
+        Payload: append(s._state.GetConfig(), id_node),
+        Description: "added new node " + id_node + " to configuration",
     }
-    generateUpdateRequest(workingNode,true,nil)
-    //TODO: save the fact that the new node is ready 
+    var AppendEnetry rpcs.Rpc = AppendEntryRpc.NewAppendEntryRPC(
+        s._state.GetTerm(),
+        s._state.GetLeaderIpPrivate(),
+        s._state.GetLeaderIpPublic(),
+        int64(s._state.LastLogIndex()),//FIX:prev log index 
+        s._state.GetTerm()-1, //FIX: prev log term
+        []*protobuf.LogEntry{&newConfEntry},
+        s._state.GetCommitIndex(),
+    )
 
+    s.unstableNodes.Store(id_node, *workingNode)
+    s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
+    if s._state.Leader() {
+        s._state.UpdateConfiguration([]string{(*workingNode).GetIp()})
+        s._state.IncreaseNodeInCluster()
+        s.sendAll(&AppendEnetry)
+        s.updateNewNode(id_node,workingNode)              
+    }
+}
+
+func (s *server) updateNewNode(id_node string,workingNode *node.Node){
+    var volatileState *nodeState.VolatileNodeState = (*workingNode).GetNodeState()
+    var index = 0
+    for  i,e := range s._state.GetEntries() {
+        generateUpdateRequest(workingNode,false,e)
+        for  (*volatileState).GetMatchIndex() < i {
+            //WARN: WAIT
+        }
+        index = i
+    }
+    (*s)._state.IncreaseNodeInCluster()
+    s.stableNodes.Store(id_node,workingNode)
+    generateUpdateRequest(workingNode,true,nil)
+    for  (*volatileState).GetMatchIndex() < index+1 {
+        //WARN: WAIT
+    }
+    s._state.CommitConfig()
 }
 
 func generateUpdateRequest(workingNode *node.Node, voting bool, entry *protobuf.LogEntry){
@@ -250,7 +282,6 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
 }
 
 func (s *server) run() {
-	defer s.wg.Done()
 	for {
 		var mess pairMex
     /* To keep LastApplied and Leader's commitIndex always up to dated  */
@@ -270,19 +301,42 @@ func (s *server) run() {
             var f any
             var ok bool
             var senderState *nodeState.VolatileNodeState
-            var senderNode node.Node
+            var senderNode *node.Node
+            var newConf []string
+            var failedConn []string
 
-            f, ok = s.stableNodes.Load(generateID(sender))
+            f, ok = s.stableNodes.Load(sender)
             if !ok {
                 log.Printf("Node %s not found", sender)
                 continue
             }
 
-            senderNode = f.(node.Node)
+            senderNode = f.(*node.Node)
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
-            senderState = senderNode.GetNodeState()
+            senderState = (*senderNode).GetNodeState()
             resp = (*rpcCall).Execute(&s._state, senderState)
+
+            if !s._state.ConfStatus() {
+                newConf = s._state.GetConfig()
+                for _, v := range newConf {
+                    var _,found = s.stableNodes.Load(v)
+                    if !found {
+                        var e,found = s.unstableNodes.Load(v)
+                        var newNode *node.Node = e.(*node.Node)
+                        if !found {
+                            failedConn,errEn = s.connectToNodes([]string{v},"8080") //WARN: hard encoding port
+                            if errEn != nil {
+                                for _, v := range failedConn {
+                                    log.Println("failed connecting to this node: " + v)
+                                }
+                                log.Panic("devel debug") //WARN: to remove in the future
+                            }
+                        }
+                        s.stableNodes.Store(v,newNode)
+                    }
+                }
+            }
 
             if resp != nil {
       //          log.Println("reponse to send to: ", sender)
@@ -292,12 +346,16 @@ func (s *server) run() {
                 if errEn != nil{
                     log.Panicln("error encoding this rpc: ", (*resp).ToString())
                 }
-                senderNode.Send(byEnc)
+                (*senderNode).Send(byEnc)
             }
 
             if s._state.Leader() && oldRole != state.LEADER {
                 s.setVolState() 
-                go s.leaderHearthBit()
+                go func (){
+                    s.wg.Add(1)
+                    defer s.wg.Done()
+                    s.leaderHearthBit()
+                }()
             }
    //         log.Println("rpc processed")
         case <-s._state.ElectionTimeout().C:
@@ -346,8 +404,6 @@ func (s *server) startNewElection(){
 }
 
 func (s *server) leaderHearthBit(){
-    s.wg.Add(1)
-    defer s.wg.Done()
     //log.Println("start sending hearthbit")
     for s._state.Leader(){
         select{
@@ -391,7 +447,7 @@ func (s *server) setVolState() {
             if !err {
                 panic("error type is not a node.Node")
             }
-            nNode.ResetState(s._state.GetLastLogIndex())
+            nNode.ResetState(s._state.LastLogIndex())
         return true;
     })
 }
