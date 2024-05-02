@@ -204,8 +204,8 @@ func (s *server) joinConf(id_node string, workingNode *node.Node){
         Description: "added new node " + id_node + " to configuration: ",
     }
 
-    log.Printf("adding node %v to the stable queue\n", id_node)
-    s.stableNodes.Store(id_node, *workingNode)
+    log.Printf("adding node %v to the stable queue\n", (*workingNode).GetIp())
+    s.stableNodes.Store((*workingNode).GetIp(), *workingNode)
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
     if s._state.Leader() {
         s._state.UpdateConfiguration([]string{(*workingNode).GetIp()})
