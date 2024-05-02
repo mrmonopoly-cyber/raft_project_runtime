@@ -42,6 +42,9 @@ func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) boo
 
 func (this *log) AppendEntries(newEntries []*p.LogEntry, index int) {
     var indexEndQueue = len(this.GetEntries())-1;
+    if indexEndQueue == -1 {
+        indexEndQueue =0
+    }
     fmt.Printf("log index last log: %v\n", indexEndQueue)
 
     this.entries = extend(this.entries, len(newEntries))
