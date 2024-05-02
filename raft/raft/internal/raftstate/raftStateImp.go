@@ -33,6 +33,9 @@ type raftStateImpl struct {
 
 // ConfStatus implements State.
 func (this *raftStateImpl) ConfStatus() bool {
+    if this.clusterConf == nil {
+        panic("conf is nil")
+    }
     return this.clusterConf.ConfStatus()
 }
 
