@@ -44,13 +44,6 @@ func (this *raftStateImpl) OverwriteConf(conf []string) {
     this.clusterConf.OverwriteConf(conf)
 }
 
-// InitConf implements State.
-func (this *raftStateImpl) InitConf(baseConf []string) {
-	if this.clusterConf == nil {
-		this.clusterConf = clusterconf.NewConf(baseConf)
-	}
-}
-
 // CommitConfig implements State.
 func (this *raftStateImpl) CommitConfig() {
 	this.clusterConf.CommitConfig()

@@ -57,7 +57,6 @@ type State interface {
 	SetLeaderIpPrivate(ip string)
 
     clusterconf.Configuration
-    InitConf(baseConf []string)
 }
 
 
@@ -78,6 +77,6 @@ func NewState(term uint64, idPrivate string, idPublic string, role Role, fsRootD
 	s.log = l.NewLogEntry()
 	s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
     s.localFs = localfs.NewFs(fsRootDir)
-    s.clusterConf = nil
+    s.clusterConf = clusterconf.NewConf([]string{idPrivate})
 	return s
 }

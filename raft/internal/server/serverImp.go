@@ -385,7 +385,6 @@ func (s *server) startNewElection(){
         s._state.SetLeaderIpPrivate(s._state.GetIdPrivate())
         s._state.SetLeaderIpPublic(s._state.GetIdPublic())
         s._state.ResetElection()
-        s._state.InitConf([]string{s._state.GetIdPrivate()})
         go s.leaderHearthBit()
     }else {
      //   log.Println("sending to everybody request vote :" + voteRequest.ToString())
