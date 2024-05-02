@@ -298,7 +298,7 @@ func (s *server) run() {
 
             f, ok = s.unstableNodes.Load(sender)
             if !ok {
-                log.Printf("Node %s not found", sender)
+                log.Printf("Node %s not found for mex:%v\n", sender, (*mess.payload).ToString())
                 continue
             }
 
