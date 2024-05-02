@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package protobuf;
+
+import "logEntry.proto";
+
+option go_package = "protobuf/";
+
+message ClientReq{
+    Operation op = 1;
+    bytes fileName=2;
+    bytes others = 3; 
+};

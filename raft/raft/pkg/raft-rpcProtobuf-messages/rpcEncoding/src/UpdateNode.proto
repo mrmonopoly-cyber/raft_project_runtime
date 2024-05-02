@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package protobuf;
+
+option go_package = "protobuf/";
+
+import "logEntry.proto";
+
+message UpdateNode{
+    bool Votante = 1;
+    logEntry Log = 2;
+}
