@@ -45,7 +45,6 @@ func (s *server) Start() {
     go func ()  {
         s.wg.Add(1)
         s.acceptIncomingConn()
-        s.wg.Done()
     }()
     go func ()  {
         s.wg.Add(1)
