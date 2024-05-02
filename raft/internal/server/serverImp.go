@@ -295,7 +295,7 @@ func (s *server) run() {
             var newConf []string
             var failedConn []string
 
-            f, ok = s.stableNodes.Load(sender)
+            f, ok = s.unstableNodes.Load(sender)
             if !ok {
                 log.Printf("Node %s not found", sender)
                 continue
