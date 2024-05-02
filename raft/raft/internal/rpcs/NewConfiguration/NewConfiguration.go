@@ -2,10 +2,10 @@ package NewConfiguration
 
 import (
 	"log"
+	"raft/internal/node/nodeState"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
-	"raft/internal/node/nodeState"
-    "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
 )
