@@ -249,9 +249,9 @@ func generateUpdateRequest(workingNode *node.Node, voting bool, entry *protobuf.
 func (s *server) sendAll(rpc *rpcs.Rpc){
    log.Println("start broadcast")
     s.stableNodes.Range(func(key, value any) bool {
-        var nNode node.Node 
+        var nNode *node.Node 
         var found bool 
-        nNode, found = value.(node.Node)
+        nNode, found = value.(*node.Node)
         if !found {
             var s = reflect.TypeOf(value)
             log.Panicln("failed conversion type node, type is: ", s)
@@ -264,8 +264,8 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
             log.Panicln("error in Encoding this rpc: ",(*rpc).ToString())
         }
     //    log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
-        log.Printf("sending to %v\n", nNode.GetIp())
-        nNode.Send(raw_mex)
+        log.Printf("sending to %v\n", (*nNode).GetIp())
+        (*nNode).Send(raw_mex)
         return true
     })
    log.Println("end broadcast")
