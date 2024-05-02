@@ -42,11 +42,12 @@ type server struct {
 func (s *server) Start() {
     log.Println("Start accepting connections")
     s._state.StartElectionTimeout()
-    // s.wg.Add(1)
-    // go func ()  {
-    //     defer s.wg.Done()
-    //     s.acceptIncomingConn()
-    // }()
+    s.wg.Add(1)
+    go func ()  {
+        defer s.wg.Done()
+        s.acceptIncomingConn()
+    }()
+
     s.wg.Add(1)
     go s.run()
     s.wg.Wait()
