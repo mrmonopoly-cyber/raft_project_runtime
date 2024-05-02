@@ -38,20 +38,12 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
         log.Printf("testing operation DELETE, TO IMPLEMENT")
         newLogEntry.OpType = protobuf.Operation_DELETE
         op = "DELETE"
-    case protobuf.Operation_RENAME:
-        log.Printf("testing operation RENAME, TO IMPLEMENT")
-        newLogEntry.OpType = protobuf.Operation_RENAME
-        op = "RENAME"
-    case protobuf.Operation_CREATE:
-        log.Printf("testing operation DELETE, TO IMPLEMENT")
-        newLogEntry.OpType = protobuf.Operation_CREATE
-        op = "CREATE"
     default:
         log.Printf("NOT IMPLMENTED OPERATION %v\n", operation)
         return nil
     }
 
-    newLogEntry.Description = "new " + op + " operation on file" + string((*this).pMex.FileName)
+    newLogEntry.Description = "new " + op + " operation on file" + string((*this).pMex.Payload)
 
     (*state).AppendEntries(newEntries,(*state).GetLastLogIndex()+1)
 

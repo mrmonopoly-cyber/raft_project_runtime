@@ -12,7 +12,6 @@ type LogEntry interface {
 	AppendEntries(newEntries []*p.LogEntry, index int)
 	LastLogIndex() int
 	UpdateLastApplied() error
-	InitState()
 }
 
 
@@ -25,5 +24,3 @@ func NewLogEntry() LogEntry {
 
 	return l
 }
-
-

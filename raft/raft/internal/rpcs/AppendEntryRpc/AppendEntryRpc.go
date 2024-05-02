@@ -111,7 +111,7 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
     (*state).StopElectionTimeout()
 
     if role != raftstate.FOLLOWER {
-        (*state).BecomeFollower()
+        (*state).SetRole(raftstate.FOLLOWER)
     }
 
     (*state).SetLeaderIpPrivate(this.pMex.LeaderIdPrivate)

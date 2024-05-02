@@ -89,7 +89,7 @@ func (this *RequestVoteRPC) Execute(state *raftstate.State, senderState *nodeSta
 		return this.respondeVote(state, &sender, false)
 	}
 
-    if ! (*state).MoreRecentLog(this.GetLastLogIndex(), this.GetLastLogTerm()) {
+    if ! (*state).More_recent_log(this.GetLastLogIndex(), this.GetLastLogTerm()) {
         log.Printf("request vote: log not recent enough")
         return this.respondeVote(state, &sender,false)
     }else if myVote == "" || myVote == this.GetCandidateId(){
