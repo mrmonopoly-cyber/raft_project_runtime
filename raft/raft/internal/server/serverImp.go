@@ -165,11 +165,13 @@ func (s* server) handleNewClientConnection(client *node.Node){
 }
 
 func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node) {
-    go func (){
-        s.wg.Add(1)
-        defer s.wg.Done()
-        s.joinConf(id_node,workingNode)
-    }()
+    if s._state.Leader() {
+        go func (){
+            s.wg.Add(1)
+            defer s.wg.Done()
+            s.joinConf(id_node,workingNode)
+        }()
+    }
     for{
         var message []byte
         var errMes error
@@ -194,7 +196,7 @@ func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node
 }
 
 func (s *server) joinConf(id_node string, workingNode *node.Node){
-    var newConfRequest rpcs.Rpc = NewConfiguration.NewNewConfigurationRPC([]string{id_node})
+    var newConfRequest rpcs.Rpc = NewConfiguration.NewNewConfigurationRPC(append(s._state.GetConfig(),id_node))
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF,
         Term: s._state.GetTerm(),
