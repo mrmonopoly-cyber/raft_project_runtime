@@ -138,13 +138,13 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
                     (*state).SetCommitIndex(leaderCommit)
                 }
             }
-            resp = respondeAppend(id, true , myTerm, (*state).GetLastLogIndex())
+            resp = respondeAppend(id, true , myTerm, (*state).LastLogIndex())
         }
     } 
 
     if resp == nil {
         log.Println("hearthbeat")
-        resp = respondeAppend(id, true, myTerm, (*state).GetLastLogIndex())
+        resp = respondeAppend(id, true, myTerm, (*state).LastLogIndex())
     }
 
     (*state).StartElectionTimeout()

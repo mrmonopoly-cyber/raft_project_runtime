@@ -31,11 +31,21 @@ type raftStateImpl struct {
 	clusterConf        clusterconf.Configuration
 }
 
+// ConfStatus implements State.
+func (this *raftStateImpl) ConfStatus() bool {
+    return this.clusterConf.ConfStatus()
+}
+
+// OverwriteConf implements State.
+func (this *raftStateImpl) OverwriteConf(conf []string) {
+    this.clusterConf.OverwriteConf(conf)
+}
+
 // InitConf implements State.
 func (this *raftStateImpl) InitConf(baseConf []string) {
-    if this.clusterConf  == nil {
-        this.clusterConf = clusterconf.NewConf(baseConf)
-    }
+	if this.clusterConf == nil {
+		this.clusterConf = clusterconf.NewConf(baseConf)
+	}
 }
 
 // CommitConfig implements State.
@@ -130,8 +140,8 @@ func (this *raftStateImpl) CanVote() bool {
 	return this.voting
 }
 
-func (this *raftStateImpl) ToggleVoteRight()  {
-    (*this).voting = !(*this).voting
+func (this *raftStateImpl) ToggleVoteRight() {
+	(*this).voting = !(*this).voting
 }
 
 func (this *raftStateImpl) HeartbeatTimeout() *time.Timer {
