@@ -12,6 +12,7 @@ import (
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/ClientReq"
+	"raft/internal/rpcs/NewConfiguration"
 	"raft/internal/rpcs/RequestVoteRPC"
 	"raft/internal/rpcs/UpdateNode"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -194,28 +195,20 @@ func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node
 }
 
 func (s *server) joinConf(id_node string, workingNode *node.Node){
+    var newConfRequest rpcs.Rpc = NewConfiguration.NewNewConfigurationRPC(append(s._state.GetConfig(),id_node))
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF,
         Term: s._state.GetTerm(),
-        Payload: append(s._state.GetConfig(), id_node),
-        Description: "added new node " + id_node + " to configuration",
+        Payload: nil,
+        Description: "added new node " + id_node + " to configuration: ",
     }
-    var AppendEnetry rpcs.Rpc = AppendEntryRpc.NewAppendEntryRPC(
-        s._state.GetTerm(),
-        s._state.GetLeaderIpPrivate(),
-        s._state.GetLeaderIpPublic(),
-        int64(s._state.LastLogIndex()),//FIX:prev log index 
-        s._state.GetTerm()-1, //FIX: prev log term
-        []*protobuf.LogEntry{&newConfEntry},
-        s._state.GetCommitIndex(),
-    )
 
     s.unstableNodes.Store(id_node, *workingNode)
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
     if s._state.Leader() {
         s._state.UpdateConfiguration([]string{(*workingNode).GetIp()})
         s._state.IncreaseNodeInCluster()
-        s.sendAll(&AppendEnetry)
+        s.sendAll(&newConfRequest)
         s.updateNewNode(id_node,workingNode)              
     }
 }
