@@ -47,10 +47,7 @@ func (s *server) Start() {
     //     s.acceptIncomingConn()
     // }()
     s.wg.Add(1)
-    go func ()  {
-        // defer s.wg.Done()
-        s.run()
-    }()
+    go s.run()
     s.wg.Wait()
 }
 
@@ -281,13 +278,13 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
 }
 
 func (s *server) run() {
-	for {
-		var mess pairMex
-    /* To keep LastApplied and Leader's commitIndex always up to dated  */
-    s._state.UpdateLastApplied()
-    if s._state.Leader() {
-        s._state.CheckCommitIndex(s.getMatchIndexes())
-    }
+    for {
+        var mess pairMex
+        /* To keep LastApplied and Leader's commitIndex always up to dated  */
+        s._state.UpdateLastApplied()
+        if s._state.Leader() {
+            s._state.CheckCommitIndex(s.getMatchIndexes())
+        }
 
         select {
         case mess = <-s.messageChannel:
@@ -338,7 +335,7 @@ func (s *server) run() {
             }
 
             if resp != nil {
-      //          log.Println("reponse to send to: ", sender)
+                //          log.Println("reponse to send to: ", sender)
 
                 //log.Println("sending mex to: ",sender)
                 byEnc, errEn = genericmessage.Encode(resp)
@@ -356,13 +353,13 @@ func (s *server) run() {
                     s.leaderHearthBit()
                 }()
             }
-   //         log.Println("rpc processed")
+            //         log.Println("rpc processed")
         case <-s._state.ElectionTimeout().C:
             if !s._state.Leader() {
                 s.startNewElection()
             }
         }
-	}
+    }
 }
 
 func (s *server) startNewElection(){

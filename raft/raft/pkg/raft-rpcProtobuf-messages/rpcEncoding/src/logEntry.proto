@@ -19,6 +19,8 @@ message logEntry {
 	uint64 Term=1;
 	string Description=2;
 	Operation OpType=3;
+  string FilenName=4;
+  bytes Payload=5;
 }
 
 

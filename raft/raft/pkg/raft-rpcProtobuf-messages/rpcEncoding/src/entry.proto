@@ -10,6 +10,8 @@ enum MexType {
     REQUEST_VOTE = 2;
     REQUEST_VOTE_RESPONSE = 3;
     CLIENT_REQUEST =4;
+    NEW_CONF = 5;
+    UPDATE_NODE = 6;
 }
 
 message Entry {
