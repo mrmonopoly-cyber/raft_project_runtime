@@ -69,8 +69,8 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
             continue
         }
         new_node = node.NewNode(serversIp[i], port, nodeConn)
-        (*this).unstableNodes.Store(serversIp[i], new_node)
-        go (*this).handleResponseSingleNode(serversIp[i], &new_node)
+        (*this).unstableNodes.Store(new_node.GetIp(), new_node)
+        go (*this).handleResponseSingleNode(new_node.GetIp(), &new_node)
 
 	}
 
@@ -204,6 +204,7 @@ func (s *server) joinConf(id_node string, workingNode *node.Node){
         Description: "added new node " + id_node + " to configuration: ",
     }
 
+    log.Printf("adding node %v to the stable queue\n", id_node)
     s.stableNodes.Store(id_node, *workingNode)
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
     if s._state.Leader() {
