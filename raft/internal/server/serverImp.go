@@ -44,12 +44,11 @@ func (s *server) Start() {
     s._state.StartElectionTimeout()
     go func ()  {
         s.wg.Add(1)
-        defer s.wg.Done()
         s.acceptIncomingConn()
+        s.wg.Done()
     }()
     go func ()  {
         s.wg.Add(1)
-        defer s.wg.Done()
         go s.run()
     }()
 
