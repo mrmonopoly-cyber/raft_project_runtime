@@ -26,7 +26,7 @@ type raftStateImpl struct {
 	nNotSupporting     uint64
 	nNodeInCluster     uint64
 	electionTimeoutRaw int
-    localFs            localfs.LocalFs
+  localFs            localfs.LocalFs
 }
 
 func (this *raftStateImpl) GetIdPrivate() string {
@@ -206,6 +206,14 @@ func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
 		}
 	}
 
+}
+
+func (this *raftStateImpl) SetLastSent(idx int) {
+  this.log.SetLastSent(idx)
+}
+
+func (this *raftStateImpl) CheckLastSent() int {
+  return this.log.CheckLastSent()
 }
 
 // GetLeaderIpPrivate implements State.

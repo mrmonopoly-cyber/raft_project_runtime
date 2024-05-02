@@ -214,6 +214,10 @@ func (s *server) run() {
     } 
     if s._state.Leader() {
         s._state.CheckCommitIndex(s.getMatchIndexes())
+        var toSend int = s._state.CheckLastSent()
+        if toSend != -1 {
+            s.sendAppendEntry()
+        }
     }
 
         select {
@@ -319,6 +323,33 @@ func (s *server) leaderHearthBit(){
     s.setVolState()
 
     log.Println("no longer LEADER, stop sending hearthbit")
+}
+
+func (s *server) sendAppendEntry() {
+  var term uint64 = s._state.GetTerm()
+  var privateId string = s._state.GetIdPrivate()
+  var publicId string = s._state.GetIdPublic()
+  var commitIndex = s._state.GetCommitIndex()
+  var entries = s._state.GetEntries()
+  s.otherNodes.Range(func (key, value any) bool {
+    var nNode node.Node
+    var err bool
+    var byEnc []byte
+    var errEn error
+
+    nNode,err = value.(node.Node)
+    if !err {
+       panic("error type is not a node.Node")
+    }
+
+    var appendEntry = AppendEntryRpc.NewAppendEntryRPC(term, privateId, publicId, (*nNode.GetNodeState()).GetNextIndex(), entries, commitIndex) 
+    byEnc, errEn = genericmessage.Encode(&appendEntry)
+    if errEn != nil{
+       log.Panicln("error encoding this rpc: ", appendEntry.ToString())
+    }
+    nNode.Send(byEnc)
+    return true
+  })
 }
 
 func (s *server) getMatchIndexes() []int {

@@ -9,7 +9,7 @@ type log struct {
 	entries     []p.LogEntry
 	lastApplied int
 	commitIndex int64
-
+  lastSent int
 }
 
 
@@ -83,4 +83,22 @@ func extend(slice []p.LogEntry, addedCapacity int) []p.LogEntry {
 		newSlice[i] = slice[i]
 	}
 	return newSlice
+}
+
+func (this *log) SetLastSent(idx int) {
+  this.lastSent = idx
+}
+
+func (this *log) LastSent() int {
+  return this.lastSent
+}
+
+func (this *log) CheckLastSent() int {
+  var lenght = len(this.entries)
+  if lenght > 0 {
+    if this.lastSent < lenght - 1 {
+      return lenght - 1
+    }
+  }
+  return -1
 }

@@ -20,11 +20,11 @@ type fs struct{
 func (this *fs)ApplyLogEntry(log *protobuf.LogEntry) error{
   var fileName string = log.GetFilenName()
   var content []byte = log.GetPayload()
-  var file []byte = nil
+  //var file []byte = nil
   var err error = nil
   switch log.GetOpType(){
     case protobuf.Operation_READ:
-      file, err = this.read(fileName)
+      _, err = this.read(fileName)
     case protobuf.Operation_CREATE:
       err = this.create(fileName)
     case protobuf.Operation_WRITE:

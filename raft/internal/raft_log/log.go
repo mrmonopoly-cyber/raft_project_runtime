@@ -13,6 +13,9 @@ type LogEntry interface {
 	LastLogIndex() int
 	UpdateLastApplied() (bool, *p.LogEntry)
 	InitState()
+  SetLastSent(idx int)
+  LastSent() int
+  CheckLastSent() int
 }
 
 
@@ -22,6 +25,7 @@ func NewLogEntry() LogEntry {
 	l.commitIndex = 0
 	l.lastApplied = 0
 	l.entries = make([]p.LogEntry, 0)
+  l.lastSent = 0
 
 	return l
 }

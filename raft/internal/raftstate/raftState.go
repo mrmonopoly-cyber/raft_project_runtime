@@ -55,6 +55,8 @@ type State interface {
 	GetLastLogIndex() int
 	UpdateLastApplied() error
 	CheckCommitIndex(idxList []int)
+  SetLastSent(idx int)
+  CheckLastSent() int
 	GetLeaderIpPrivate() string
 	GetLeaderIpPublic() string
 	SetLeaderIpPublic(ip string)
