@@ -26,7 +26,7 @@ func main() {
   for i, v := range addresses {
       log.Println("before trim: ",v)
       addresses[i] = strings.Trim(v,"\n")
-      log.Println("after trim: ",addresses[i])
+      log.Printf("after trim: %v\n",addresses[i])
   }
 
   os.Mkdir(fsRootDir, os.ModePerm)
