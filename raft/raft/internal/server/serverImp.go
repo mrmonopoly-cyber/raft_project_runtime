@@ -225,7 +225,7 @@ func (s *server) updateNewNode(id_node string,workingNode *node.Node){
         index = i
     }
     (*s)._state.IncreaseNodeInCluster()
-    s.stableNodes.Store(id_node,workingNode)
+    s.stableNodes.Store(id_node,*workingNode)
     generateUpdateRequest(workingNode,true,nil)
     for  (*volatileState).GetMatchIndex() < index+1 {
         //WARN: WAIT
@@ -291,7 +291,7 @@ func (s *server) run() {
             var f any
             var ok bool
             var senderState *nodeState.VolatileNodeState
-            var senderNode *node.Node
+            var senderNode node.Node
             var newConf []string
             var failedConn []string
 
@@ -301,10 +301,10 @@ func (s *server) run() {
                 continue
             }
 
-            senderNode = f.(*node.Node)
+            senderNode = f.(node.Node)
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
-            senderState = (*senderNode).GetNodeState()
+            senderState = senderNode.GetNodeState()
             resp = (*rpcCall).Execute(&s._state, senderState)
 
             if !s._state.ConfStatus() {
@@ -313,7 +313,7 @@ func (s *server) run() {
                     var _,found = s.stableNodes.Load(v)
                     if !found {
                         var e,found = s.unstableNodes.Load(v)
-                        var newNode *node.Node = e.(*node.Node)
+                        var newNode node.Node = e.(node.Node)
                         if !found {
                             failedConn,errEn = s.connectToNodes([]string{v},"8080") //WARN: hard encoding port
                             if errEn != nil {
@@ -336,7 +336,7 @@ func (s *server) run() {
                 if errEn != nil{
                     log.Panicln("error encoding this rpc: ", (*resp).ToString())
                 }
-                (*senderNode).Send(byEnc)
+                senderNode.Send(byEnc)
             }
 
             if s._state.Leader() && oldRole != state.LEADER {
