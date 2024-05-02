@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log"
 	"os"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"sync"
-    "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 )
 
 
@@ -17,11 +18,13 @@ type fs struct{
     files map[string]string
 }
 
-func (this *fs)ApplyLogEntry(log *protobuf.LogEntry) error{
-    switch log.GetOpType(){
+func (this *fs)ApplyLogEntry(mex *protobuf.LogEntry) error{
+    switch mex.GetOpType(){
     case protobuf.Operation_READ:
     }
-    panic("Apply log entry not implemented")
+    
+    log.Println("Apply log entry not implemented")
+    return nil
 }
 
 //utility
