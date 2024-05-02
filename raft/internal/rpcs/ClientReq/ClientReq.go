@@ -21,37 +21,37 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
     var newEntries []*protobuf.LogEntry =make([]*protobuf.LogEntry, 1)
     var newLogEntry protobuf.LogEntry
     var op string = "NULL"
+    var fileName string = string(this.pMex.GetFileName())
 
     newLogEntry.Term = (*state).GetTerm()
+    newLogEntry.FilenName = fileName
     newEntries[0] = &newLogEntry
 
     switch operation{
     case protobuf.Operation_READ:
-        log.Printf("testing operation READ, TO IMPLEMENT")
         newLogEntry.OpType = protobuf.Operation_READ
         op = "READ"
     case protobuf.Operation_WRITE:
-        log.Printf("testing operation WRITE, TO IMPLEMENT")
         newLogEntry.OpType = protobuf.Operation_WRITE
+        newLogEntry.Payload = this.pMex.Others
         op = "WRITE"
     case protobuf.Operation_DELETE:
-        log.Printf("testing operation DELETE, TO IMPLEMENT")
         newLogEntry.OpType = protobuf.Operation_DELETE
         op = "DELETE"
     case protobuf.Operation_RENAME:
-        log.Printf("testing operation RENAME, TO IMPLEMENT")
         newLogEntry.OpType = protobuf.Operation_RENAME
+        newLogEntry.Payload = this.pMex.Others
         op = "RENAME"
     case protobuf.Operation_CREATE:
-        log.Printf("testing operation DELETE, TO IMPLEMENT")
         newLogEntry.OpType = protobuf.Operation_CREATE
+        newLogEntry.Payload = this.pMex.Others
         op = "CREATE"
     default:
         log.Printf("NOT IMPLMENTED OPERATION %v\n", operation)
         return nil
     }
 
-    newLogEntry.Description = "new " + op + " operation on file" + string((*this).pMex.FileName)
+    newLogEntry.Description = "new " + op + " operation on file" + fileName
 
     (*state).AppendEntries(newEntries,(*state).GetLastLogIndex()+1)
 

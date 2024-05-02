@@ -53,12 +53,12 @@ l.Println(index)
   l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
 }
 
-func (this *log) UpdateLastApplied() error{
-	for int(this.commitIndex) > this.lastApplied {
+func (this *log) UpdateLastApplied() (bool, *p.LogEntry) {
+	if int(this.commitIndex) > this.lastApplied {
 		this.lastApplied++
-        //TODO: apply to local FS
+    return true, &this.entries[this.lastApplied] 
 	}
-	return nil
+	return false, nil
 }
 
 func (this *log) GetCommitIndex() int64 {

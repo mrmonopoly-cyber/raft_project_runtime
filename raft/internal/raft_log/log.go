@@ -11,7 +11,7 @@ type LogEntry interface {
 	SetCommitIndex(val int64)
 	AppendEntries(newEntries []*p.LogEntry, index int)
 	LastLogIndex() int
-	UpdateLastApplied() error
+	UpdateLastApplied() (bool, *p.LogEntry)
 	InitState()
 }
 

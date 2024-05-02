@@ -206,8 +206,12 @@ func (s *server) run() {
 	defer s.wg.Done()
 	for {
 		var mess pairMex
+    var errUpdt error 
     /* To keep LastApplied and Leader's commitIndex always up to dated  */
-    s._state.UpdateLastApplied()
+    errUpdt = s._state.UpdateLastApplied()
+    if errUpdt != nil {
+      log.Println("Error: ", errUpdt)
+    } 
     if s._state.Leader() {
         s._state.CheckCommitIndex(s.getMatchIndexes())
     }

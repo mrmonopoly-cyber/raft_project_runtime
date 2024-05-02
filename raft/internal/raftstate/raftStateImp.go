@@ -171,7 +171,14 @@ func (this *raftStateImpl) GetLastLogIndex() int {
 
 func (this *raftStateImpl) UpdateLastApplied() error{
 	// TODO: apply log to state machine (?)
-	return this.log.UpdateLastApplied()
+  var result bool = false
+  var toApply *p.LogEntry = nil
+	result, toApply = this.log.UpdateLastApplied()
+
+  if result {
+    return this.localFs.ApplyLogEntry(toApply)
+  }
+  return nil
 }
 
 func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
