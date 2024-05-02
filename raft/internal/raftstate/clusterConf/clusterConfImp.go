@@ -1,7 +1,7 @@
 package clusterconf
 
 type conf struct {
-	oldConf   []string
+	oldConf   *[]string
 	newConf   []string
 	committed bool
 }
@@ -13,12 +13,12 @@ func (this conf) ConfStatus() bool {
 
 // OverwriteConf implements Configuration.
 func (this conf) OverwriteConf(conf []string) {
-	this.oldConf = conf
+	this.oldConf = &conf
 	this.committed = false
 }
 
 func (this conf) GetConfig() []string {
-	return append(this.oldConf, this.newConf...)
+	return append(*this.oldConf, this.newConf...)
 }
 
 func (this conf) UpdateConfiguration(nodeIps []string) {
@@ -27,7 +27,7 @@ func (this conf) UpdateConfiguration(nodeIps []string) {
 }
 
 func (this conf) CommitConfig() {
-	this.oldConf = this.newConf
+	this.oldConf = &this.newConf
 	this.newConf = make([]string, 0)
 	this.committed = true
 }
