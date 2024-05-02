@@ -31,7 +31,7 @@ func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port strin
 	}
 
     log.Println("number of others ip: ", len(serversIp))
-    log.Println("other ips: %v",serversIp)
+    log.Printf("other ips: %v\n",serversIp)
     server.connectToNodes(serversIp,port)
 	return server
 }
