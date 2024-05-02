@@ -101,8 +101,7 @@ func (s *server) acceptIncomingConn() {
         log.Printf("new connec: %v\n", newConncetionIp)
 
         if found {
-            //TODO: implement re connection of old node
-            log.Panicln("to implement re connection of old node: ",newConncetionIp)
+            log.Println("reconnecting to an already known node: ",newConncetionIp)
         }
 
         log.Printf("node with ip %v not found", newConncetionIp)

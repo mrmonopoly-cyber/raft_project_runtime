@@ -43,9 +43,9 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
         return nil
     }
 
-    newLogEntry.Description = "new " + op + " operation on file" + string((*this).pMex.Payload)
+    newLogEntry.Description = "new " + op + " operation on file" + string((*this).pMex.Others)
 
-    (*state).AppendEntries(newEntries,(*state).GetLastLogIndex()+1)
+    (*state).AppendEntries(newEntries,(*state).LastLogIndex()+1)
 
 
     return nil
