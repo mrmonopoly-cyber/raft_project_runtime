@@ -21,7 +21,7 @@ func (this *fs)ApplyLogEntry(log *protobuf.LogEntry) error{
     switch log.GetOpType(){
     case protobuf.Operation_READ:
     }
-    panic("not implemented")
+    panic("Apply log entry not implemented")
 }
 
 //utility
