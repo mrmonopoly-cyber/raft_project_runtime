@@ -24,7 +24,9 @@ func main() {
   var stringOthersIp = string(fileOthersIp)
   var addresses []string = strings.Split(stringOthersIp, "\n")
   for i, v := range addresses {
+      log.Println("before trim: ",v)
       addresses[i] = strings.Trim(v,"\n")
+      log.Println("after trim: ",addresses[i])
   }
 
   os.Mkdir(fsRootDir, os.ModePerm)
