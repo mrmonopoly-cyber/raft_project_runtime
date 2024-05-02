@@ -9,7 +9,7 @@ type Configuration interface{
 }
 
 func NewConf(baseConf []string) Configuration{
-    return conf{
+    return &conf{
         oldConf: &baseConf,
         newConf: make([]string, 0),
         committed: true,
