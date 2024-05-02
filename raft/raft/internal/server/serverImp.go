@@ -103,15 +103,16 @@ func (s *server) acceptIncomingConn() {
 
         log.Printf("node with ip %v not found", newConncetionIp)
         var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
+        log.Printf("test p:%v\n",new_node.GetIp())
         go func ()  {
             s.wg.Add(1)
             defer s.wg.Done()
-            s.handleConnection(newConncetionIp,&new_node)
+            s.handleConnection(&new_node)
         }()
 	}
 }
 
-func (s* server) handleConnection(idNode string, workingNode *node.Node){
+func (s* server) handleConnection(workingNode *node.Node){
     var nodeIp string = (*workingNode).GetIp()
 
     if strings.Contains(nodeIp, "10.0.0") {
