@@ -7,7 +7,7 @@ import (
     "raft/internal/raftstate"
     "raft/internal/rpcs"
     app_resp "raft/internal/rpcs/AppendResponse"
-    "raft/pkg/rpcEncoding/out/protobuf"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
     "strconv"
 
     "google.golang.org/protobuf/proto"

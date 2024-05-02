@@ -28,7 +28,7 @@ func main() {
 
   log.Println("listening on port: " + "8080" + " with ip: " + stringMyIp[0])
 
-  var server1 *ser.Server = ser.NewServer(0, stringMyIp[0], stringMyIp[1], "8080", addresses, fsRootDir)
+  var server1 ser.Server = ser.NewServer(0, stringMyIp[0], stringMyIp[1], "8080", addresses, fsRootDir)
 
   var wg sync.WaitGroup
 

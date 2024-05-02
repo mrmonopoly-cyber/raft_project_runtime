@@ -5,7 +5,7 @@ import (
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/internal/node/nodeState"
-    "raft/pkg/rpcEncoding/out/protobuf"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -38,14 +38,22 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
         log.Printf("testing operation DELETE, TO IMPLEMENT")
         newLogEntry.OpType = protobuf.Operation_DELETE
         op = "DELETE"
+    case protobuf.Operation_RENAME:
+        log.Printf("testing operation RENAME, TO IMPLEMENT")
+        newLogEntry.OpType = protobuf.Operation_RENAME
+        op = "RENAME"
+    case protobuf.Operation_CREATE:
+        log.Printf("testing operation DELETE, TO IMPLEMENT")
+        newLogEntry.OpType = protobuf.Operation_CREATE
+        op = "CREATE"
     default:
         log.Printf("NOT IMPLMENTED OPERATION %v\n", operation)
         return nil
     }
 
-    newLogEntry.Description = "new " + op + " operation on file" + string((*this).pMex.Payload)
+    newLogEntry.Description = "new " + op + " operation on file" + string((*this).pMex.FileName)
 
-    (*state).AppendEntries(newEntries,0)
+    (*state).AppendEntries(newEntries,(*state).GetLastLogIndex()+1)
 
 
     return nil
