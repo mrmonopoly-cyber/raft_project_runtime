@@ -19,7 +19,7 @@ if [[ -n $exist ]]; then
     echo "cleaning"
     rm -rf ./raft
     echo "cloning"
-    git clone --depth=1 --branch $branch $repo ./raft/
+    git clone --recursive --depth=1 --branch $branch $repo ./raft/
     rm -rf ./raft/.git*
     cd ./raft/raft
     echo "building"
