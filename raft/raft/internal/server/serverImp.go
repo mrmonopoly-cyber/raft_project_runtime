@@ -137,14 +137,14 @@ func (s* server) handleNewClientConnection(client *node.Node){
 
         mex,err = (*client).Recv()
         if err != nil {
-            fmt.Printf("error in reading from node %v with error %v",(*client).GetIp(), err)
+            fmt.Printf("error in reading from node %v with error %v\n",(*client).GetIp(), err)
             (*client).CloseConnection()
             return
         }
 
         err = clientReq.Decode(mex)
         if err != nil {
-            fmt.Printf("error in decoding client request from node %v with error %v",(*client).GetIp(), err)
+            fmt.Printf("error in decoding client request from node %v with error %v\n",(*client).GetIp(), err)
             (*client).CloseConnection()
             return
         }
@@ -194,7 +194,7 @@ func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node
 }
 
 func (s *server) joinConf(id_node string, workingNode *node.Node){
-    var newConfRequest rpcs.Rpc = NewConfiguration.NewNewConfigurationRPC(append(s._state.GetConfig(),id_node))
+    var newConfRequest rpcs.Rpc = NewConfiguration.NewNewConfigurationRPC([]string{id_node})
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF,
         Term: s._state.GetTerm(),
