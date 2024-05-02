@@ -70,7 +70,7 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
         }
         new_node = node.NewNode(serversIp[i], port, nodeConn)
         (*this).unstableNodes.Store(new_node.GetIp(), new_node)
-        go (*this).handleResponseSingleNode(new_node.GetIp(), &new_node)
+        go (*this).handleResponseSingleNode(&new_node)
 
 	}
 
@@ -115,7 +115,7 @@ func (s* server) handleConnection(idNode string, workingNode *node.Node){
     var nodeIp string = (*workingNode).GetIp()
 
     if strings.Contains(nodeIp, "10.0.0") {
-        s.handleResponseSingleNode(idNode,workingNode)
+        s.handleResponseSingleNode(workingNode)
         return
     }
     s.handleNewClientConnection(workingNode)
@@ -164,26 +164,27 @@ func (s* server) handleNewClientConnection(client *node.Node){
     (*client).CloseConnection()
 }
 
-func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node) {
+func (s *server) handleResponseSingleNode(workingNode *node.Node) {
     if s._state.Leader() {
         go func (){
             s.wg.Add(1)
             defer s.wg.Done()
-            s.joinConf(id_node,workingNode)
+            s.joinConf(workingNode)
         }()
     }
     for{
+        var nodeIp = (*workingNode).GetIp()
         var message []byte
         var errMes error
         message, errMes = (*workingNode).Recv()
         if errMes != nil {
-            fmt.Printf("error in reading from node %v with error %v",(*workingNode).GetIp(), errMes)
+            fmt.Printf("error in reading from node %v with error %v",nodeIp, errMes)
             if !s._state.Leader() {
                 s._state.StartElectionTimeout()
             }
             (*workingNode).CloseConnection()
-            s.stableNodes.Delete(id_node);
-            s.unstableNodes.Delete(id_node);
+            s.stableNodes.Delete(nodeIp);
+            s.unstableNodes.Delete(nodeIp);
             s._state.DecreaseNodeInCluster()
             break
         }
@@ -195,27 +196,28 @@ func (s *server) handleResponseSingleNode(id_node string, workingNode *node.Node
 
 }
 
-func (s *server) joinConf(id_node string, workingNode *node.Node){
-    var newConfRequest rpcs.Rpc = NewConfiguration.NewNewConfigurationRPC(append(s._state.GetConfig(),id_node))
+func (s *server) joinConf(workingNode *node.Node){
+    var nodeIp = (*workingNode).GetIp()
+    var newConfRequest rpcs.Rpc = NewConfiguration.NewNewConfigurationRPC(append(s._state.GetConfig(),nodeIp))
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF,
         Term: s._state.GetTerm(),
         Payload: nil,
-        Description: "added new node " + id_node + " to configuration: ",
+        Description: "added new node " + nodeIp + " to configuration: ",
     }
 
-    log.Printf("adding node %v to the stable queue\n", (*workingNode).GetIp())
-    s.stableNodes.Store((*workingNode).GetIp(), *workingNode)
+    log.Printf("adding node %v to the stable queue\n", nodeIp)
+    s.stableNodes.Store(nodeIp, *workingNode)
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
     if s._state.Leader() {
-        s._state.UpdateConfiguration([]string{(*workingNode).GetIp()})
+        s._state.UpdateConfiguration([]string{nodeIp})
         s._state.IncreaseNodeInCluster()
         s.sendAll(&newConfRequest)
-        s.updateNewNode(id_node,workingNode)              
+        s.updateNewNode(workingNode)              
     }
 }
 
-func (s *server) updateNewNode(id_node string,workingNode *node.Node){
+func (s *server) updateNewNode(workingNode *node.Node){
     var volatileState *nodeState.VolatileNodeState = (*workingNode).GetNodeState()
     var index = 0
     for  i,e := range s._state.GetEntries() {
