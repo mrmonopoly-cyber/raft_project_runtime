@@ -236,7 +236,7 @@ func (s *server) updateNewNode(workingNode *node.Node){
         index = i
     }
     (*s)._state.IncreaseNodeInCluster()
-    s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
+    // s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
     generateUpdateRequest(workingNode,true,nil)
     for  (*volatileState).GetMatchIndex() < index+1 {
         //WARN: WAIT
