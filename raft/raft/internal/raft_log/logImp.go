@@ -79,6 +79,7 @@ func (this *log) GetCommitIndex() int64 {
 func (this *log) applyLogEntry() {
 	for {
 		var entry *p.LogEntry = <-(*this).uncommittedEntries
+        l.Printf("applying logEntry %v\n",entry)
 		switch entry.GetOpType() {
 		case p.Operation_JOIN_CONF:
 			var confUnfiltered string = string(entry.Payload)
