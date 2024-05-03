@@ -3,16 +3,37 @@ package raft_log
 import (
 	"fmt"
 	l "log"
+	clusterconf "raft/internal/raftstate/clusterConf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"strings"
 )
 
 type log struct {
 	entries     []p.LogEntry
 	lastApplied int
 	commitIndex int64
-
+	cConf       clusterconf.Configuration
 }
 
+// CommitConfig implements LogEntry.
+func (this *log) CommitConfig() {
+    this.cConf.CommitConfig()
+}
+
+// ConfStatus implements LogEntry.
+func (this *log) ConfStatus() bool {
+    return this.cConf.ConfStatus()
+}
+
+// GetConfig implements LogEntry.
+func (this *log) GetConfig() []string {
+    return this.cConf.GetConfig()
+}
+
+// UpdateConfiguration implements LogEntry.
+func (this *log) UpdateConfiguration(nodeIps []string) {
+    this.cConf.UpdateConfiguration(nodeIps)
+}
 
 func (this *log) GetEntries() []*p.LogEntry {
 	var e []*p.LogEntry = make([]*p.LogEntry, len(this.entries))
@@ -41,27 +62,30 @@ func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) boo
 }
 
 func (this *log) AppendEntries(newEntries []*p.LogEntry, index int) {
-    var indexEndQueue = len(this.GetEntries())-1;
-    if indexEndQueue == -1 {
-        indexEndQueue =0
-    }
-    fmt.Printf("log index last log: %v\n", indexEndQueue)
+	var indexEndQueue = len(this.GetEntries()) - 1
+	if indexEndQueue == -1 {
+		indexEndQueue = 0
+	}
+	fmt.Printf("log index last log: %v\n", indexEndQueue)
 
-    this.entries = extend(this.entries, len(newEntries))
-    for i, en := range newEntries {
-        l.Printf("i: %d, i + index: %d, logEntry: %v", i, i+indexEndQueue, en.String())
-        this.entries[indexEndQueue + i] = *en
-    }
+	this.entries = extend(this.entries, len(newEntries))
+	for i, en := range newEntries {
+		l.Printf("i: %d, i + index: %d, logEntry: %v", i, i+indexEndQueue, en.String())
+		this.entries[indexEndQueue+i] = *en
+	}
 
-    l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
+	l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
 }
 
-func (this *log) UpdateLastApplied() error{
+func (this *log) UpdateLastApplied() error {
 	for int(this.commitIndex) > this.lastApplied {
-		this.lastApplied++
-        //TODO: apply to local FS
-        //TODO: apply new conf
-	}
+		//TODO: apply to local FS
+		var entry *p.LogEntry = &this.entries[this.commitIndex]
+        if entry.OpType == p.Operation_JOIN_CONF {
+            this.applyConf(entry)
+        }
+        this.lastApplied++
+    }
 	return nil
 }
 
@@ -73,13 +97,20 @@ func (this *log) SetCommitIndex(val int64) {
 	this.commitIndex = val
 }
 
-//utility
+// utility
 func extend(slice []p.LogEntry, addedCapacity int) []p.LogEntry {
-//  l.Println("enxtend")
+	//  l.Println("enxtend")
 	n := len(slice)
 	newSlice := make([]p.LogEntry, n+addedCapacity)
 	for i := range slice {
 		newSlice[i] = slice[i]
 	}
 	return newSlice
+}
+
+func (this *log) applyConf(entry *p.LogEntry){
+    var confUnfiltered string = string(entry.Payload)
+    var confFiltered []string = strings.Split(confUnfiltered, " ")
+    l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
+    this.cConf.UpdateConfiguration(confFiltered)
 }

@@ -3,7 +3,6 @@ package raftstate
 import (
 	localfs "raft/internal/localFs"
 	l "raft/internal/raft_log"
-	"raft/internal/raftstate/clusterConf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"time"
 )
@@ -28,35 +27,26 @@ type raftStateImpl struct {
 	nNodeInCluster     uint64
 	electionTimeoutRaw int
 	localFs            localfs.LocalFs
-	clusterConf        clusterconf.Configuration
-}
-
-// ConfStatus implements State.
-func (this *raftStateImpl) ConfStatus() bool {
-    if this.clusterConf == nil {
-        panic("conf is nil")
-    }
-    return this.clusterConf.ConfStatus()
-}
-
-// OverwriteConf implements State.
-func (this *raftStateImpl) OverwriteConf(conf []string) {
-    this.clusterConf.OverwriteConf(conf)
 }
 
 // CommitConfig implements State.
 func (this *raftStateImpl) CommitConfig() {
-	this.clusterConf.CommitConfig()
+	(*this).log.CommitConfig()
+}
+
+// ConfStatus implements State.
+func (this *raftStateImpl) ConfStatus() bool {
+    return this.log.ConfStatus()
 }
 
 // GetConfig implements State.
 func (this *raftStateImpl) GetConfig() []string {
-	return this.clusterConf.GetConfig()
+    return this.log.GetConfig()
 }
 
 // UpdateConfiguration implements State.
 func (this *raftStateImpl) UpdateConfiguration(nodeIps []string) {
-	this.clusterConf.UpdateConfiguration(nodeIps)
+    this.log.UpdateConfiguration(nodeIps)
 }
 
 func (this *raftStateImpl) GetIdPrivate() string {
