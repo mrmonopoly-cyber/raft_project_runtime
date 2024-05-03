@@ -205,8 +205,8 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 }
 
 func (s *server) joinConf(workingNode *node.Node){
-    var nodeIp = " " + (*workingNode).GetIp()
-    var newConf []string = append(s._state.GetConfig(),nodeIp)
+    var nodeIp = (*workingNode).GetIp()
+    var newConf []string = append(s._state.GetConfig()," " + nodeIp)
     var newConfByte []byte = make([]byte, len(newConf))
     for _, v := range newConf {
         var ipByte = []byte(v)
