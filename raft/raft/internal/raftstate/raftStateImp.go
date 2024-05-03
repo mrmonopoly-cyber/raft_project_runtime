@@ -1,7 +1,6 @@
 package raftstate
 
 import (
-	localfs "raft/internal/localFs"
 	l "raft/internal/raft_log"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"time"
@@ -26,7 +25,11 @@ type raftStateImpl struct {
 	nNotSupporting     uint64
 	nNodeInCluster     uint64
 	electionTimeoutRaw int
-	localFs            localfs.LocalFs
+}
+
+// IsInConf implements State.
+func (this *raftStateImpl) IsInConf(nodeIp string) bool {
+    return this.log.IsInConf(nodeIp)
 }
 
 // CommitConfig implements State.
@@ -36,17 +39,17 @@ func (this *raftStateImpl) CommitConfig() {
 
 // ConfStatus implements State.
 func (this *raftStateImpl) ConfStatus() bool {
-    return this.log.ConfStatus()
+	return this.log.ConfStatus()
 }
 
 // GetConfig implements State.
 func (this *raftStateImpl) GetConfig() []string {
-    return this.log.GetConfig()
+	return this.log.GetConfig()
 }
 
 // UpdateConfiguration implements State.
 func (this *raftStateImpl) UpdateConfiguration(nodeIps []string) {
-    this.log.UpdateConfiguration(nodeIps)
+	this.log.UpdateConfiguration(nodeIps)
 }
 
 func (this *raftStateImpl) GetIdPrivate() string {

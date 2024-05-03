@@ -2,7 +2,6 @@ package raftstate
 
 import (
 	"math/rand"
-	localfs "raft/internal/localFs"
 	l "raft/internal/raft_log"
 	"time"
     "raft/internal/raftstate/clusterConf"
@@ -76,6 +75,5 @@ func NewState(term uint64, idPrivate string, idPublic string, role Role, fsRootD
 	s.voting = true
 	s.log = l.NewLogEntry([]string{idPrivate})
 	s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
-    s.localFs = localfs.NewFs(fsRootDir)
 	return s
 }
