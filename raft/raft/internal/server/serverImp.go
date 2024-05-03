@@ -210,7 +210,7 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 
 func (s *server) joinConf(workingNode *node.Node){
     var nodeIp = (*workingNode).GetIp()
-    var newConf []string = append(s._state.GetConfig()," " + nodeIp)
+    var newConf []string = append(s._state.GetClusterConfig()," " + nodeIp)
     var newConfByte []byte = make([]byte, len(newConf))
     for _, v := range newConf {
         var ipByte = []byte(v)
@@ -225,8 +225,7 @@ func (s *server) joinConf(workingNode *node.Node){
 
     log.Printf("adding node %v to the stable queue\n", nodeIp)
     s.stableNodes.Store(nodeIp, *workingNode)
-    s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
-    s._state.UpdateConfiguration([]string{nodeIp})
+    s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
     s._state.IncreaseNodeInCluster()
     s.updateNewNode(workingNode)              
 }
@@ -255,7 +254,7 @@ func (s *server) updateNewNode(workingNode *node.Node){
     for  (*volatileState).GetMatchIndex() < index+1 {
         //WARN: WAIT
     }
-    s._state.CommitConfig()
+    //TODO: add log entry to commit the new configuration
 }
 
 func (this *server) generateUpdateRequest(workingNode *node.Node, voting bool, entry *protobuf.LogEntry) error{
@@ -307,11 +306,6 @@ func (s *server) run() {
     for {
         var mess pairMex
         /* To keep LastApplied and Leader's commitIndex always up to dated  */
-        s._state.UpdateLastApplied()
-        if s._state.Leader() {
-            s._state.CheckCommitIndex(s.getMatchIndexes())
-        }
-
         select {
         case mess = <-s.messageChannel:
             var rpcCall *rpcs.Rpc
@@ -341,7 +335,7 @@ func (s *server) run() {
 
             if !s._state.ConfStatus() {
                 log.Printf("configuration changed, adding the new nodes\n")
-                newConf = s._state.GetConfig()
+                newConf = s._state.GetClusterConfig()
                 for _, v := range newConf {
                     var _,found = s.stableNodes.Load(v)
                     if !found {

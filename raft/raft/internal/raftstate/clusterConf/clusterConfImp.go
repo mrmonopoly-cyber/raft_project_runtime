@@ -6,20 +6,25 @@ type conf struct {
     lock      sync.RWMutex
 	oldConf   *[]string
 	newConf   *[]string
-	committed bool
+	changed bool
+    joinConf bool
 }
 
 // ConfStatus implements Configuration.
 func (this *conf) ConfStatus() bool {
     this.lock.RLock()
     defer this.lock.RUnlock()
-	return this.committed
+    if this.changed {
+        this.changed = false
+        return true
+    }
+	return false
 }
 
 func (this *conf) GetConfig() []string {
     this.lock.RLock()
     defer this.lock.RUnlock()
-    if !this.ConfStatus() {
+    if !this.joinConf {
         return append(*this.oldConf, *this.newConf...)
     }
     return *this.oldConf
@@ -33,7 +38,9 @@ func (this *conf) UpdateConfiguration(nodeIps []string) {
 
     newConf = append(*this.newConf, nodeIps...)
 	this.newConf = &newConf
-	this.committed = false
+	this.changed = true
+    this.joinConf = true
+
 }
 
 func (this *conf) CommitConfig() {
@@ -44,7 +51,8 @@ func (this *conf) CommitConfig() {
 
 	this.oldConf = this.newConf
 	this.newConf = &newConf
-	this.committed = true
+	this.changed = false
+    this.joinConf = false
 }
 
 func (this *conf) IsInConf(nodeIp string) bool{
