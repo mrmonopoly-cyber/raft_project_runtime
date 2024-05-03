@@ -185,6 +185,7 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 
     if s._state.IsInConf((*workingNode).GetIp()){
         s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
+        s._state.IncreaseNodeInCluster()
     }
 
     for{
