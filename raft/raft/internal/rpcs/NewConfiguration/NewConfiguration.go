@@ -24,6 +24,7 @@ func NewNewConfigurationRPC(newConf []string) rpcs.Rpc {
 
 // Manage implements rpcs.Rpc.
 func (this *NewConfiguration) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
+    log.Printf("Applying the new conf: %v\n",this.pMex.GetNewConfiguration())
     (*state).OverwriteConf(this.pMex.NewConfiguration)
     return nil
 }

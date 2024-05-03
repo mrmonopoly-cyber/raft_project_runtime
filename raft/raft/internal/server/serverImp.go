@@ -215,12 +215,11 @@ func (s *server) joinConf(workingNode *node.Node){
     log.Printf("adding node %v to the stable queue\n", nodeIp)
     s.stableNodes.Store(nodeIp, *workingNode)
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
-    if s._state.Leader() {
-        s._state.UpdateConfiguration([]string{nodeIp})
-        s._state.IncreaseNodeInCluster()
-        s.sendAll(&newConfRequest)
-        s.updateNewNode(workingNode)              
-    }
+    s._state.UpdateConfiguration([]string{nodeIp})
+    s._state.IncreaseNodeInCluster()
+    log.Println("sending new Conf to all nodes")
+    s.sendAll(&newConfRequest)
+    s.updateNewNode(workingNode)              
 }
 
 func (s *server) updateNewNode(workingNode *node.Node){
@@ -317,6 +316,7 @@ func (s *server) run() {
             resp = (*rpcCall).Execute(&s._state, senderState)
 
             if !s._state.ConfStatus() {
+                log.Printf("configuration changed, adding the new nodes\n")
                 newConf = s._state.GetConfig()
                 for _, v := range newConf {
                     var _,found = s.stableNodes.Load(v)
