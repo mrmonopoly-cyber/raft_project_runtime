@@ -16,9 +16,9 @@ func (this *conf) ConfStatus() bool {
     defer this.lock.RUnlock()
     if this.changed {
         this.changed = false
-        return true
+        return false 
     }
-	return false
+	return true
 }
 
 func (this *conf) GetConfig() []string {
