@@ -267,8 +267,7 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
         if err != nil {
             log.Panicln("error in Encoding this rpc: ",(*rpc).ToString())
         }
-    //    log.Printf("sending: %v to %v", (*rpc).ToString(), (nNode).GetIp() )
-        log.Printf("sending to %v with key %v\n\n", nNode.GetIp(),key)
+        log.Printf("sending to %v with key %v\n", nNode.GetIp(),key)
         nNode.Send(raw_mex)
         return true
     })
@@ -331,6 +330,7 @@ func (s *server) run() {
                         s.stableNodes.Store(v,newNode)
                     }
                 }
+                s._state.CommitConfig()
             }
 
             if resp != nil {
