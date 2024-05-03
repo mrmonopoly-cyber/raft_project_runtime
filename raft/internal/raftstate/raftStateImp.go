@@ -27,29 +27,19 @@ type raftStateImpl struct {
 	electionTimeoutRaw int
 }
 
-// IsInConf implements State.
-func (this *raftStateImpl) IsInConf(nodeIp string) bool {
-    return this.log.IsInConf(nodeIp)
-}
-
-// CommitConfig implements State.
-func (this *raftStateImpl) CommitConfig() {
-	(*this).log.CommitConfig()
-}
-
 // ConfStatus implements State.
 func (this *raftStateImpl) ConfStatus() bool {
-	return this.log.ConfStatus()
+    return this.ConfStatus()
 }
 
-// GetConfig implements State.
-func (this *raftStateImpl) GetConfig() []string {
-	return this.log.GetConfig()
+// IsInConf implements State.
+func (this *raftStateImpl) IsInConf(ip string) bool {
+    return this.IsInConf(ip)
 }
 
-// UpdateConfiguration implements State.
-func (this *raftStateImpl) UpdateConfiguration(nodeIps []string) {
-	this.log.UpdateConfiguration(nodeIps)
+// GetClusterConfig implements State.
+func (this *raftStateImpl) GetClusterConfig() []string {
+	return this.log.GetClusterConfig()
 }
 
 func (this *raftStateImpl) GetIdPrivate() string {
@@ -80,16 +70,12 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 	return this.log.GetEntries()
 }
 
-func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry, index int) {
-	this.log.AppendEntries(newEntries, index)
+func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
+	this.log.AppendEntries(newEntries)
 }
 
 func (this *raftStateImpl) GetCommitIndex() int64 {
 	return this.log.GetCommitIndex()
-}
-
-func (this *raftStateImpl) SetCommitIndex(val int64) {
-	this.log.SetCommitIndex(val)
 }
 
 // LastLogIndex implements State.
@@ -193,38 +179,6 @@ func (this *raftStateImpl) DecreaseNodeInCluster() {
 func (this *raftStateImpl) ResetElection() {
 	this.nSupporting = 0
 	this.nNotSupporting = 0
-}
-
-func (this *raftStateImpl) UpdateLastApplied() error {
-	// TODO: apply log to state machine (?)
-	return this.log.UpdateLastApplied()
-}
-
-func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
-	var n int = 0
-	var commitIndex int = int(this.GetCommitIndex())
-	var majority int = len(idxList) / 2
-	var count int = 0
-	var entries = this.log.GetEntries()
-
-	/* find N such that N > commitIndex */
-	for ; n < commitIndex; n++ {
-	}
-
-	/* computing how many has a matchIndex greater than N*/
-	if !(len(entries) == 0) {
-		for i := range idxList {
-			if idxList[i] >= n {
-				count++
-			}
-		}
-
-		/* check if there is a majority of matchIndex[i] >= N and if log[N].term == currentTerm*/
-		if (count >= majority) && (entries[n].GetTerm() == this.GetTerm()) {
-			this.SetCommitIndex(int64(n))
-		}
-	}
-
 }
 
 // GetLeaderIpPrivate implements State.
