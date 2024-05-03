@@ -29,12 +29,12 @@ type raftStateImpl struct {
 
 // ConfStatus implements State.
 func (this *raftStateImpl) ConfStatus() bool {
-    return this.ConfStatus()
+    return this.log.ConfStatus()
 }
 
 // IsInConf implements State.
 func (this *raftStateImpl) IsInConf(ip string) bool {
-    return this.IsInConf(ip)
+    return this.log.IsInConf(ip)
 }
 
 // GetClusterConfig implements State.
