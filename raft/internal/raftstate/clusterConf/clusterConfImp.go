@@ -23,7 +23,8 @@ func (this conf) GetConfig() []string {
 }
 
 func (this conf) UpdateConfiguration(nodeIps []string) {
-	*this.newConf = append(*this.newConf, nodeIps...)
+    var newConf = append(*this.newConf, nodeIps...)
+	this.newConf = &newConf
 	this.committed = false
 }
 
