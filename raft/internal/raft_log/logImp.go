@@ -85,8 +85,11 @@ func extend(slice []p.LogEntry, addedCapacity int) []p.LogEntry {
 	return newSlice
 }
 
-func (this *log) SetLastSent(idx int) {
-  this.lastSent = idx
+func (this *log) UpdateLastSent() {
+  var length int = len(this.entries)
+  if length > 0 {
+    this.lastSent = length - 1
+  }
 }
 
 func (this *log) LastSent() int {
@@ -97,7 +100,7 @@ func (this *log) CheckLastSent() int {
   var lenght = len(this.entries)
   if lenght > 0 {
     if this.lastSent < lenght - 1 {
-      return lenght - 1
+      return this.lastSent
     }
   }
   return -1

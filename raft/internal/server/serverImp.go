@@ -214,8 +214,8 @@ func (s *server) run() {
     } 
     if s._state.Leader() {
         s._state.CheckCommitIndex(s.getMatchIndexes())
-        var toSend int = s._state.CheckLastSent()
-        if toSend != -1 {
+        var lastSent int = s._state.CheckLastSent()
+        if lastSent != -1 {
             s.sendAppendEntry()
         }
     }
@@ -331,6 +331,8 @@ func (s *server) sendAppendEntry() {
   var publicId string = s._state.GetIdPublic()
   var commitIndex = s._state.GetCommitIndex()
   var entries = s._state.GetEntries()
+
+  s._state.UpdateLastSent()
   s.otherNodes.Range(func (key, value any) bool {
     var nNode node.Node
     var err bool

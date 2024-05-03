@@ -13,7 +13,7 @@ type LogEntry interface {
 	LastLogIndex() int
 	UpdateLastApplied() (bool, *p.LogEntry)
 	InitState()
-  SetLastSent(idx int)
+  UpdateLastSent()
   LastSent() int
   CheckLastSent() int
 }

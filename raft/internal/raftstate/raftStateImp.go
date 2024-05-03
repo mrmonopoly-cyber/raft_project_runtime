@@ -208,8 +208,8 @@ func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
 
 }
 
-func (this *raftStateImpl) SetLastSent(idx int) {
-  this.log.SetLastSent(idx)
+func (this *raftStateImpl) UpdateLastSent() {
+  this.log.UpdateLastSent()
 }
 
 func (this *raftStateImpl) CheckLastSent() int {
