@@ -70,7 +70,11 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
         }
         new_node = node.NewNode(serversIp[i], port, nodeConn)
         (*this).unstableNodes.Store(new_node.GetIp(), new_node)
-        go (*this).handleResponseSingleNode(&new_node)
+        go func (){
+            this.wg.Add(1)
+            defer this.wg.Done()
+            (*this).handleResponseSingleNode(&new_node)
+        }()
 
 	}
 
@@ -103,6 +107,7 @@ func (s *server) acceptIncomingConn() {
 
         log.Printf("node with ip %v not found", newConncetionIp)
         var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
+        s.unstableNodes.Store(new_node.GetIp(),new_node)
         go func ()  {
             s.wg.Add(1)
             defer s.wg.Done()
