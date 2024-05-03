@@ -74,9 +74,8 @@ func NewState(term uint64, idPrivate string, idPublic string, role Role, fsRootD
 	s.nSupporting = 0
 	s.nNodeInCluster = 1
 	s.voting = true
-	s.log = l.NewLogEntry()
+	s.log = l.NewLogEntry([]string{idPrivate})
 	s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
     s.localFs = localfs.NewFs(fsRootDir)
-    s.clusterConf = clusterconf.NewConf([]string{idPrivate})
 	return s
 }
