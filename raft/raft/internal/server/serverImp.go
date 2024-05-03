@@ -12,7 +12,6 @@ import (
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/ClientReq"
-	"raft/internal/rpcs/NewConfiguration"
 	"raft/internal/rpcs/RequestVoteRPC"
 	"raft/internal/rpcs/UpdateNode"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -204,12 +203,17 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 }
 
 func (s *server) joinConf(workingNode *node.Node){
-    var nodeIp = (*workingNode).GetIp()
-    var newConfRequest rpcs.Rpc = NewConfiguration.NewNewConfigurationRPC(append(s._state.GetConfig(),nodeIp))
+    var nodeIp = " " + (*workingNode).GetIp()
+    var newConf []string = append(s._state.GetConfig(),nodeIp)
+    var newConfByte []byte = make([]byte, len(newConf))
+    for _, v := range newConf {
+        var ipByte = []byte(v)
+        newConfByte = append(newConfByte, ipByte...)
+    }
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF,
         Term: s._state.GetTerm(),
-        Payload: nil,
+        Payload: newConfByte,
         Description: "added new node " + nodeIp + " to configuration: ",
     }
 
@@ -218,8 +222,6 @@ func (s *server) joinConf(workingNode *node.Node){
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
     s._state.UpdateConfiguration([]string{nodeIp})
     s._state.IncreaseNodeInCluster()
-    log.Println("sending new Conf to all nodes")
-    s.sendAll(&newConfRequest)
     s.updateNewNode(workingNode)              
 }
 
