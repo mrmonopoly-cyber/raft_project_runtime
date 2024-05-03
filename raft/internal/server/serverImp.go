@@ -69,6 +69,7 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
             continue
         }
         new_node = node.NewNode(serversIp[i], port, nodeConn)
+        log.Printf("connected to new node, storing it: %v\n", new_node.GetIp())
         (*this).unstableNodes.Store(new_node.GetIp(), new_node)
         go func (){
             this.wg.Add(1)
