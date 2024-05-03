@@ -170,6 +170,10 @@ func (s* server) handleNewClientConnection(client *node.Node){
 }
 
 func (s *server) handleResponseSingleNode(workingNode *node.Node) {
+    var nodeIp = (*workingNode).GetIp()
+    var message []byte
+    var errMes error
+
     if s._state.Leader() {
         log.Println("i'm leader, joining conf")
         go func (){
@@ -178,10 +182,8 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
             s.joinConf(workingNode)
         }()
     }
+
     for{
-        var nodeIp = (*workingNode).GetIp()
-        var message []byte
-        var errMes error
         message, errMes = (*workingNode).Recv()
         if errMes != nil {
             fmt.Printf("error in reading from node %v with error %v",nodeIp, errMes)
@@ -228,8 +230,13 @@ func (s *server) joinConf(workingNode *node.Node){
 func (s *server) updateNewNode(workingNode *node.Node){
     var volatileState *nodeState.VolatileNodeState = (*workingNode).GetNodeState()
     var index = 0
+    var err error
+
     for  i,e := range s._state.GetEntries() {
-        generateUpdateRequest(workingNode,false,e)
+        err = s.generateUpdateRequest(workingNode,false,e)
+        if err != nil {
+            return //WARN: not managed
+        }
         for  (*volatileState).GetMatchIndex() < i {
             //WARN: WAIT
         }
@@ -237,24 +244,34 @@ func (s *server) updateNewNode(workingNode *node.Node){
     }
     (*s)._state.IncreaseNodeInCluster()
     // s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
-    generateUpdateRequest(workingNode,true,nil)
+    err = s.generateUpdateRequest(workingNode,true,nil)
+    if err != nil {
+        return //WARN: not managed
+    }
     for  (*volatileState).GetMatchIndex() < index+1 {
         //WARN: WAIT
     }
     s._state.CommitConfig()
 }
 
-func generateUpdateRequest(workingNode *node.Node, voting bool, entry *protobuf.LogEntry){
+func (this *server) generateUpdateRequest(workingNode *node.Node, voting bool, entry *protobuf.LogEntry) error{
     var updateReq rpcs.Rpc 
     var mex []byte
     var err error
+    var found bool
 
     updateReq = UpdateNode.NewUpdateNodeRPC(voting, entry)
     mex,err = genericmessage.Encode(&updateReq)
     if err != nil {
         log.Panic("error encoding UpdateNode rpc")
     }
-    (*workingNode).Send(mex)
+    _,found  = this.stableNodes.Load((*workingNode).GetIp())
+    if found {
+        (*workingNode).Send(mex)
+        return nil
+    }
+    return net.ErrClosed
+
 }
 
 func (s *server) sendAll(rpc *rpcs.Rpc){
