@@ -103,7 +103,6 @@ func (s *server) acceptIncomingConn() {
 
         log.Printf("node with ip %v not found", newConncetionIp)
         var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
-        log.Printf("test p:%v\n",new_node.GetIp())
         go func ()  {
             s.wg.Add(1)
             defer s.wg.Done()
@@ -167,6 +166,7 @@ func (s* server) handleNewClientConnection(client *node.Node){
 
 func (s *server) handleResponseSingleNode(workingNode *node.Node) {
     if s._state.Leader() {
+        log.Println("i'm leader, joining conf")
         go func (){
             s.wg.Add(1)
             defer s.wg.Done()
@@ -276,6 +276,7 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
 }
 
 func (s *server) run() {
+    defer s.wg.Done()
     for {
         var mess pairMex
         /* To keep LastApplied and Leader's commitIndex always up to dated  */
