@@ -3,8 +3,8 @@ package raft_log
 import (
 	"fmt"
 	l "log"
-	clusterconf "raft/internal/raftstate/clusterConf"
 	localfs "raft/internal/localFs"
+	clusterconf "raft/internal/raftstate/clusterConf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strings"
 )
@@ -14,27 +14,32 @@ type log struct {
 	lastApplied int
 	commitIndex int64
 	cConf       clusterconf.Configuration
-	localFs            localfs.LocalFs
+	localFs     localfs.LocalFs
+}
+
+// IsInConf implements LogEntry.
+func (this *log) IsInConf(nodeIp string) bool {
+    return this.cConf.IsInConf(nodeIp)
 }
 
 // CommitConfig implements LogEntry.
 func (this *log) CommitConfig() {
-    this.cConf.CommitConfig()
+	this.cConf.CommitConfig()
 }
 
 // ConfStatus implements LogEntry.
 func (this *log) ConfStatus() bool {
-    return this.cConf.ConfStatus()
+	return this.cConf.ConfStatus()
 }
 
 // GetConfig implements LogEntry.
 func (this *log) GetConfig() []string {
-    return this.cConf.GetConfig()
+	return this.cConf.GetConfig()
 }
 
 // UpdateConfiguration implements LogEntry.
 func (this *log) UpdateConfiguration(nodeIps []string) {
-    this.cConf.UpdateConfiguration(nodeIps)
+	this.cConf.UpdateConfiguration(nodeIps)
 }
 
 func (this *log) GetEntries() []*p.LogEntry {
@@ -83,16 +88,16 @@ func (this *log) UpdateLastApplied() error {
 	for int(this.commitIndex) > this.lastApplied {
 		var entry *p.LogEntry = &this.entries[this.commitIndex]
 
-        l.Printf("updating entry: %v",entry)
-        switch entry.OpType{
-        case p.Operation_JOIN_CONF:
-            this.applyConf(entry)
-        default:
-            (*this).localFs.ApplyLogEntry(entry)
-        }
+		l.Printf("updating entry: %v", entry)
+		switch entry.OpType {
+		case p.Operation_JOIN_CONF:
+			this.applyConf(entry)
+		default:
+			(*this).localFs.ApplyLogEntry(entry)
+		}
 
-        this.lastApplied++
-    }
+		this.lastApplied++
+	}
 	return nil
 }
 
@@ -115,9 +120,9 @@ func extend(slice []p.LogEntry, addedCapacity int) []p.LogEntry {
 	return newSlice
 }
 
-func (this *log) applyConf(entry *p.LogEntry){
-    var confUnfiltered string = string(entry.Payload)
-    var confFiltered []string = strings.Split(confUnfiltered, " ")
-    l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
-    this.cConf.UpdateConfiguration(confFiltered)
+func (this *log) applyConf(entry *p.LogEntry) {
+	var confUnfiltered string = string(entry.Payload)
+	var confFiltered []string = strings.Split(confUnfiltered, " ")
+	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
+	this.cConf.UpdateConfiguration(confFiltered)
 }
