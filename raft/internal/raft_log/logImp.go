@@ -4,6 +4,7 @@ import (
 	"fmt"
 	l "log"
 	clusterconf "raft/internal/raftstate/clusterConf"
+	localfs "raft/internal/localFs"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strings"
 )
@@ -13,6 +14,7 @@ type log struct {
 	lastApplied int
 	commitIndex int64
 	cConf       clusterconf.Configuration
+	localFs            localfs.LocalFs
 }
 
 // CommitConfig implements LogEntry.
@@ -79,11 +81,16 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry, index int) {
 
 func (this *log) UpdateLastApplied() error {
 	for int(this.commitIndex) > this.lastApplied {
-		//TODO: apply to local FS
 		var entry *p.LogEntry = &this.entries[this.commitIndex]
-        if entry.OpType == p.Operation_JOIN_CONF {
+
+        l.Printf("updating entry: %v",entry)
+        switch entry.OpType{
+        case p.Operation_JOIN_CONF:
             this.applyConf(entry)
+        default:
+            (*this).localFs.ApplyLogEntry(entry)
         }
+
         this.lastApplied++
     }
 	return nil

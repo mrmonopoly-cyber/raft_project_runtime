@@ -78,9 +78,6 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 }
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry, index int) {
-	for _, v := range newEntries {
-		(*this).localFs.ApplyLogEntry(v)
-	}
 	this.log.AppendEntries(newEntries, index)
 }
 
