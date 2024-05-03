@@ -12,13 +12,13 @@ type conf struct {
 // ConfStatus implements Configuration.
 func (this *conf) ConfStatus() bool {
     this.lock.RLock()
-    defer this.lock.Unlock()
+    defer this.lock.RUnlock()
 	return this.committed
 }
 
 func (this *conf) GetConfig() []string {
     this.lock.RLock()
-    defer this.lock.Unlock()
+    defer this.lock.RUnlock()
     if !this.ConfStatus() {
         return append(*this.oldConf, *this.newConf...)
     }
