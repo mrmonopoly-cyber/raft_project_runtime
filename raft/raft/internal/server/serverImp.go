@@ -183,6 +183,10 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
         }()
     }
 
+    if s._state.IsInConf((*workingNode).GetIp()){
+        s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
+    }
+
     for{
         message, errMes = (*workingNode).Recv()
         if errMes != nil {
@@ -340,25 +344,16 @@ func (s *server) run() {
                 newConf = s._state.GetConfig()
                 for _, v := range newConf {
                     var _,found = s.stableNodes.Load(v)
-                    var newNode node.Node
-
                     if !found {
-                        var e,found = s.unstableNodes.Load(v)
-                        if !found {
-                            failedConn,errEn = s.connectToNodes([]string{v},"8080") //WARN: hard encoding port
-                            if errEn != nil {
-                                for _, v := range failedConn {
-                                    log.Println("failed connecting to this node: " + v)
-                                }
-                                log.Panic("devel debug") //WARN: to remove in the future
+                        failedConn,errEn = s.connectToNodes([]string{v},"8080") //WARN: hard encoding port
+                        if errEn != nil {
+                            for _, v := range failedConn {
+                                log.Println("failed connecting to this node: " + v)
                             }
+                            log.Panic("devel debug") //WARN: to remove in the future
                         }
-                        e,found = s.unstableNodes.Load(v)
-                        s.stableNodes.Store(v,newNode)
-                        newNode = e.(node.Node)
                     }
                 }
-                s._state.CommitConfig()
             }
 
             if resp != nil {

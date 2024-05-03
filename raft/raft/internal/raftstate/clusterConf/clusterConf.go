@@ -7,6 +7,7 @@ type Configuration interface{
     UpdateConfiguration(nodeIps []string)
     CommitConfig()
     ConfStatus() bool
+    IsInConf(nodeIp string) bool
 }
 
 func NewConf(baseConf []string) Configuration{

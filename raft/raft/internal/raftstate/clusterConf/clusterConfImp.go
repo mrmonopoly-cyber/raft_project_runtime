@@ -46,3 +46,13 @@ func (this *conf) CommitConfig() {
 	this.newConf = &newConf
 	this.committed = true
 }
+
+func (this *conf) IsInConf(nodeIp string) bool{
+    var currConf []string = this.GetConfig()
+    for _, v := range currConf {
+        if v == nodeIp {
+            return true
+        }
+    }
+    return false
+}
