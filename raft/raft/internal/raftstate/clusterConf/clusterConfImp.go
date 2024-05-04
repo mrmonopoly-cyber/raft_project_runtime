@@ -1,6 +1,9 @@
 package clusterconf
 
-import "sync"
+import (
+	"log"
+	"sync"
+)
 
 type conf struct {
     lock      sync.RWMutex
@@ -32,6 +35,7 @@ func (this *conf) GetConfig() []string {
 }
 
 func (this *conf) UpdateConfiguration(nodeIps []string) {
+    log.Printf("Updating conf with new conf: %v\n", nodeIps)
     this.lock.Lock()
     defer this.lock.Unlock()
 
