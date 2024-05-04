@@ -34,7 +34,10 @@ func (this *UpdateNode) Execute(state *raftstate.State, senderState *nodeState.V
         (*state).AppendEntries([]*protobuf.LogEntry{this.pMex.Log},int((*state).GetCommitIndex()+1))
     }
 
-    return &resp
+    if this.pMex.Votante {
+        return &resp
+    }
+    return nil
 }
 
 // ToString implements rpcs.Rpc.

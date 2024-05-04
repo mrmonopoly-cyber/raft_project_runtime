@@ -254,7 +254,7 @@ func (s *server) updateNewNode(workingNode *node.Node){
         //WARN: WAIT
     }
     s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
-    // s._state.CommitConfig()
+    log.Printf("node %v updated\n",(*workingNode).GetIp())
 }
 
 func (this *server) generateUpdateRequest(workingNode *node.Node, voting bool, entry *protobuf.LogEntry) error{
