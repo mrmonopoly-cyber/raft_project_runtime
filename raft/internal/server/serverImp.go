@@ -14,7 +14,6 @@ import (
 	"raft/internal/rpcs/ClientReq"
 	"raft/internal/rpcs/RequestVoteRPC"
 	"raft/internal/rpcs/UpdateNode"
-	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"reflect"
 	"strings"
@@ -254,7 +253,7 @@ func (s *server) updateNewNode(workingNode *node.Node){
     log.Printf("node %v updated\n",(*workingNode).GetIp())
 }
 
-func (this *server) generateUpdateRequest(workingNode *node.Node, voting bool, entry *protobuf.LogEntry) error{
+func (this *server) generateUpdateRequest(workingNode *node.Node, voting bool, entry *p.LogEntry) error{
     var updateReq rpcs.Rpc 
     var mex []byte
     var err error
