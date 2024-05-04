@@ -185,11 +185,7 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
         }()
     }
 
-    go func (){
-        s.wg.Add(1)
-        defer s.wg.Done()
-        s.nodeRecv(workingNode)
-    }()
+    s.nodeRecv(workingNode)
 }
 
 func (s *server) nodeRecv(workingNode *node.Node){
