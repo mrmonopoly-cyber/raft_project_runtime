@@ -214,6 +214,8 @@ func (s *server) joinConf(workingNode *node.Node){
     var nodeIp = (*workingNode).GetIp()
     var newConf []string = append(s._state.GetConfig()," " + nodeIp)
     var newConfByte []byte = make([]byte, len(newConf))
+
+
     for _, v := range newConf {
         var ipByte = []byte(v)
         newConfByte = append(newConfByte, ipByte...)
@@ -228,7 +230,7 @@ func (s *server) joinConf(workingNode *node.Node){
     log.Printf("adding node %v to the stable queue\n", nodeIp)
     s.stableNodes.Store(nodeIp, *workingNode)
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
-    s._state.UpdateConfiguration([]string{nodeIp})
+    s._state.UpdateConfiguration(newConf)
     s.updateNewNode(workingNode)              
 }
 
