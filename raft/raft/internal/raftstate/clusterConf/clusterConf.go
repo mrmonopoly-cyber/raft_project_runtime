@@ -16,6 +16,7 @@ func NewConf(baseConf []string) Configuration{
         lock: sync.RWMutex{},
         oldConf: &baseConf,
         newConf: &newConf,
-        committed: true,
+        changed: false,
+        joinConf: false,
     }
 }
