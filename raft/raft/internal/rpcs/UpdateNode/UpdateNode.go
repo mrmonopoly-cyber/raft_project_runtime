@@ -2,10 +2,11 @@ package UpdateNode
 
 import (
 	"log"
+	"raft/internal/node/nodeState"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
-	"raft/internal/node/nodeState"
-    "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"raft/internal/rpcs/UpdateNodeResp"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -25,13 +26,15 @@ func NewUpdateNodeRPC(voteAble bool, log *protobuf.LogEntry) rpcs.Rpc {
 
 // Manage implements rpcs.Rpc.
 func (this *UpdateNode) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
+    var resp = UpdateNodeResp.NewUpdateNodeRespRPC()
+
     log.Printf("updating log entry with new entry %v\n",this.pMex.Log)
     (*state).VoteRight(this.pMex.Votante)
     if this.pMex.Log != nil {
         (*state).AppendEntries([]*protobuf.LogEntry{this.pMex.Log},int((*state).GetCommitIndex()+1))
     }
 
-    return nil
+    return &resp
 }
 
 // ToString implements rpcs.Rpc.
