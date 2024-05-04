@@ -419,7 +419,11 @@ func (s *server) startNewElection(){
         s._state.SetLeaderIpPrivate(s._state.GetIdPrivate())
         s._state.SetLeaderIpPublic(s._state.GetIdPublic())
         s._state.ResetElection()
-        go s.leaderHearthBit()
+        go func ()  {
+            s.wg.Add(1)
+            defer s.wg.Done()
+            s.leaderHearthBit()
+        }()
     }else {
      //   log.Println("sending to everybody request vote :" + voteRequest.ToString())
         s.sendAll(&voteRequest)
