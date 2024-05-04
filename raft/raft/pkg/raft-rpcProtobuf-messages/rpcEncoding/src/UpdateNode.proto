@@ -10,3 +10,7 @@ message UpdateNode{
     bool Votante = 1;
     logEntry Log = 2;
 }
+
+message UpdateNodeResp{
+    bool ack = 1;
+};
