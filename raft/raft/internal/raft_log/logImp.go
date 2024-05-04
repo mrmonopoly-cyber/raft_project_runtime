@@ -17,9 +17,14 @@ type log struct {
 	localFs     localfs.LocalFs
 }
 
+// GetNumberNodesInCurrentConf implements LogEntry.
+func (this *log) GetNumberNodesInCurrentConf() int {
+	return this.cConf.GetNumberNodesInCurrentConf()
+}
+
 // IsInConf implements LogEntry.
 func (this *log) IsInConf(nodeIp string) bool {
-    return this.cConf.IsInConf(nodeIp)
+	return this.cConf.IsInConf(nodeIp)
 }
 
 // CommitConfig implements LogEntry.
@@ -83,13 +88,13 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry, index int) {
 
 	l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
 
-    if this.commitIndex == -1 {
-        this.commitIndex =0
-    }
+	if this.commitIndex == -1 {
+		this.commitIndex = 0
+	}
 }
 
 func (this *log) UpdateLastApplied() error {
-    l.Printf("check if can apply some logEntry: commIndex:%v, lastApplied:%v\n", this.commitIndex, this.lastApplied)
+	l.Printf("check if can apply some logEntry: commIndex:%v, lastApplied:%v\n", this.commitIndex, this.lastApplied)
 	for int(this.commitIndex) > this.lastApplied {
 		var entry *p.LogEntry = &this.entries[this.commitIndex]
 
