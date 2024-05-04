@@ -67,6 +67,7 @@ func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) boo
 
 func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 	for _, en := range newEntries {
+        l.Printf("append new Log Entry: %v\n",en)
 		this.uncommittedEntries <- en
 	}
 }
