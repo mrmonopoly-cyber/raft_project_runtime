@@ -310,6 +310,7 @@ func (s *server) run() {
     for {
         var mess pairMex
         /* To keep LastApplied and Leader's commitIndex always up to dated  */
+        log.Printf("check updating last applied")
         s._state.UpdateLastApplied()
         if s._state.Leader() {
             s._state.CheckCommitIndex(s.getMatchIndexes())
