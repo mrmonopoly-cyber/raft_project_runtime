@@ -20,8 +20,8 @@ type LogEntry interface {
 
 func NewLogEntry(baseConf []string) LogEntry {
 	var l = new(log)
-	l.commitIndex = 0
-	l.lastApplied = 0
+	l.commitIndex = -1
+	l.lastApplied = -1
 	l.entries = make([]p.LogEntry, 0)
     l.cConf = clusterconf.NewConf(baseConf)
 
