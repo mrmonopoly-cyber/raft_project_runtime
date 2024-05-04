@@ -223,7 +223,6 @@ func (s *server) joinConf(workingNode *node.Node){
     }
 
     log.Printf("adding node %v to the stable queue\n", nodeIp)
-    // s.stableNodes.Store(nodeIp, *workingNode)
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
     s._state.UpdateConfiguration(newConf)
     s.updateNewNode(workingNode)              
@@ -247,7 +246,6 @@ func (s *server) updateNewNode(workingNode *node.Node){
         }
         index = i
     }
-    // s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
     err = s.generateUpdateRequest(workingNode,true,nil)
     if err != nil {
         return //WARN: not managed
@@ -255,7 +253,7 @@ func (s *server) updateNewNode(workingNode *node.Node){
     for  (*volatileState).GetMatchIndex() < index+1 {
         //WARN: WAIT
     }
-    s.stableNodes.Store((*workingNode).GetIp(),workingNode)
+    s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
     // s._state.CommitConfig()
 }
 
