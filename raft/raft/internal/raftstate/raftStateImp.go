@@ -85,8 +85,8 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 	return this.log.GetEntries()
 }
 
-func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry, index int) {
-	this.log.AppendEntries(newEntries, index)
+func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
+	this.log.AppendEntries(newEntries)
 }
 
 func (this *raftStateImpl) GetCommitIndex() int64 {

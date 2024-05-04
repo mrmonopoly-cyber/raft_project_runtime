@@ -73,18 +73,21 @@ func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) boo
 
 }
 
-func (this *log) AppendEntries(newEntries []*p.LogEntry, index int) {
+func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 	var indexEndQueue = len(this.GetEntries()) - 1
 	if indexEndQueue == -1 {
 		indexEndQueue = 0
 	}
 	fmt.Printf("log index last log: %v\n", indexEndQueue)
 
-	this.entries = extend(this.entries, len(newEntries))
-	for i, en := range newEntries {
-		l.Printf("i: %d, i + index: %d, logEntry: %v", i, i+indexEndQueue, en.String())
-		this.entries[indexEndQueue+i] = en
-	}
+	// this.entries = extend(this.entries, len(newEntries))
+
+    this.entries = append(this.entries,newEntries...)
+
+	// for i, en := range newEntries {
+	// 	l.Printf("i: %d, i + index: %d, logEntry: %v", i, i+indexEndQueue, en.String())
+	// 	this.entries[indexEndQueue+i] = en
+	// }
 
 	l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
 
