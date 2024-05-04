@@ -260,6 +260,7 @@ func (s *server) updateNewNode(workingNode *node.Node){
     for  (*volatileState).GetMatchIndex() < index+1 {
         //WARN: WAIT
     }
+    s.stableNodes.Store((*workingNode).GetIp(),workingNode)
     // s._state.CommitConfig()
 }
 
