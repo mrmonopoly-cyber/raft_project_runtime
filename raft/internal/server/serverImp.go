@@ -263,21 +263,15 @@ func (this *server) generateUpdateRequest(workingNode *node.Node, voting bool, e
     var updateReq rpcs.Rpc 
     var mex []byte
     var err error
-    var found bool
-
     
     updateReq = UpdateNode.NewUpdateNodeRPC(voting, entry)
     mex,err = genericmessage.Encode(&updateReq)
     if err != nil {
         log.Panic("error encoding UpdateNode rpc")
     }
-    _,found  = this.stableNodes.Load((*workingNode).GetIp())
-    if found {
-        (*workingNode).Send(mex)
-        return nil
-    }
-    return net.ErrClosed
+    (*workingNode).Send(mex)
 
+    return nil
 }
 
 func (s *server) sendAll(rpc *rpcs.Rpc){

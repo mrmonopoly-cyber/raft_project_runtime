@@ -71,6 +71,7 @@ func (this *node) Send(mex []byte) error{
     var _,err = this.conn.Write(mex)
     if err != nil {
         log.Panicf("error sending to %v, error %v\n", (*this).GetIp(), err)
+        return err
     }
     return nil
 	
