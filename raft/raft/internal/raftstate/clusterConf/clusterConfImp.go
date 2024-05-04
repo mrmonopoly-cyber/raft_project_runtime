@@ -6,7 +6,7 @@ type conf struct {
     lock      sync.RWMutex
 	oldConf   *[]string
 	newConf   *[]string
-	chenged bool
+	changed bool
     joinConf bool
 }
 
@@ -15,8 +15,8 @@ func (this *conf) ConfStatus() bool {
     this.lock.RLock()
     defer this.lock.RUnlock()
     
-    if this.chenged{
-        this.chenged = false
+    if this.changed{
+        this.changed = false
         return true
     }
     return false
@@ -39,7 +39,7 @@ func (this *conf) UpdateConfiguration(nodeIps []string) {
 
     newConf = append(*this.newConf, nodeIps...)
 	this.newConf = &newConf
-	this.chenged = true
+	this.changed = true
     this.joinConf = true
 }
 
