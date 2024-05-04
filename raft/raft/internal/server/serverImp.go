@@ -188,7 +188,6 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 
     if s._state.IsInConf((*workingNode).GetIp()){
         s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
-        s._state.IncreaseNodeInCluster()
     }
 
     for{
@@ -201,7 +200,6 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
             (*workingNode).CloseConnection()
             s.stableNodes.Delete(nodeIp);
             s.unstableNodes.Delete(nodeIp);
-            s._state.DecreaseNodeInCluster()
             break
         }
         if message != nil {
@@ -231,7 +229,6 @@ func (s *server) joinConf(workingNode *node.Node){
     s.stableNodes.Store(nodeIp, *workingNode)
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
     s._state.UpdateConfiguration([]string{nodeIp})
-    s._state.IncreaseNodeInCluster()
     s.updateNewNode(workingNode)              
 }
 
@@ -250,7 +247,6 @@ func (s *server) updateNewNode(workingNode *node.Node){
         }
         index = i
     }
-    (*s)._state.IncreaseNodeInCluster()
     // s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
     err = s.generateUpdateRequest(workingNode,true,nil)
     if err != nil {
@@ -411,7 +407,7 @@ func (s *server) startNewElection(){
 
     s._state.IncreaseSupporters()
     //log.Println("node in cluster: ",s._state.GetNumNodeInCluster())
-    if s._state.GetNumNodeInCluster() == 1 {
+    if s._state.GetNumberNodesInCurrentConf() == 1 {
         log.Println("became leader: ",s._state.GetRole())
         s._state.SetRole(raftstate.LEADER)
         s._state.SetLeaderIpPrivate(s._state.GetIdPrivate())

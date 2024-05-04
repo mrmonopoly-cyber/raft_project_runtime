@@ -27,9 +27,14 @@ type raftStateImpl struct {
 	electionTimeoutRaw int
 }
 
+// GetNumberNodesInCurrentConf implements State.
+func (this *raftStateImpl) GetNumberNodesInCurrentConf() int {
+	return this.log.GetNumberNodesInCurrentConf()
+}
+
 // IsInConf implements State.
 func (this *raftStateImpl) IsInConf(nodeIp string) bool {
-    return this.log.IsInConf(nodeIp)
+	return this.log.IsInConf(nodeIp)
 }
 
 // CommitConfig implements State.
@@ -173,21 +178,6 @@ func (this *raftStateImpl) IncreaseSupporters() {
 // GetNumNotSupporters implements State.
 func (this *raftStateImpl) GetNumNotSupporters() uint64 {
 	return this.nNotSupporting
-}
-
-// GetNumNodeInCluster implements State.
-func (this *raftStateImpl) GetNumNodeInCluster() uint64 {
-	return this.nNodeInCluster
-}
-
-// IncreaseNodeInCluster implements State.
-func (this *raftStateImpl) IncreaseNodeInCluster() {
-	this.nNodeInCluster++
-}
-
-// DecreaseNodeInCluster implements State.
-func (this *raftStateImpl) DecreaseNodeInCluster() {
-	this.nNodeInCluster--
 }
 
 func (this *raftStateImpl) ResetElection() {
