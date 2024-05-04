@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	l "raft/internal/raft_log"
 	"time"
-    "raft/internal/raftstate/clusterConf"
 )
 
 const (
@@ -51,8 +50,6 @@ type State interface {
 	GetLeaderIpPublic() string
 	SetLeaderIpPublic(ip string)
 	SetLeaderIpPrivate(ip string)
-
-    clusterconf.Configuration
 }
 
 
