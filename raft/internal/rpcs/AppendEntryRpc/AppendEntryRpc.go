@@ -21,7 +21,7 @@ func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
     var entries []*protobuf.LogEntry = state.GetEntries()
     prevLogIndex := len(entries) - 1
     var prevLogTerm uint64 = 0
-    if prevLogIndex > 0 {
+    if len(entries) > 0 {
         prevLogTerm = entries[prevLogIndex].GetTerm()
     }
 
