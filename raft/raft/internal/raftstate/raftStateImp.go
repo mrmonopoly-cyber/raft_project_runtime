@@ -131,8 +131,8 @@ func (this *raftStateImpl) CanVote() bool {
 	return this.voting
 }
 
-func (this *raftStateImpl) ToggleVoteRight() {
-	(*this).voting = !(*this).voting
+func (this *raftStateImpl) VoteRight(vote bool) {
+	(*this).voting = vote
 }
 
 func (this *raftStateImpl) HeartbeatTimeout() *time.Timer {

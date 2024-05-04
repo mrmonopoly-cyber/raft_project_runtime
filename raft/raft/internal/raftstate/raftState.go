@@ -34,7 +34,7 @@ type State interface {
 	IncrementTerm()
 	VoteFor(id string)
 	CanVote() bool
-    ToggleVoteRight()
+    VoteRight(vote bool)
 	SetRole(newRole Role)
 	SetTerm(newTerm uint64)
 	IncreaseSupporters()
