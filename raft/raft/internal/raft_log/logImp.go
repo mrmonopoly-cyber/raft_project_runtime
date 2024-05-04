@@ -82,6 +82,10 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry, index int) {
 	}
 
 	l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
+
+    if this.commitIndex == -1 {
+        this.commitIndex =0
+    }
 }
 
 func (this *log) UpdateLastApplied() error {
