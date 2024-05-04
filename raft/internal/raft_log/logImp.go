@@ -85,6 +85,7 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry, index int) {
 }
 
 func (this *log) UpdateLastApplied() error {
+    l.Printf("check if can apply some logEntry: commIndex:%v, lastApplied:%v\n")
 	for int(this.commitIndex) > this.lastApplied {
 		var entry *p.LogEntry = &this.entries[this.commitIndex]
 
