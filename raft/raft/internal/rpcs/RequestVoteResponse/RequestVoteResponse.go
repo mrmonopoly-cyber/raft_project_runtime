@@ -39,7 +39,7 @@ func (this *RequestVoteResponse) Execute(state *raftstate.State, senderState *no
         (*state).IncreaseNotSupporters()
     }
     
-    var nodeInCluster = (*state).GetNumNodeInCluster()
+    var nodeInCluster = uint64((*state).GetNumberNodesInCurrentConf())
     var nVictory = nodeInCluster/2
     var supp = (*state).GetNumSupporters()
     var notSupp = (*state).GetNumNotSupporters()
