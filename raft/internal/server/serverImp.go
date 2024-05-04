@@ -42,17 +42,10 @@ func (s *server) Start() {
     log.Println("Start accepting connections")
     s._state.StartElectionTimeout()
 
-    go func ()  {
-        s.wg.Add(1)
-        defer s.wg.Done()
-        s.acceptIncomingConn()
-    }()
-
-    go func ()  {
-        s.wg.Add(1)
-        defer s.wg.Done()
-        s.run()
-    }()
+    s.wg.Add(1)
+    go s.acceptIncomingConn()
+    s.wg.Add(1)
+    go s.run()
 
     s.wg.Wait()
 }
@@ -311,6 +304,7 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
 }
 
 func (s *server) run() {
+    defer s.wg.Done()
     for {
         var mess pairMex
         /* To keep LastApplied and Leader's commitIndex always up to dated  */
@@ -382,6 +376,7 @@ func (s *server) run() {
                     s.leaderHearthBit()
                 }()
             }
+            //         log.Println("rpc processed")
         case <-s._state.ElectionTimeout().C:
             if !s._state.Leader() {
                 s.startNewElection()
@@ -419,11 +414,7 @@ func (s *server) startNewElection(){
         s._state.SetLeaderIpPrivate(s._state.GetIdPrivate())
         s._state.SetLeaderIpPublic(s._state.GetIdPublic())
         s._state.ResetElection()
-        go func ()  {
-            s.wg.Add(1)
-            defer s.wg.Done()
-            s.leaderHearthBit()
-        }()
+        go s.leaderHearthBit()
     }else {
      //   log.Println("sending to everybody request vote :" + voteRequest.ToString())
         s.sendAll(&voteRequest)
