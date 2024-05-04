@@ -91,6 +91,8 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
 }
 
 func (s *server) acceptIncomingConn() {
+    var wg sync.WaitGroup
+    defer wg.Wait()
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
@@ -118,8 +120,8 @@ func (s *server) acceptIncomingConn() {
         var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
         s.unstableNodes.Store(new_node.GetIp(),new_node)
         go func ()  {
-            s.wg.Add(1)
-            defer s.wg.Done()
+            wg.Add(1)
+            defer wg.Done()
             s.handleConnection(&new_node)
         }()
 	}
