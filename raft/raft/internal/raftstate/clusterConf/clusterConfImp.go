@@ -10,8 +10,8 @@ type conf struct {
     joinConf bool
 }
 
-// ConfStatus implements Configuration.
-func (this *conf) ConfStatus() bool {
+// ConfChanged implements Configuration.
+func (this *conf) ConfChanged() bool {
     this.lock.RLock()
     defer this.lock.RUnlock()
     

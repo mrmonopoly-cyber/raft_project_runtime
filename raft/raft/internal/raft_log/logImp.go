@@ -28,8 +28,8 @@ func (this *log) CommitConfig() {
 }
 
 // ConfStatus implements LogEntry.
-func (this *log) ConfStatus() bool {
-	return this.cConf.ConfStatus()
+func (this *log) ConfChanged() bool {
+	return this.cConf.ConfChanged()
 }
 
 // GetConfig implements LogEntry.

@@ -6,7 +6,7 @@ type Configuration interface{
     GetConfig() []string
     UpdateConfiguration(nodeIps []string)
     CommitConfig()
-    ConfStatus() bool
+    ConfChanged() bool
     IsInConf(nodeIp string) bool
 }
 

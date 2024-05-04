@@ -38,8 +38,8 @@ func (this *raftStateImpl) CommitConfig() {
 }
 
 // ConfStatus implements State.
-func (this *raftStateImpl) ConfStatus() bool {
-	return this.log.ConfStatus()
+func (this *raftStateImpl) ConfChanged() bool {
+	return this.log.ConfChanged()
 }
 
 // GetConfig implements State.
