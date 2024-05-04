@@ -73,12 +73,7 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
         new_node = node.NewNode(serversIp[i], port, nodeConn)
         log.Printf("connected to new node, storing it: %v\n", new_node.GetIp())
         (*this).unstableNodes.Store(new_node.GetIp(), new_node)
-        go func (){
-            this.wg.Add(1)
-            defer this.wg.Done()
-            (*this).handleResponseSingleNode(&new_node)
-        }()
-
+        go (*this).handleResponseSingleNode(&new_node)
 	}
 
     return failedConn,err
