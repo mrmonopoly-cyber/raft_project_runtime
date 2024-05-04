@@ -29,7 +29,7 @@ func (this *UpdateNode) Execute(state *raftstate.State, senderState *nodeState.V
         (*state).ToggleVoteRight()
     }
     if this.pMex.Log != nil {
-        (*state).AppendEntries([]*protobuf.LogEntry{this.pMex.Log})
+        (*state).AppendEntries([]*protobuf.LogEntry{this.pMex.Log},int((*state).GetCommitIndex()+1))
     }
 
     return nil
