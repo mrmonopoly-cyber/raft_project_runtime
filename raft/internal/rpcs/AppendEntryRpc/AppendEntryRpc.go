@@ -102,7 +102,7 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
 
     var resp *rpcs.Rpc = nil
     var leaderCommit int64
-    // var lastNewEntryIdx int64
+    var lastNewEntryIdx int64
 
     if this.pMex.GetTerm() < myTerm {
         return respondeAppend(id, false, myTerm, -1)
@@ -127,16 +127,16 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
             fmt.Println("Not consistent")
             resp = respondeAppend(id, false, myTerm, nextIdx)
         } else {
-            (*state).AppendEntries(newEntries)
+            (*state).AppendEntries(newEntries, nextIdx)
             leaderCommit = this.pMex.GetLeaderCommit()
-            // lastNewEntryIdx = int64(len(entries) - 1)
+            lastNewEntryIdx = int64(len(entries) - 1)
 
             if leaderCommit > (*state).GetCommitIndex() {
-                // if leaderCommit > lastNewEntryIdx {
-                //     (*state).SetCommitIndex(lastNewEntryIdx)
-                // } else {
-                //     (*state).SetCommitIndex(leaderCommit)
-                // }
+                if leaderCommit > lastNewEntryIdx {
+                    (*state).SetCommitIndex(lastNewEntryIdx)
+                } else {
+                    (*state).SetCommitIndex(leaderCommit)
+                }
             }
             resp = respondeAppend(id, true , myTerm, (*state).LastLogIndex())
         }
