@@ -44,8 +44,11 @@ func (s *server) Start() {
 
     s.wg.Add(1)
     go s.acceptIncomingConn()
-    s.wg.Add(1)
-    go s.run()
+    go func(){
+        s.wg.Add(1)
+        defer s.wg.Done()
+        s.run()
+    }()
 
     s.wg.Wait()
 }
@@ -304,7 +307,6 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
 }
 
 func (s *server) run() {
-    defer s.wg.Done()
     for {
         var mess pairMex
         /* To keep LastApplied and Leader's commitIndex always up to dated  */
