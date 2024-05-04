@@ -60,9 +60,7 @@ func (s *server) Start() {
 func (this *server) connectToNodes(serversIp []string, port string) ([]string,error){
     var failedConn []string = make([]string, 0)
     var err error
-    var wg sync.WaitGroup
 
-    defer wg.Wait()
 	for i := 0; i < len(serversIp)-1; i++ {
 		var new_node node.Node
         var nodeConn net.Conn
@@ -79,8 +77,8 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
         log.Printf("connected to new node, storing it: %v\n", new_node.GetIp())
         (*this).unstableNodes.Store(new_node.GetIp(), new_node)
         go func (){
-            wg.Add(1)
-            defer wg.Done()
+            this.wg.Add(1)
+            defer this.wg.Done()
             (*this).handleResponseSingleNode(&new_node)
         }()
 
@@ -180,21 +178,18 @@ func (s* server) handleNewClientConnection(client *node.Node){
 }
 
 func (s *server) handleResponseSingleNode(workingNode *node.Node) {
-    var wg sync.WaitGroup
-    defer wg.Wait()
-
     if s._state.Leader() {
         log.Println("i'm leader, joining conf")
         go func (){
-            wg.Add(1)
-            defer wg.Done()
+            s.wg.Add(1)
+            defer s.wg.Done()
             s.joinConf(workingNode)
         }()
     }
 
     go func (){
-        wg.Add(1)
-        defer wg.Done()
+        s.wg.Add(1)
+        defer s.wg.Done()
         s.nodeRecv(workingNode)
     }()
 }
