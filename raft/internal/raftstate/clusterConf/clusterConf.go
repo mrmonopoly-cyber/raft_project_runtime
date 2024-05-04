@@ -8,6 +8,7 @@ type Configuration interface{
     CommitConfig()
     ConfChanged() bool
     IsInConf(nodeIp string) bool
+    GetNumberNodesInCurrentConf() int
 }
 
 func NewConf(baseConf []string) Configuration{

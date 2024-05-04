@@ -40,11 +40,8 @@ type State interface {
 	SetTerm(newTerm uint64)
 	IncreaseSupporters()
 	IncreaseNotSupporters()
-	IncreaseNodeInCluster()
-	DecreaseNodeInCluster()
 	GetNumSupporters() uint64
 	GetNumNotSupporters() uint64
-	GetNumNodeInCluster() uint64
 	ResetElection()
 
     CheckCommitIndex(idxList []int)
