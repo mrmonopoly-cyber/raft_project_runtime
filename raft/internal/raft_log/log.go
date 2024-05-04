@@ -10,7 +10,7 @@ type LogEntry interface {
 	GetCommitIndex() int64
 	More_recent_log(last_log_index int64, last_log_term uint64) bool
 	SetCommitIndex(val int64)
-	AppendEntries(newEntries []*p.LogEntry, index int)
+	AppendEntries(newEntries []*p.LogEntry)
 	LastLogIndex() int
 	UpdateLastApplied() error
     clusterconf.Configuration

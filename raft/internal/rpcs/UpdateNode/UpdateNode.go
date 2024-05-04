@@ -31,7 +31,7 @@ func (this *UpdateNode) Execute(state *raftstate.State, senderState *nodeState.V
     log.Printf("updating log entry with new entry %v\n",this.pMex.Log)
     (*state).VoteRight(this.pMex.Votante)
     if this.pMex.Log.Payload != nil {
-        (*state).AppendEntries([]*protobuf.LogEntry{this.pMex.Log},int((*state).GetCommitIndex()+1))
+        (*state).AppendEntries([]*protobuf.LogEntry{this.pMex.Log})
     }
 
     if this.pMex.Votante {

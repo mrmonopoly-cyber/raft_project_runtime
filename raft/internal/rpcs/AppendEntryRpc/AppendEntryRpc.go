@@ -127,7 +127,7 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
             fmt.Println("Not consistent")
             resp = respondeAppend(id, false, myTerm, nextIdx)
         } else {
-            (*state).AppendEntries(newEntries, nextIdx)
+            (*state).AppendEntries(newEntries)
             leaderCommit = this.pMex.GetLeaderCommit()
             lastNewEntryIdx = int64(len(entries) - 1)
 
