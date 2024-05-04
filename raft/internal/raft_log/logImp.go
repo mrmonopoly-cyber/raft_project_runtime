@@ -48,10 +48,6 @@ func (this *log) UpdateConfiguration(nodeIps []string) {
 }
 
 func (this *log) GetEntries() []*p.LogEntry {
-	// var e []*p.LogEntry = make([]*p.LogEntry, len(this.entries))
-	// for i, en := range this.entries {
-	// 	e[i] = en
-	// }
 	return this.entries
 }
 
@@ -78,17 +74,9 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 	if indexEndQueue == -1 {
 		indexEndQueue = 0
 	}
+
 	fmt.Printf("log index last log: %v\n", indexEndQueue)
-
-	// this.entries = extend(this.entries, len(newEntries))
-
     this.entries = append(this.entries,newEntries...)
-
-	// for i, en := range newEntries {
-	// 	l.Printf("i: %d, i + index: %d, logEntry: %v", i, i+indexEndQueue, en.String())
-	// 	this.entries[indexEndQueue+i] = en
-	// }
-
 	l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
 
 	if this.commitIndex == -1 {
@@ -123,16 +111,6 @@ func (this *log) SetCommitIndex(val int64) {
 }
 
 // utility
-func extend(slice []*p.LogEntry, addedCapacity int) []*p.LogEntry {
-	//  l.Println("enxtend")
-	n := len(slice)
-	newSlice := make([]*p.LogEntry, n+addedCapacity)
-	for i := range slice {
-		newSlice[i] = slice[i]
-	}
-	return newSlice
-}
-
 func (this *log) applyConf(entry *p.LogEntry) {
 	var confUnfiltered string = string(entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, " ")
