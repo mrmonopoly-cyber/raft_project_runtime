@@ -228,7 +228,7 @@ func (s *server) joinConf(workingNode *node.Node){
     }
 
     log.Printf("adding node %v to the stable queue\n", nodeIp)
-    s.stableNodes.Store(nodeIp, *workingNode)
+    // s.stableNodes.Store(nodeIp, *workingNode)
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry},(*s)._state.LastLogIndex()+1)
     s._state.UpdateConfiguration(newConf)
     s.updateNewNode(workingNode)              
@@ -239,7 +239,10 @@ func (s *server) updateNewNode(workingNode *node.Node){
     var index = 0
     var err error
 
+    log.Printf("updating node %v\n", (*workingNode).GetIp())
+
     for  i,e := range s._state.GetEntries() {
+        log.Printf("sending update mex to %v with data %v\n",(*workingNode).GetIp(), e)
         err = s.generateUpdateRequest(workingNode,false,e)
         if err != nil {
             return //WARN: not managed
@@ -257,7 +260,7 @@ func (s *server) updateNewNode(workingNode *node.Node){
     for  (*volatileState).GetMatchIndex() < index+1 {
         //WARN: WAIT
     }
-    s._state.CommitConfig()
+    // s._state.CommitConfig()
 }
 
 func (this *server) generateUpdateRequest(workingNode *node.Node, voting bool, entry *protobuf.LogEntry) error{
@@ -266,6 +269,7 @@ func (this *server) generateUpdateRequest(workingNode *node.Node, voting bool, e
     var err error
     var found bool
 
+    
     updateReq = UpdateNode.NewUpdateNodeRPC(voting, entry)
     mex,err = genericmessage.Encode(&updateReq)
     if err != nil {
