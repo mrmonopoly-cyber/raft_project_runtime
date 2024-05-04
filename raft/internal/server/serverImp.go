@@ -42,12 +42,13 @@ func (s *server) Start() {
     log.Println("Start accepting connections")
     s._state.StartElectionTimeout()
 
-    go func (){
+    go func ()  {
         s.wg.Add(1)
+        defer s.wg.Done()
         s.acceptIncomingConn()
     }()
 
-    go func (){
+    go func ()  {
         s.wg.Add(1)
         defer s.wg.Done()
         s.run()
@@ -176,6 +177,10 @@ func (s* server) handleNewClientConnection(client *node.Node){
 }
 
 func (s *server) handleResponseSingleNode(workingNode *node.Node) {
+    var nodeIp = (*workingNode).GetIp()
+    var message []byte
+    var errMes error
+
     if s._state.Leader() {
         log.Println("i'm leader, joining conf")
         go func (){
@@ -185,14 +190,6 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
         }()
     }
 
-    s.nodeRecv(workingNode)
-}
-
-func (s *server) nodeRecv(workingNode *node.Node){
-
-    var nodeIp = (*workingNode).GetIp()
-    var message []byte
-    var errMes error
     if s._state.IsInConf((*workingNode).GetIp()){
         s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
         s._state.IncreaseNodeInCluster()
@@ -385,7 +382,6 @@ func (s *server) run() {
                     s.leaderHearthBit()
                 }()
             }
-            //         log.Println("rpc processed")
         case <-s._state.ElectionTimeout().C:
             if !s._state.Leader() {
                 s.startNewElection()
@@ -423,7 +419,11 @@ func (s *server) startNewElection(){
         s._state.SetLeaderIpPrivate(s._state.GetIdPrivate())
         s._state.SetLeaderIpPublic(s._state.GetIdPublic())
         s._state.ResetElection()
-        go s.leaderHearthBit()
+        go func ()  {
+            s.wg.Add(1)
+            defer s.wg.Done()
+            s.leaderHearthBit()
+        }()
     }else {
      //   log.Println("sending to everybody request vote :" + voteRequest.ToString())
         s.sendAll(&voteRequest)
