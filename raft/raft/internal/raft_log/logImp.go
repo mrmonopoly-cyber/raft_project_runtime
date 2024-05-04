@@ -48,11 +48,11 @@ func (this *log) UpdateConfiguration(nodeIps []string) {
 }
 
 func (this *log) GetEntries() []*p.LogEntry {
-	var e []*p.LogEntry = make([]*p.LogEntry, len(this.entries))
-	for i, en := range this.entries {
-		e[i] = en
-	}
-	return e
+	// var e []*p.LogEntry = make([]*p.LogEntry, len(this.entries))
+	// for i, en := range this.entries {
+	// 	e[i] = en
+	// }
+	return this.entries
 }
 
 func (this *log) LastLogIndex() int {
