@@ -42,8 +42,11 @@ func (s *server) Start() {
     log.Println("Start accepting connections")
     s._state.StartElectionTimeout()
 
-    s.wg.Add(1)
-    go s.acceptIncomingConn()
+    go func (){
+        s.wg.Add(1)
+        defer s.wg.Done()
+        s.acceptIncomingConn()
+    }()
 
     go func (){
         s.wg.Add(1)
