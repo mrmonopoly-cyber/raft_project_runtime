@@ -342,7 +342,7 @@ func (s *server) run() {
             senderState = senderNode.GetNodeState()
             resp = (*rpcCall).Execute(&s._state, senderState)
 
-            if !s._state.ConfStatus() {
+            if s._state.ConfChanged() {
                 log.Printf("configuration changed, adding the new nodes\n")
                 newConf = s._state.GetConfig()
                 for _, v := range newConf {
