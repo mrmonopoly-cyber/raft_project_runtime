@@ -16,6 +16,7 @@ type conf struct {
 // GetNumberNodesInCurrentConf implements Configuration.
 func (this *conf) GetNumberNodesInCurrentConf() int {
 	var conf []string = this.GetConfig()
+    log.Printf("num of nodes in conf :%v, conf: %v\n", len(conf), conf)
     return len(conf)
 }
 
