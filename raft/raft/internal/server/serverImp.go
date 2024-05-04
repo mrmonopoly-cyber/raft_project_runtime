@@ -44,13 +44,11 @@ func (s *server) Start() {
 
     go func ()  {
         s.wg.Add(1)
-        defer s.wg.Done()
         s.acceptIncomingConn()
     }()
 
     go func ()  {
         s.wg.Add(1)
-        defer s.wg.Done()
         s.run()
     }()
 
