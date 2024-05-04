@@ -12,6 +12,7 @@ enum MexType {
     CLIENT_REQUEST =4;
     NEW_CONF = 5;
     UPDATE_NODE = 6;
+    UPDATE_NODE_RESP = 7;
 }
 
 message Entry {

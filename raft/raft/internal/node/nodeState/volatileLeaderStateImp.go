@@ -26,3 +26,7 @@ func (this* volatileNodeState) InitVolatileState(lastLogIndex int){
     (*this).matchIndex = 0;
 }
 
+func (this* volatileNodeState) NextIndexStep(){
+    (*this).nextIndex++
+    (*this).matchIndex++
+}

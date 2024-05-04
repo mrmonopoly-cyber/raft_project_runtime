@@ -24,7 +24,9 @@ func NewUpdateNodeRespRPC() rpcs.Rpc {
 
 // Manage implements rpcs.Rpc.
 func (this *UpdateNodeResp) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
-    panic("dummy implementation")
+    (*senderState).NextIndexStep()
+
+    return nil
 }
 
 // ToString implements rpcs.Rpc.
