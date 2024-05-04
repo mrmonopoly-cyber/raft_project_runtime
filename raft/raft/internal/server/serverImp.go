@@ -230,7 +230,6 @@ func (s *server) joinConf(workingNode *node.Node){
 
 func (s *server) updateNewNode(workingNode *node.Node){
     var volatileState *nodeState.VolatileNodeState = (*workingNode).GetNodeState()
-    var index = 0
     var err error
 
     log.Printf("updating node %v\n", (*workingNode).GetIp())
@@ -244,14 +243,10 @@ func (s *server) updateNewNode(workingNode *node.Node){
         for  (*volatileState).GetMatchIndex() < i {
             //WARN: WAIT
         }
-        index = i
     }
     err = s.generateUpdateRequest(workingNode,true,nil)
     if err != nil {
         return //WARN: not managed
-    }
-    for  (*volatileState).GetMatchIndex() < index+1 {
-        //WARN: WAIT
     }
     s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
     log.Printf("node %v updated\n",(*workingNode).GetIp())
