@@ -2,9 +2,10 @@ package ClientReq
 
 import (
 	"log"
+	"raft/internal/node/nodeState"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
-	"raft/internal/node/nodeState"
+	"raft/internal/rpcs/ClientResponse"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
@@ -22,6 +23,7 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
     var newLogEntry protobuf.LogEntry
     var op string = "NULL"
     var fileName string = string(this.pMex.GetFileName())
+    var response []byte = nil
 
     newLogEntry.Term = (*state).GetTerm()
     newLogEntry.FilenName = fileName
@@ -31,6 +33,8 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
     case protobuf.Operation_READ:
         newLogEntry.OpType = protobuf.Operation_READ
         op = "READ"
+        // retreive file
+        response = nil 
     case protobuf.Operation_WRITE:
         newLogEntry.OpType = protobuf.Operation_WRITE
         newLogEntry.Payload = this.pMex.Others
@@ -55,8 +59,9 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
 
     (*state).AppendEntries(newEntries,(*state).GetLastLogIndex()+1)
 
-
-    return nil
+    // Create client response and return it
+    var clientReponse rpcs.Rpc = ClientResponse.NewClientResponseRPC(response)
+    return &clientReponse
 }
 
 // ToString implements rpcs.Rpc.
