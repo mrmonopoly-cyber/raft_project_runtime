@@ -24,6 +24,8 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
     var op string = "NULL"
     var fileName string = string(this.pMex.GetFileName())
     var response []byte = nil
+    var err error = nil
+    var success bool = true
 
     newLogEntry.Term = (*state).GetTerm()
     newLogEntry.FilenName = fileName
@@ -34,7 +36,10 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
         newLogEntry.OpType = protobuf.Operation_READ
         op = "READ"
         // retreive file
-        response = nil 
+        err, response = (*state).GetLocalFs().ApplyLogEntry(&newLogEntry)
+        if err != nil {
+            success = false
+        }
     case protobuf.Operation_WRITE:
         newLogEntry.OpType = protobuf.Operation_WRITE
         newLogEntry.Payload = this.pMex.Others
@@ -60,7 +65,7 @@ func (this *ClientReq) Execute(state *raftstate.State, senderState *nodeState.Vo
     (*state).AppendEntries(newEntries,(*state).GetLastLogIndex()+1)
 
     // Create client response and return it
-    var clientReponse rpcs.Rpc = ClientResponse.NewClientResponseRPC(response)
+    var clientReponse rpcs.Rpc = ClientResponse.NewClientResponseRPC(success, response)
     return &clientReponse
 }
 

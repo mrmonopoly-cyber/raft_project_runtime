@@ -17,14 +17,14 @@ type fs struct{
     files map[string]string
 }
 
-func (this *fs)ApplyLogEntry(log *protobuf.LogEntry) error{
+func (this *fs)ApplyLogEntry(log *protobuf.LogEntry) (error, []byte) {
   var fileName string = log.GetFilenName()
   var content []byte = log.GetPayload()
-  //var file []byte = nil
+  var file []byte = nil
   var err error = nil
   switch log.GetOpType(){
     case protobuf.Operation_READ:
-      _, err = this.read(fileName)
+      file, err = this.read(fileName)
     case protobuf.Operation_CREATE:
       err = this.create(fileName)
     case protobuf.Operation_WRITE:
@@ -34,7 +34,7 @@ func (this *fs)ApplyLogEntry(log *protobuf.LogEntry) error{
     case protobuf.Operation_RENAME:
       err = this.rename(fileName, string(content))
     }
-    return err
+    return err, file
 }
 
 //utility

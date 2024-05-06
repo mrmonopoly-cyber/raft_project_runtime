@@ -13,10 +13,11 @@ type ClientResponse struct {
   pMex protobuf.ClientResp
 }
 
-func NewClientResponseRPC(content []byte) rpcs.Rpc {
+func NewClientResponseRPC(success bool, content []byte) rpcs.Rpc {
     return &ClientResponse{
       pMex: protobuf.ClientResp{
           Content: content,
+          Success: success,
       },
     }
 }

@@ -61,6 +61,7 @@ type State interface {
 	GetLeaderIpPublic() string
 	SetLeaderIpPublic(ip string)
 	SetLeaderIpPrivate(ip string)
+  GetLocalFs() localfs.LocalFs
 }
 
 

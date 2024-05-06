@@ -176,7 +176,8 @@ func (this *raftStateImpl) UpdateLastApplied() error{
 	result, toApply = this.log.UpdateLastApplied()
 
   if result {
-    return this.localFs.ApplyLogEntry(toApply)
+    err, _ := this.localFs.ApplyLogEntry(toApply)
+    return err
   }
   return nil
 }
@@ -234,4 +235,8 @@ func (this *raftStateImpl) SetLeaderIpPublic(ip string) {
 // SetLeaderIpPrivate implements State.
 func (this *raftStateImpl) SetLeaderIpPrivate(ip string) {
 	(*this).leaderIdPrivate = ip
+}
+
+func (this *raftStateImpl) GetLocalFs() localfs.LocalFs {
+  return this.localFs
 }
