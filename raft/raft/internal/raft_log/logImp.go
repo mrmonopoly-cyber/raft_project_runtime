@@ -1,7 +1,6 @@
 package raft_log
 
 import (
-	"fmt"
 	l "log"
 	localfs "raft/internal/localFs"
 	clusterconf "raft/internal/raftstate/clusterConf"
@@ -70,18 +69,8 @@ func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) boo
 }
 
 func (this *log) AppendEntries(newEntries []*p.LogEntry) {
-	var indexEndQueue = len(this.GetEntries()) - 1
-	if indexEndQueue == -1 {
-		indexEndQueue = 0
-	}
-
-	fmt.Printf("log index last log: %v\n", indexEndQueue)
     this.entries = append(this.entries,newEntries...)
 	l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
-
-	if this.commitIndex == -1 {
-		this.commitIndex = 0
-	}
 }
 
 func (this *log) UpdateLastApplied() error {
