@@ -57,23 +57,20 @@ func (this *conf) UpdateConfiguration(op CONF_OPE, nodeIps []string) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-    var newConfBase = maps.Clone(this.oldConf)
-
     switch op{
     case ADD:
         for _, v := range nodeIps {
-            newConfBase[v] = v
+            this.newConf[v] = v
         }
     case DEL:
         for _, v := range nodeIps {
-            delete(newConfBase,v)
+            delete(this.newConf,v)
         }
     default:
         log.Println("invalid configuration operation, doing nothing, given: ", op)
         return
     }
     
-    this.newConf = newConfBase
 	this.changed = true
 	this.joinConf = true
 }
