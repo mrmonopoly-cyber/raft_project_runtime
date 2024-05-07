@@ -212,7 +212,8 @@ func (s *server) joinConf(workingNode *node.Node){
 
     s._state.UpdateConfiguration(clusterconf.ADD,[]string{nodeIp})
     newConf = s._state.GetConfig()
-    newConfByte = make([]byte, len(newConf))
+    log.Println("debug, joinConf : ,", s._state.GetConfig())
+    newConfByte = make([]byte,0)
 
     for _, v := range newConf {
         var ipByte = []byte(v)
