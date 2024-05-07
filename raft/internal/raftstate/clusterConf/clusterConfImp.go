@@ -39,7 +39,6 @@ func (this *conf) GetConfig() []string {
 
     var resMap map[string]string = map[string]string{}
     var res []string = make([]string, len(this.oldConf))
-    var index = 0
 
 	if this.joinConf {
         maps.Copy(resMap,this.oldConf)
@@ -47,8 +46,7 @@ func (this *conf) GetConfig() []string {
     maps.Copy(resMap,this.newConf)
     
     for _, v := range resMap {
-        res[index] = v
-        index++
+        res = append(res, v)
     }
 
 	return res
