@@ -69,8 +69,9 @@ func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) boo
 }
 
 func (this *log) AppendEntries(newEntries []*p.LogEntry) {
+    l.Println("Append Entries, before: ",this.entries)
     this.entries = append(this.entries,newEntries...)
-	l.Printf("my entries: %v, len: %d", this.GetEntries(), len(this.entries))
+    l.Println("Append Entries, after: ",this.entries)
 }
 
 func (this *log) UpdateLastApplied() error {
