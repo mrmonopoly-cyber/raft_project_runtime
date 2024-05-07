@@ -2,9 +2,16 @@ package clusterconf
 
 import "sync"
 
+type CONF_OPE uint8
+
+const (
+    ADD CONF_OPE = iota
+    DEL CONF_OPE = iota
+)
+
 type Configuration interface{
     GetConfig() []string
-    UpdateConfiguration(nodeIps []string)
+    UpdateConfiguration(op CONF_OPE,nodeIps []string)
     CommitConfig()
     ConfChanged() bool
     IsInConf(nodeIp string) bool
@@ -12,11 +19,15 @@ type Configuration interface{
 }
 
 func NewConf(baseConf []string) Configuration{
-    var newConf = make([]string,0)
+    var baseConfMap map[string]string = map[string]string{}
+    for _, v := range baseConf {
+        baseConfMap[v]=v
+    }
+
     return &conf{
         lock: sync.RWMutex{},
-        oldConf: &baseConf,
-        newConf: &newConf,
+        oldConf: baseConfMap,
+        newConf: map[string]string{},
         changed: false,
         joinConf: false,
     }

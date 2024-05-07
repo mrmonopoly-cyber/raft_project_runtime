@@ -43,8 +43,8 @@ func (this *log) GetConfig() []string {
 }
 
 // UpdateConfiguration implements LogEntry.
-func (this *log) UpdateConfiguration(nodeIps []string) {
-	this.cConf.UpdateConfiguration(nodeIps)
+func (this *log) UpdateConfiguration(confOp clusterconf.CONF_OPE, nodeIps []string) {
+	this.cConf.UpdateConfiguration(confOp, nodeIps)
 }
 
 func (this *log) GetEntries() []*p.LogEntry {
@@ -115,5 +115,7 @@ func (this *log) applyConf(entry *p.LogEntry) {
 	var confUnfiltered string = string(entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, " ")
 	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
-	this.cConf.UpdateConfiguration(confFiltered)
+    l.Println("for debugging reasong now it's only adding node to the conf")
+	this.cConf.UpdateConfiguration(clusterconf.ADD, confFiltered)
+    //WARN: only adding to conf
 }

@@ -9,6 +9,7 @@ import (
 	"raft/internal/node/nodeState"
 	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
+	clusterconf "raft/internal/raftstate/clusterConf"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/ClientReq"
@@ -221,9 +222,8 @@ func (s *server) joinConf(workingNode *node.Node){
         Description: "added new node " + nodeIp + " to configuration: ",
     }
 
-    log.Printf("adding node %v to the stable queue\n", nodeIp)
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
-    s._state.UpdateConfiguration(newConf)
+    s._state.UpdateConfiguration(clusterconf.ADD,newConf)
     s.updateNewNode(workingNode)              
 }
 
@@ -249,6 +249,7 @@ func (s *server) updateNewNode(workingNode *node.Node){
     if err != nil {
         return //WARN: not managed
     }
+    log.Printf("adding node %v to the stable queue\n", (*workingNode).GetIp())
     s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
     log.Printf("node %v updated\n",(*workingNode).GetIp())
 }

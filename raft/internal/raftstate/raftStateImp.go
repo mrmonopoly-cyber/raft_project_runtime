@@ -2,6 +2,7 @@ package raftstate
 
 import (
 	l "raft/internal/raft_log"
+	clusterconf "raft/internal/raftstate/clusterConf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"time"
 )
@@ -53,8 +54,8 @@ func (this *raftStateImpl) GetConfig() []string {
 }
 
 // UpdateConfiguration implements State.
-func (this *raftStateImpl) UpdateConfiguration(nodeIps []string) {
-	this.log.UpdateConfiguration(nodeIps)
+func (this *raftStateImpl) UpdateConfiguration(confOp clusterconf.CONF_OPE, nodeIps []string) {
+	this.log.UpdateConfiguration(confOp,nodeIps)
 }
 
 func (this *raftStateImpl) GetIdPrivate() string {
