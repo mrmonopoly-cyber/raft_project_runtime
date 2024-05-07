@@ -207,9 +207,12 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 
 func (s *server) joinConf(workingNode *node.Node){
     var nodeIp = (*workingNode).GetIp()
-    var newConf []string = append(s._state.GetConfig()," " + nodeIp)
-    var newConfByte []byte = make([]byte, len(newConf))
+    var newConf []string 
+    var newConfByte []byte 
 
+    s._state.UpdateConfiguration(clusterconf.ADD,[]string{nodeIp})
+    newConf = s._state.GetConfig()
+    newConfByte = make([]byte, len(newConf))
 
     for _, v := range newConf {
         var ipByte = []byte(v)
@@ -223,7 +226,6 @@ func (s *server) joinConf(workingNode *node.Node){
     }
 
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
-    s._state.UpdateConfiguration(clusterconf.ADD,newConf)
     s.updateNewNode(workingNode)              
 }
 
