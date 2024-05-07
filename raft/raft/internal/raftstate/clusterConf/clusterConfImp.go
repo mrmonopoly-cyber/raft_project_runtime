@@ -3,12 +3,13 @@ package clusterconf
 import (
 	"log"
 	"sync"
+    "maps"
 )
 
 type conf struct {
 	lock     sync.RWMutex
-	oldConf  *[]string
-	newConf  *[]string
+	oldConf  map[string]string
+	newConf  map[string]string
 	changed  bool
 	joinConf bool
 }
@@ -35,33 +36,56 @@ func (this *conf) ConfChanged() bool {
 func (this *conf) GetConfig() []string {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
+
+    var resMap map[string]string = map[string]string{}
+    var res []string = make([]string, len(this.oldConf))
+    var index = 0
+
 	if this.joinConf {
-		return append(*this.oldConf, *this.newConf...)
+        maps.Copy(resMap,this.oldConf)
 	}
-	return *this.oldConf
+    maps.Copy(resMap,this.newConf)
+    
+    for _, v := range resMap {
+        res[index] = v
+        index++
+    }
+
+	return res
 }
 
-func (this *conf) UpdateConfiguration(nodeIps []string) {
+func (this *conf) UpdateConfiguration(op CONF_OPE, nodeIps []string) {
 	log.Printf("Updating conf with new conf: %v\n", nodeIps)
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	var newConf []string
+    var newConfBase = maps.Clone(this.oldConf)
 
-	newConf = append(*this.newConf, nodeIps...)
-	this.newConf = &newConf
+    switch op{
+    case ADD:
+        for _, v := range nodeIps {
+            newConfBase[v] = v
+        }
+        this.newConf = newConfBase
+    case DEL:
+        for _, v := range nodeIps {
+            delete(newConfBase,v)
+        }
+    default:
+        log.Println("invalid configuration operation, doing nothing, given: ", op)
+        return
+    }
+    
 	this.changed = true
 	this.joinConf = true
 }
 
 func (this *conf) CommitConfig() {
-	var newConf = make([]string, 0)
-
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
 	this.oldConf = this.newConf
-	this.newConf = &newConf
+	this.newConf = map[string]string{}
 	this.joinConf = false
 }
 
@@ -74,3 +98,4 @@ func (this *conf) IsInConf(nodeIp string) bool {
 	}
 	return false
 }
+
