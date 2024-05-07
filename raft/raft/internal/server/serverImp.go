@@ -216,7 +216,7 @@ func (s *server) joinConf(workingNode *node.Node){
     newConfByte = make([]byte,0)
 
     for _, v := range newConf {
-        var ipByte = []byte(v)
+        var ipByte = []byte(" "+v)
         newConfByte = append(newConfByte, ipByte...)
     }
     var newConfEntry p.LogEntry = p.LogEntry{
