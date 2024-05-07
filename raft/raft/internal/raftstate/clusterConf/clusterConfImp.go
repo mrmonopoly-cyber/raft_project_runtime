@@ -40,10 +40,10 @@ func (this *conf) GetConfig() []string {
     var resMap map[string]string = map[string]string{}
     var res []string = make([]string, len(this.oldConf))
 
+    maps.Copy(resMap,this.oldConf)
 	if this.joinConf {
-        maps.Copy(resMap,this.oldConf)
+        maps.Copy(resMap,this.newConf)
 	}
-    maps.Copy(resMap,this.newConf)
     
     for _, v := range resMap {
         res = append(res, v)
@@ -53,7 +53,7 @@ func (this *conf) GetConfig() []string {
 }
 
 func (this *conf) UpdateConfiguration(op CONF_OPE, nodeIps []string) {
-	log.Printf("Updating conf with new conf: %v\n", nodeIps)
+	log.Printf("Updating conf with new nodes: %v\n", nodeIps)
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -64,7 +64,6 @@ func (this *conf) UpdateConfiguration(op CONF_OPE, nodeIps []string) {
         for _, v := range nodeIps {
             newConfBase[v] = v
         }
-        this.newConf = newConfBase
     case DEL:
         for _, v := range nodeIps {
             delete(newConfBase,v)
@@ -74,6 +73,7 @@ func (this *conf) UpdateConfiguration(op CONF_OPE, nodeIps []string) {
         return
     }
     
+    this.newConf = newConfBase
 	this.changed = true
 	this.joinConf = true
 }
@@ -96,4 +96,6 @@ func (this *conf) IsInConf(nodeIp string) bool {
 	}
 	return false
 }
+
+
 
