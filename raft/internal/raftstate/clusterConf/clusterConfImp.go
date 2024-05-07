@@ -38,7 +38,7 @@ func (this *conf) GetConfig() []string {
 	defer this.lock.RUnlock()
 
     var resMap map[string]string = map[string]string{}
-    var res []string = make([]string, len(this.oldConf))
+    var res []string = make([]string,0)
 
     maps.Copy(resMap,this.oldConf)
 	if this.joinConf {
