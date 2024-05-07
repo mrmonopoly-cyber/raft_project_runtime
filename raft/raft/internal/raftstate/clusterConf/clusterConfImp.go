@@ -35,7 +35,7 @@ func (this *conf) ConfChanged() bool {
 func (this *conf) GetConfig() []string {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	if !this.joinConf {
+	if this.joinConf {
 		return append(*this.oldConf, *this.newConf...)
 	}
 	return *this.oldConf
