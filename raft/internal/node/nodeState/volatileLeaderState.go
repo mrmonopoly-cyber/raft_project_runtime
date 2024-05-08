@@ -11,8 +11,8 @@ type VolatileNodeState interface{
 
 func NewVolatileState() VolatileNodeState{
     return &volatileNodeState{
-        nextIndex: 0,
-        matchIndex: 0,
+        nextIndex: -1,
+        matchIndex: -1,
     }
 }
 
