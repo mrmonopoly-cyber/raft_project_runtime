@@ -242,15 +242,19 @@ func (s *server) updateNewNode(workingNode *node.Node){
         log.Printf("sending update mex to %v with data %v\n",(*workingNode).GetIp(), e)
         err = s.generateUpdateRequest(workingNode,false,e)
         if err != nil {
-            return //WARN: not managed
+            log.Printf("error generata UpdateRequest : %v\n", err)
+            return 
         }
         for  (*volatileState).GetMatchIndex() < i {
+            log.Printf("waiting to correct MatchIndex of node %v with match index %v, wanted %d\n",
+            (*workingNode).GetIp(), (*volatileState).GetMatchIndex(),i)
             //WARN: WAIT
         }
     }
     err = s.generateUpdateRequest(workingNode,true,nil)
     if err != nil {
-        return //WARN: not managed
+        log.Printf("error generata UpdateRequest : %v\n", err)
+        return 
     }
     log.Printf("adding node %v to the stable queue\n", (*workingNode).GetIp())
     s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
@@ -267,9 +271,7 @@ func (this *server) generateUpdateRequest(workingNode *node.Node, voting bool, e
     if err != nil {
         log.Panic("error encoding UpdateNode rpc")
     }
-    (*workingNode).Send(mex)
-
-    return nil
+    return (*workingNode).Send(mex)
 }
 
 func (s *server) sendAll(rpc *rpcs.Rpc){
