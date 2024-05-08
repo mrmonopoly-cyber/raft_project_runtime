@@ -379,18 +379,11 @@ func (s *server) run() {
 
 func (s *server) startNewElection(){
     log.Println("started new election");
-    var entries []*p.LogEntry
     var len_ent int
     var voteRequest rpcs.Rpc
-    var entryTerm uint64 = 0
+    var entryTerm uint64 = s._state.GetTerm()
 
     s._state.IncrementTerm()
-
-    entries = s._state.GetEntries()
-    len_ent = len(entries)
-    if len_ent-1 > 0{
-        entryTerm = entries[len_ent-1].GetTerm()
-    }
 
     voteRequest = RequestVoteRPC.NewRequestVoteRPC(
         s._state.GetTerm(),
@@ -399,7 +392,6 @@ func (s *server) startNewElection(){
         entryTerm)
 
     s._state.IncreaseSupporters()
-    //log.Println("node in cluster: ",s._state.GetNumNodeInCluster())
     if s._state.GetNumberNodesInCurrentConf() == 1 {
         log.Println("became leader: ",s._state.GetRole())
         s._state.SetRole(raftstate.LEADER)
