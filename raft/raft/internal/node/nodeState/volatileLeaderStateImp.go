@@ -1,5 +1,7 @@
 package nodeState
 
+import "log"
+
 type volatileNodeState struct {
   nextIndex int
   matchIndex int
@@ -27,6 +29,7 @@ func (this* volatileNodeState) InitVolatileState(lastLogIndex int){
 }
 
 func (this* volatileNodeState) NextIndexStep(){
+    log.Println("updating nextIndex")
     (*this).nextIndex++
     (*this).matchIndex++
 }

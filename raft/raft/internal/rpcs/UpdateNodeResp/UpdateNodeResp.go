@@ -25,7 +25,6 @@ func NewUpdateNodeRespRPC() rpcs.Rpc {
 // Manage implements rpcs.Rpc.
 func (this *UpdateNodeResp) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
     (*senderState).NextIndexStep()
-
     return nil
 }
 
