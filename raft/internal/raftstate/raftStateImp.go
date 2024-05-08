@@ -88,14 +88,18 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
 	this.log.AppendEntries(newEntries)
+    if this.role != LEADER {
+        this.log.UpdateLastApplied()
+        this.log.IncreaseCommitIndex()
+    }
 }
 
 func (this *raftStateImpl) GetCommitIndex() int64 {
 	return this.log.GetCommitIndex()
 }
 
-func (this *raftStateImpl) SetCommitIndex(val int64) {
-	this.log.SetCommitIndex(val)
+func (this *raftStateImpl) IncreaseCommitIndex() {
+	this.log.IncreaseCommitIndex()
 }
 
 // LastLogIndex implements State.
@@ -212,7 +216,7 @@ func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
 
 		/* check if there is a majority of matchIndex[i] >= N and if log[N].term == currentTerm*/
 		if (count >= majority) && (entries[n].GetTerm() == this.GetTerm()) {
-			this.SetCommitIndex(int64(n))
+			this.IncreaseCommitIndex()
 		}
 	}
 

@@ -9,7 +9,7 @@ type LogEntry interface {
 	GetEntries() []*p.LogEntry
 	GetCommitIndex() int64
 	More_recent_log(last_log_index int64, last_log_term uint64) bool
-	SetCommitIndex(val int64)
+	IncreaseCommitIndex()
 	AppendEntries(newEntries []*p.LogEntry)
 	LastLogIndex() int
 	UpdateLastApplied() error
