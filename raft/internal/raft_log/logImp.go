@@ -97,8 +97,10 @@ func (this *log) UpdateLastApplied() error {
 
 		l.Printf("updating entry: %v", entry)
 		switch entry.OpType {
-		case p.Operation_JOIN_CONF:
-			this.applyConf(entry)
+        case p.Operation_JOIN_CONF_ADD:
+			this.applyConf(clusterconf.ADD,entry)
+        case p.Operation_JOIN_CONF_DEL:
+			this.applyConf(clusterconf.DEL,entry)
 		default:
 			(*this).localFs.ApplyLogEntry(entry)
 		}
@@ -120,11 +122,9 @@ func (this *log) SetCommitIndex(val int64) {
 }
 
 // utility
-func (this *log) applyConf(entry *p.LogEntry) {
+func (this *log) applyConf(ope clusterconf.CONF_OPE, entry *p.LogEntry) {
 	var confUnfiltered string = string(entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, " ")
 	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
-    l.Println("for debugging reasong now it's only adding node to the conf")
-	this.cConf.UpdateConfiguration(clusterconf.ADD, confFiltered)
-    //WARN: only adding to conf
+	this.cConf.UpdateConfiguration(ope, confFiltered)
 }
