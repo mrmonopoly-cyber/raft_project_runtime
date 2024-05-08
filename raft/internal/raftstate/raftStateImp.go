@@ -28,6 +28,11 @@ type raftStateImpl struct {
 	electionTimeoutRaw int
 }
 
+// AutoCommitLogEntry implements State.
+func (this *raftStateImpl) AutoCommitLogEntry(start bool) {
+	this.log.AutoCommitLogEntry(start)
+}
+
 // GetNumberNodesInCurrentConf implements State.
 func (this *raftStateImpl) GetNumberNodesInCurrentConf() int {
 	return this.log.GetNumberNodesInCurrentConf()
@@ -55,7 +60,7 @@ func (this *raftStateImpl) GetConfig() []string {
 
 // UpdateConfiguration implements State.
 func (this *raftStateImpl) UpdateConfiguration(confOp clusterconf.CONF_OPE, nodeIps []string) {
-	this.log.UpdateConfiguration(confOp,nodeIps)
+	this.log.UpdateConfiguration(confOp, nodeIps)
 }
 
 func (this *raftStateImpl) GetIdPrivate() string {
@@ -87,12 +92,11 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 }
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
-    var commitIndex = this.GetCommitIndex()
+	var commitIndex = this.GetCommitIndex()
 	this.log.AppendEntries(newEntries)
-    if this.role != LEADER {
-        this.log.SetCommitIndex(commitIndex+1)
-        this.log.UpdateLastApplied()
-    }
+	if this.role != LEADER {
+		this.log.SetCommitIndex(commitIndex + 1)
+	}
 }
 
 func (this *raftStateImpl) GetCommitIndex() int64 {
@@ -189,11 +193,6 @@ func (this *raftStateImpl) GetNumNotSupporters() uint64 {
 func (this *raftStateImpl) ResetElection() {
 	this.nSupporting = 0
 	this.nNotSupporting = 0
-}
-
-func (this *raftStateImpl) UpdateLastApplied() error {
-	// TODO: apply log to state machine (?)
-	return this.log.UpdateLastApplied()
 }
 
 func (this *raftStateImpl) CheckCommitIndex(idxList []int) {

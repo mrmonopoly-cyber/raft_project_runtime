@@ -12,7 +12,8 @@ type LogEntry interface {
 	SetCommitIndex(val int64)
 	AppendEntries(newEntries []*p.LogEntry)
 	LastLogIndex() int
-	UpdateLastApplied() error
+    AutoCommitLogEntry(start bool)
+
     clusterconf.Configuration
 }
 
@@ -24,6 +25,7 @@ func NewLogEntry(baseConf []string) LogEntry {
 	l.lastApplied = -1
 	l.entries = make([]*p.LogEntry, 0)
     l.cConf = clusterconf.NewConf(baseConf)
+    l.autoCommit = false
 
 	return l
 }

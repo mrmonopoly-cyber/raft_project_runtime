@@ -300,7 +300,6 @@ func (s *server) run() {
         var mess pairMex
         /* To keep LastApplied and Leader's commitIndex always up to dated  */
         log.Printf("check updating last applied")
-        s._state.UpdateLastApplied()
         if s._state.Leader() {
             s._state.CheckCommitIndex(s.getMatchIndexes())
         }
@@ -367,6 +366,7 @@ func (s *server) run() {
                     defer s.wg.Done()
                     s.leaderHearthBit()
                 }()
+                s._state.AutoCommitLogEntry(false)
             }
             //         log.Println("rpc processed")
         case <-s._state.ElectionTimeout().C:
@@ -418,8 +418,8 @@ func (s *server) leaderHearthBit(){
             s._state.StartHearthbeatTimeout()
         }
     }
+    s._state.AutoCommitLogEntry(true)
     s.setVolState()
-
     log.Println("no longer LEADER, stop sending hearthbit")
 }
 
