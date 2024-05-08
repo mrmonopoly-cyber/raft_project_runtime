@@ -50,19 +50,19 @@ func (this *log) UpdateConfiguration(confOp clusterconf.CONF_OPE, nodeIps []stri
 
 func (this *log) GetEntries() []*p.LogEntry {
     this.lock.RLock()
-    defer this.lock.Unlock()
+    defer this.lock.RUnlock()
 	return this.entries
 }
 
 func (this *log) LastLogIndex() int {
     this.lock.RLock()
-    defer this.lock.Unlock()
+    defer this.lock.RUnlock()
 	return len(this.entries) - 1
 }
 
 func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) bool {
     this.lock.RLock()
-    defer this.lock.Unlock()
+    defer this.lock.RUnlock()
 
 	if last_log_index >= this.commitIndex {
 		var entries []*p.LogEntry = this.GetEntries()
@@ -108,10 +108,14 @@ func (this *log) UpdateLastApplied() error {
 }
 
 func (this *log) GetCommitIndex() int64 {
+    this.lock.RLock()
+    defer this.lock.RUnlock()
 	return this.commitIndex
 }
 
 func (this *log) SetCommitIndex(val int64) {
+    this.lock.RLock()
+    defer this.lock.RUnlock()
 	this.commitIndex = val
 }
 
