@@ -113,10 +113,10 @@ func (this *log) GetCommitIndex() int64 {
 	return this.commitIndex
 }
 
-func (this *log) IncreaseCommitIndex() {
+func (this *log) SetCommitIndex(val int64) {
     this.lock.RLock()
     defer this.lock.RUnlock()
-	this.commitIndex++
+	this.commitIndex = val
 }
 
 // utility
