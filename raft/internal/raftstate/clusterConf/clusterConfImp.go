@@ -3,7 +3,6 @@ package clusterconf
 import (
 	"log"
 	"sync"
-    "maps"
 )
 
 type conf struct {
