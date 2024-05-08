@@ -91,7 +91,7 @@ func (this *log) UpdateLastApplied() error {
     defer this.lock.Unlock()
 
 	l.Printf("check if can apply some logEntry: commIndex:%v, lastApplied:%v\n", len(this.entries)-1, this.lastApplied)
-	for len(this.entries)-1 > this.lastApplied {
+	for int(this.commitIndex) > this.lastApplied {
         this.lastApplied++
 		var entry *p.LogEntry = this.entries[this.lastApplied]
 
@@ -113,10 +113,10 @@ func (this *log) GetCommitIndex() int64 {
 	return this.commitIndex
 }
 
-func (this *log) SetCommitIndex(val int64) {
+func (this *log) IncreaseCommitIndex() {
     this.lock.RLock()
     defer this.lock.RUnlock()
-	this.commitIndex = val
+	this.commitIndex++
 }
 
 // utility
