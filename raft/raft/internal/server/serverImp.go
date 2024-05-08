@@ -246,8 +246,6 @@ func (s *server) updateNewNode(workingNode *node.Node){
             return 
         }
         for  (*volatileState).GetMatchIndex() < i {
-            // log.Printf("waiting to correct MatchIndex of node %v with match index %v, wanted %d\n",
-            // (*workingNode).GetIp(), (*volatileState).GetMatchIndex(),i)
             //WARN: WAIT
         }
     }
