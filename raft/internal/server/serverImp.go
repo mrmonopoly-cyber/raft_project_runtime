@@ -175,7 +175,7 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
         OpType: p.Operation_JOIN_CONF_DEL,
         Term: s._state.GetTerm(),
         Payload: []byte(nodeIp),
-        Description: "added new node " + nodeIp + " to configuration: ",
+        Description: "removed node " + nodeIp + " to configuration: ",
     }
 
     if s._state.Leader() {
