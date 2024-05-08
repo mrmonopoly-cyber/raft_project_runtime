@@ -171,6 +171,12 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
     var nodeIp = (*workingNode).GetIp()
     var message []byte
     var errMes error
+    var newConfDelete p.LogEntry = p.LogEntry{
+        OpType: p.Operation_JOIN_CONF_DEL,
+        Term: s._state.GetTerm(),
+        Payload: []byte(nodeIp),
+        Description: "added new node " + nodeIp + " to configuration: ",
+    }
 
     if s._state.Leader() {
         log.Println("i'm leader, joining conf")
@@ -195,6 +201,7 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
             (*workingNode).CloseConnection()
             s.stableNodes.Delete(nodeIp);
             s.unstableNodes.Delete(nodeIp);
+            s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
             break
         }
         if message != nil {
@@ -207,22 +214,14 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 
 func (s *server) joinConf(workingNode *node.Node){
     var nodeIp = (*workingNode).GetIp()
-    var newConf []string 
-    var newConfByte []byte 
 
     s._state.UpdateConfiguration(clusterconf.ADD,[]string{nodeIp})
-    newConf = s._state.GetConfig()
     log.Println("debug, joinConf : ,", s._state.GetConfig())
-    newConfByte = make([]byte,0)
 
-    for _, v := range newConf {
-        var ipByte = []byte(v + " ")
-        newConfByte = append(newConfByte, ipByte...)
-    }
     var newConfEntry p.LogEntry = p.LogEntry{
-        OpType: p.Operation_JOIN_CONF,
+        OpType: p.Operation_JOIN_CONF_ADD,
         Term: s._state.GetTerm(),
-        Payload: newConfByte,
+        Payload: []byte(nodeIp),
         Description: "added new node " + nodeIp + " to configuration: ",
     }
 

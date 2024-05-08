@@ -8,11 +8,12 @@ enum Operation {
   WRITE = 0;
   READ = 1;
   DELETE = 2;
-  JOIN_CONF = 3;
-  NODE_UPDATED = 4;
-  NODE_DELETED = 5;
-  CREATE = 6;
-  RENAME = 7;
+  JOIN_CONF_ADD = 3;
+  JOIN_CONF_DEL = 4;
+  NODE_UPDATED = 5;
+  NODE_DELETED = 6;
+  CREATE = 7;
+  RENAME = 8;
 }
 
 message logEntry {
