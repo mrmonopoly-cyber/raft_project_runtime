@@ -40,9 +40,13 @@ func (this *conf) GetConfig() []string {
     var resMap map[string]string = map[string]string{}
     var res []string = make([]string,0)
 
-    maps.Copy(resMap,this.oldConf)
+    for _,v  := range this.oldConf {
+        resMap[v] = v
+    }
 	if this.joinConf {
-        maps.Copy(resMap,this.newConf)
+        for _,v  := range this.newConf{
+            resMap[v] = v
+        }
 	}
     
     for _, v := range resMap {
