@@ -32,9 +32,6 @@ func (this *UpdateNode) Execute(state *raftstate.State, senderState *nodeState.V
     (*state).VoteRight(this.pMex.Votante)
     if this.pMex.Log != nil {
         (*state).AppendEntries([]*protobuf.LogEntry{this.pMex.Log})
-    }
-
-    if this.pMex.Votante {
         return &resp
     }
     return nil
