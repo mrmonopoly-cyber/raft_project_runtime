@@ -1,7 +1,6 @@
 package raftstate
 
 import (
-	commonmatchindex "raft/internal/node/commonMatchIndex"
 	l "raft/internal/raft_log"
 	clusterconf "raft/internal/raftstate/clusterConf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -32,17 +31,6 @@ type raftStateImpl struct {
 	nNotSupporting uint64
 	nNodeInCluster uint64
 
-    commonmatchindex.CommonMatchIndex
-}
-
-// GetCommonMatchIndex implements State.
-func (this *raftStateImpl) GetCommonMatchIndex() int {
-    return this.CommonMatchIndex.GetCommonMatchIndex()
-}
-
-// IncreaseMatchIndex implements State.
-func (this *raftStateImpl) IncreaseNodeNum() {
-    this.CommonMatchIndex.IncreaseNodeNum()
 }
 
 // AutoCommitLogEntry implements State.

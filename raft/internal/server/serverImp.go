@@ -180,8 +180,6 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 
     if s._state.Leader() {
         log.Println("i'm leader, joining conf")
-        s._state.IncreaseNodeNum()
-        go s.updateCommonMatch(*workingNode)
         go s.joinConf(workingNode)
     }
 
@@ -202,7 +200,6 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
             if s._state.Leader(){
                 s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
             }
-            s._state.DecreaseNodeNum()
             break
         }
         if message != nil {
@@ -211,38 +208,6 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
         }
     }
 
-}
-
-func (s *server) updateCommonMatch(workingNode node.Node){
-    var entries = s._state.GetEntries()
-    var entryToSend *p.LogEntry
-    var appendEntry rpcs.Rpc 
-    var prevLogEntry *p.LogEntry
-    var nodeState nodeState.VolatileNodeState
-    var rawMex []byte
-    var err error
-
-    for  s._state.Leader(){ //WARN: polling
-       if (*workingNode.GetNodeState()).GetMatchIndex() >= s._state.GetCommonMatchIndex(){
-            s._state.IncreaseUpdatedNode(workingNode.GetIp())
-       }
-       if (*workingNode.GetNodeState()).GetMatchIndex() < int(s._state.GetCommitIndex()){
-           entryToSend = entries[(*workingNode.GetNodeState()).GetNextIndex()]
-           nodeState = *workingNode.GetNodeState()
-           prevLogEntry = entries[nodeState.GetMatchIndex()]
-           appendEntry = AppendEntryRpc.NewAppendEntryRPC(
-               s._state,int64(nodeState.GetMatchIndex()),prevLogEntry.GetTerm(),
-               []*p.LogEntry{entryToSend},s._state.GetCommitIndex())
-               rawMex, err =genericmessage.Encode(&appendEntry)
-               if err != nil{
-                   log.Panicln("error encoding new AppendEntry: ",appendEntry.ToString())
-               }
-               err = workingNode.Send(rawMex)
-               if err != nil {
-                    log.Panicln("error sending AppendEntry in node: ",workingNode.GetIp())
-               }
-       }
-    }
 }
 
 func (s *server) joinConf(workingNode *node.Node){
@@ -331,7 +296,6 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
 func (s *server) run() {
     for {
         var mess pairMex
-        var newCommitIndex int
 
         select {
         case mess = <-s.messageChannel:
@@ -402,8 +366,6 @@ func (s *server) run() {
             if !s._state.Leader() {
                 s.startNewElection()
             }
-        case newCommitIndex = <-s._state.ChanUpdateNode():
-            s._state.SetCommitIndex(int64(newCommitIndex))
         }
     }
 }
@@ -430,18 +392,6 @@ func (s *server) startNewElection(){
         s._state.SetLeaderIpPublic(s._state.GetIdPublic())
         s._state.ResetElection()
         go s.leaderHearthBit()
-        s._state.ResetCommonsMatchIndex(int(s._state.GetCommitIndex()))
-        for _, v := range s._state.GetConfig() {
-            if s._state.GetIdPrivate() == v {
-                continue
-            }
-            var follower,found = s.unstableNodes.Load(v)
-            if !found{
-                log.Println("node not found when becomming leader: ",v)
-            }
-            go s.updateCommonMatch(follower.(node.Node))
-
-        }
     }else {
      //   log.Println("sending to everybody request vote :" + voteRequest.ToString())
         s.sendAll(&voteRequest)
