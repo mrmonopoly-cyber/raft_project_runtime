@@ -1,6 +1,9 @@
 package commonmatchindex
 
-import "sync"
+import (
+	"log"
+	"sync"
+)
 
 type commonMatchIndex struct {
 	nodeNum     uint
@@ -48,8 +51,10 @@ func (c *commonMatchIndex) IncreaseUpdatedNode(ipNode string) {
 	if found {
 		return
 	}
+    log.Println("debug: ok loading: ", ipNode)
 	c.updatedNode++
 	c.ipMap.Store(ipNode, ipNode)
+    log.Println("debug: ok storing: ", ipNode)
 	if c.updatedNode > c.nodeNum/2 {
 		c.updateIndex <- c.matchIndex
 		c.updatedNode = 0
