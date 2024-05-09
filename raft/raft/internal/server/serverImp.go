@@ -199,7 +199,9 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
             (*workingNode).CloseConnection()
             s.stableNodes.Delete(nodeIp);
             s.unstableNodes.Delete(nodeIp);
-            s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
+            if s._state.Leader(){
+                s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
+            }
             s._state.DecreaseNodeNum()
             break
         }
