@@ -6,7 +6,8 @@ type CommonMatchIndex interface{
     GetCommonMatchIndex() int
     GetNumUpdatedNode() uint
     IncreaseUpdatedNode(ipNode string)
-    ChangeNodeNum(nodeNum uint)
+    IncreaseNodeNum()
+    DecreaseNodeNum()
     ChanUpdateNode() chan int
     ResetCommonsMatchIndex(matchIndex int)
 }

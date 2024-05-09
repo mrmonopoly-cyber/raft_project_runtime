@@ -10,22 +10,26 @@ type commonMatchIndex struct {
 	ipMap       sync.Map
 }
 
+// DecreaseNodeNum implements CommonMatchIndex.
+func (c *commonMatchIndex) DecreaseNodeNum() {
+    c.nodeNum--
+}
+
+// IncreaseNodeNum implements CommonMatchIndex.
+func (c *commonMatchIndex) IncreaseNodeNum() {
+}
+
 // ResetCommonsMatchIndex implements CommonMatchIndex.
 func (c *commonMatchIndex) ResetCommonsMatchIndex(matchIndex int) {
-    c.matchIndex = matchIndex
-    c.ipMap = sync.Map{}
-    c.updatedNode = 0
-    c.updateIndex = make(chan int)
+	c.matchIndex = matchIndex
+	c.ipMap = sync.Map{}
+	c.updatedNode = 0
+	c.updateIndex = make(chan int)
 }
 
 // ChanUpdateNode implements CommonMatchIndex.
 func (c *commonMatchIndex) ChanUpdateNode() chan int {
 	return c.updateIndex
-}
-
-// ChangeNodeNum implements CommonMatchIndex.
-func (c *commonMatchIndex) ChangeNodeNum(nodeNum uint) {
-	c.nodeNum = nodeNum
 }
 
 // GetCommonMatchIndex implements CommonMatchIndex.

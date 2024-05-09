@@ -180,8 +180,9 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 
     if s._state.Leader() {
         log.Println("i'm leader, joining conf")
-        go s.joinConf(workingNode)
+        s._state.IncreaseNodeNum()
         go s.updateCommonMatch(*workingNode)
+        go s.joinConf(workingNode)
     }
 
     if s._state.IsInConf((*workingNode).GetIp()){
@@ -199,6 +200,7 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
             s.stableNodes.Delete(nodeIp);
             s.unstableNodes.Delete(nodeIp);
             s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
+            s._state.DecreaseNodeNum()
             break
         }
         if message != nil {
@@ -211,7 +213,7 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 
 func (s *server) updateCommonMatch(workingNode node.Node){
     for  s._state.Leader(){ //WARN: polling
-       if (*workingNode.GetNodeState()).GetMatchIndex() == s._state.GetCommonMatchIndex(){
+       if (*workingNode.GetNodeState()).GetMatchIndex() >= s._state.GetCommonMatchIndex(){
             s._state.IncreaseUpdatedNode(workingNode.GetIp())
        }
     }
