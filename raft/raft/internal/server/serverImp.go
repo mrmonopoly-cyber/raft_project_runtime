@@ -406,6 +406,9 @@ func (s *server) startNewElection(){
         go s.leaderHearthBit()
         s._state.ResetCommonsMatchIndex(int(s._state.GetCommitIndex()))
         for _, v := range s._state.GetConfig() {
+            if s._state.GetIdPrivate() == v {
+                continue
+            }
             var follower,found = s.unstableNodes.Load(v)
             if !found{
                 log.Println("node not found when becomming leader: ",v)
