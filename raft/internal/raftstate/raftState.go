@@ -3,6 +3,7 @@ package raftstate
 import (
 	"math/rand"
 	l "raft/internal/raft_log"
+    "raft/internal/node/commonMatchIndex"
 	"time"
 )
 
@@ -50,6 +51,8 @@ type State interface {
 	GetLeaderIpPublic() string
 	SetLeaderIpPublic(ip string)
 	SetLeaderIpPrivate(ip string)
+    
+    commonmatchindex.CommonMatchIndex
 }
 
 

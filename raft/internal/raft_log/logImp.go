@@ -17,26 +17,9 @@ type log struct {
 	cConf       clusterconf.Configuration
 	localFs     localfs.LocalFs
     autoCommit  bool
-    uncommittedEntry chan *p.LogEntry
 }
 
-// AutoCommitLogEntry implements LogEntry.
-func (this *log) AutoCommitLogEntry(start bool) {
-    if !this.autoCommit && start{
-        this.autoCommit = true
-        go func(){
-            for this.autoCommit {
-                var entry *p.LogEntry = <- this.uncommittedEntry
-                this.entries = append(this.entries, entry)
-                this.commitIndex++
-            }
-        }()
-        return
-    }
-    if this.autoCommit && !start {
-        this.autoCommit = false
-    }
-}
+//clusterConf
 
 // GetNumberNodesInCurrentConf implements LogEntry.
 func (this *log) GetNumberNodesInCurrentConf() int {
@@ -67,6 +50,24 @@ func (this *log) GetConfig() []string {
 func (this *log) UpdateConfiguration(confOp clusterconf.CONF_OPE, nodeIps []string) {
 	this.cConf.UpdateConfiguration(confOp, nodeIps)
 }
+
+// AutoCommitLogEntry implements LogEntry.
+func (this *log) AutoCommitLogEntry(start bool) {
+    if !this.autoCommit && start{
+        this.autoCommit = true
+        go func(){
+            for this.autoCommit && this.commitIndex < int64(len(this.entries)){ //WARN: polling
+                this.commitIndex++
+            }
+        }()
+        return
+    }
+    if this.autoCommit && !start {
+        this.autoCommit = false
+    }
+}
+
+//log
 
 func (this *log) GetEntries() []*p.LogEntry {
 	this.lock.RLock()
@@ -103,15 +104,12 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 
 	l.Println("Append Entries, before: ", this.entries)
     for _, v := range newEntries {
-        this.uncommittedEntry <- v
+        this.entries = append(this.entries, v)
     }
 	l.Println("Append Entries, after: ", this.entries)
 }
 
 func (this *log) UpdateLastApplied() error {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
 	l.Printf("check if can apply some logEntry: commIndex:%v, lastApplied:%v\n", len(this.entries)-1, this.lastApplied)
 	for int(this.commitIndex) > this.lastApplied {
 		this.lastApplied++

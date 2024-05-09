@@ -27,5 +27,7 @@ func NewLogEntry(baseConf []string) LogEntry {
     l.cConf = clusterconf.NewConf(baseConf)
     l.autoCommit = false
 
+    go l.UpdateLastApplied()
+
 	return l
 }

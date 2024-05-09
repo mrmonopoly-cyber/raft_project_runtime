@@ -1,6 +1,7 @@
 package raftstate
 
 import (
+	commonmatchindex "raft/internal/node/commonMatchIndex"
 	l "raft/internal/raft_log"
 	clusterconf "raft/internal/raftstate/clusterConf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -10,22 +11,38 @@ import (
 type Role int
 
 type raftStateImpl struct {
-	idPrivate          string
-	idPublic           string
-	serverList         []string
-	term               uint64
-	leaderIdPrivate    string
-	leaderIdPublic     string
-	role               Role
-	voteFor            string
-	voting             bool
+	idPrivate       string
+	idPublic        string
+	leaderIdPrivate string
+	leaderIdPublic  string
+
+	term uint64
+	role Role
+
+	voteFor string
+	voting  bool
+
 	electionTimeout    *time.Timer
 	heartbeatTimeout   *time.Timer
-	log                l.LogEntry
-	nSupporting        uint64
-	nNotSupporting     uint64
-	nNodeInCluster     uint64
 	electionTimeoutRaw int
+
+	log l.LogEntry
+
+	nSupporting    uint64
+	nNotSupporting uint64
+	nNodeInCluster uint64
+
+    commonmatchindex.CommonMatchIndex
+}
+
+// GetCommonMatchIndex implements State.
+func (this *raftStateImpl) GetCommonMatchIndex() int {
+    return this.CommonMatchIndex.GetCommonMatchIndex()
+}
+
+// IncreaseMatchIndex implements State.
+func (this *raftStateImpl) IncreaseMatchIndex() {
+    this.CommonMatchIndex.IncreaseMatchIndex()
 }
 
 // AutoCommitLogEntry implements State.
@@ -196,15 +213,10 @@ func (this *raftStateImpl) ResetElection() {
 }
 
 func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
-	var n int = 0
-	var commitIndex int = int(this.GetCommitIndex())
+	var n int = int(this.GetCommitIndex()) + 1
 	var majority int = len(idxList) / 2
 	var count int = 0
 	var entries = this.log.GetEntries()
-
-	/* find N such that N > commitIndex */
-	for ; n < commitIndex; n++ {
-	}
 
 	/* computing how many has a matchIndex greater than N*/
 	if !(len(entries) == 0) {
