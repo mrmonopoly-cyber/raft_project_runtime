@@ -55,7 +55,7 @@ func (c *commonMatchIndex) IncreaseUpdatedNode(ipNode string) {
 	c.updatedNode++
 	c.ipMap.Store(ipNode, ipNode)
     log.Println("debug: ok storing: ", ipNode)
-	if c.updatedNode > c.nodeNum/2 {
+	if c.nodeNum>2 && c.updatedNode > c.nodeNum/2 {
 		c.updateIndex <- c.matchIndex
 		c.updatedNode = 0
 		c.ipMap = sync.Map{}
