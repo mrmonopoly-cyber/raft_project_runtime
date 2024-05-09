@@ -212,9 +212,33 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 }
 
 func (s *server) updateCommonMatch(workingNode node.Node){
+    var entries = s._state.GetEntries()
+    var entryToSend *p.LogEntry
+    var appendEntry rpcs.Rpc 
+    var prevLogEntry *p.LogEntry
+    var nodeState nodeState.VolatileNodeState
+    var rawMex []byte
+    var err error
+
     for  s._state.Leader(){ //WARN: polling
        if (*workingNode.GetNodeState()).GetMatchIndex() >= s._state.GetCommonMatchIndex(){
             s._state.IncreaseUpdatedNode(workingNode.GetIp())
+       }
+       if (*workingNode.GetNodeState()).GetMatchIndex() < int(s._state.GetCommitIndex()){
+           entryToSend = entries[(*workingNode.GetNodeState()).GetNextIndex()]
+           nodeState = *workingNode.GetNodeState()
+           prevLogEntry = entries[nodeState.GetMatchIndex()]
+           appendEntry = AppendEntryRpc.NewAppendEntryRPC(
+               s._state,int64(nodeState.GetMatchIndex()),prevLogEntry.GetTerm(),
+               []*p.LogEntry{entryToSend},s._state.GetCommitIndex())
+               rawMex, err =genericmessage.Encode(&appendEntry)
+               if err != nil{
+                   log.Panicln("error encoding new AppendEntry: ",appendEntry.ToString())
+               }
+               err = workingNode.Send(rawMex)
+               if err != nil {
+                    log.Panicln("error sending AppendEntry in node: ",workingNode.GetIp())
+               }
        }
     }
 }
