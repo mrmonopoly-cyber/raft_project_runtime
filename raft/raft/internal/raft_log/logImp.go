@@ -10,13 +10,16 @@ import (
 )
 
 type log struct {
-    lock        sync.RWMutex
+	lock        sync.RWMutex
 	entries     []*p.LogEntry
 	lastApplied int
 	commitIndex int64
 	cConf       clusterconf.Configuration
 	localFs     localfs.LocalFs
+    autoCommit  bool
 }
+
+//clusterConf
 
 // GetNumberNodesInCurrentConf implements LogEntry.
 func (this *log) GetNumberNodesInCurrentConf() int {
@@ -48,21 +51,39 @@ func (this *log) UpdateConfiguration(confOp clusterconf.CONF_OPE, nodeIps []stri
 	this.cConf.UpdateConfiguration(confOp, nodeIps)
 }
 
+// AutoCommitLogEntry implements LogEntry.
+func (this *log) AutoCommitLogEntry(start bool) {
+    if !this.autoCommit && start{
+        this.autoCommit = true
+        go func(){
+            for this.autoCommit && this.commitIndex < int64(len(this.entries)){ //WARN: polling
+                this.commitIndex++
+            }
+        }()
+        return
+    }
+    if this.autoCommit && !start {
+        this.autoCommit = false
+    }
+}
+
+//log
+
 func (this *log) GetEntries() []*p.LogEntry {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 	return this.entries
 }
 
 func (this *log) LastLogIndex() int {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 	return len(this.entries) - 1
 }
 
 func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) bool {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 
 	if last_log_index >= this.commitIndex {
 		var entries []*p.LogEntry = this.GetEntries()
@@ -78,29 +99,28 @@ func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) boo
 }
 
 func (this *log) AppendEntries(newEntries []*p.LogEntry) {
-    this.lock.Lock()
-    defer this.lock.Unlock()
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
-    l.Println("Append Entries, before: ",this.entries)
-    this.entries = append(this.entries,newEntries...)
-    l.Println("Append Entries, after: ",this.entries)
+	l.Println("Append Entries, before: ", this.entries)
+    for _, v := range newEntries {
+        this.entries = append(this.entries, v)
+    }
+	l.Println("Append Entries, after: ", this.entries)
 }
 
 func (this *log) UpdateLastApplied() error {
-    this.lock.Lock()
-    defer this.lock.Unlock()
-
 	l.Printf("check if can apply some logEntry: commIndex:%v, lastApplied:%v\n", len(this.entries)-1, this.lastApplied)
 	for int(this.commitIndex) > this.lastApplied {
-        this.lastApplied++
+		this.lastApplied++
 		var entry *p.LogEntry = this.entries[this.lastApplied]
 
 		l.Printf("updating entry: %v", entry)
 		switch entry.OpType {
-        case p.Operation_JOIN_CONF_ADD:
-			this.applyConf(clusterconf.ADD,entry)
-        case p.Operation_JOIN_CONF_DEL:
-			this.applyConf(clusterconf.DEL,entry)
+		case p.Operation_JOIN_CONF_ADD:
+			this.applyConf(clusterconf.ADD, entry)
+		case p.Operation_JOIN_CONF_DEL:
+			this.applyConf(clusterconf.DEL, entry)
 		default:
 			(*this).localFs.ApplyLogEntry(entry)
 		}
@@ -110,14 +130,14 @@ func (this *log) UpdateLastApplied() error {
 }
 
 func (this *log) GetCommitIndex() int64 {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 	return this.commitIndex
 }
 
 func (this *log) SetCommitIndex(val int64) {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 	this.commitIndex = val
 }
 

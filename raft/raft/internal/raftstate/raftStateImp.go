@@ -1,6 +1,7 @@
 package raftstate
 
 import (
+	commonmatchindex "raft/internal/node/commonMatchIndex"
 	l "raft/internal/raft_log"
 	clusterconf "raft/internal/raftstate/clusterConf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -10,22 +11,43 @@ import (
 type Role int
 
 type raftStateImpl struct {
-	idPrivate          string
-	idPublic           string
-	serverList         []string
-	term               uint64
-	leaderIdPrivate    string
-	leaderIdPublic     string
-	role               Role
-	voteFor            string
-	voting             bool
+	idPrivate       string
+	idPublic        string
+	leaderIdPrivate string
+	leaderIdPublic  string
+
+	term uint64
+	role Role
+
+	voteFor string
+	voting  bool
+
 	electionTimeout    *time.Timer
 	heartbeatTimeout   *time.Timer
-	log                l.LogEntry
-	nSupporting        uint64
-	nNotSupporting     uint64
-	nNodeInCluster     uint64
 	electionTimeoutRaw int
+
+	log l.LogEntry
+
+	nSupporting    uint64
+	nNotSupporting uint64
+	nNodeInCluster uint64
+
+    commonmatchindex.CommonMatchIndex
+}
+
+// GetCommonMatchIndex implements State.
+func (this *raftStateImpl) GetCommonMatchIndex() int {
+    return this.CommonMatchIndex.GetCommonMatchIndex()
+}
+
+// IncreaseMatchIndex implements State.
+func (this *raftStateImpl) IncreaseMatchIndex() {
+    this.CommonMatchIndex.IncreaseMatchIndex()
+}
+
+// AutoCommitLogEntry implements State.
+func (this *raftStateImpl) AutoCommitLogEntry(start bool) {
+	this.log.AutoCommitLogEntry(start)
 }
 
 // GetNumberNodesInCurrentConf implements State.
@@ -55,7 +77,7 @@ func (this *raftStateImpl) GetConfig() []string {
 
 // UpdateConfiguration implements State.
 func (this *raftStateImpl) UpdateConfiguration(confOp clusterconf.CONF_OPE, nodeIps []string) {
-	this.log.UpdateConfiguration(confOp,nodeIps)
+	this.log.UpdateConfiguration(confOp, nodeIps)
 }
 
 func (this *raftStateImpl) GetIdPrivate() string {
@@ -87,12 +109,11 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 }
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
-    var commitIndex = this.GetCommitIndex()
+	var commitIndex = this.GetCommitIndex()
 	this.log.AppendEntries(newEntries)
-    if this.role != LEADER {
-        this.log.SetCommitIndex(commitIndex+1)
-        this.log.UpdateLastApplied()
-    }
+	if this.role != LEADER {
+		this.log.SetCommitIndex(commitIndex + 1)
+	}
 }
 
 func (this *raftStateImpl) GetCommitIndex() int64 {
@@ -191,21 +212,11 @@ func (this *raftStateImpl) ResetElection() {
 	this.nNotSupporting = 0
 }
 
-func (this *raftStateImpl) UpdateLastApplied() error {
-	// TODO: apply log to state machine (?)
-	return this.log.UpdateLastApplied()
-}
-
 func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
-	var n int = 0
-	var commitIndex int = int(this.GetCommitIndex())
+	var n int = int(this.GetCommitIndex()) + 1
 	var majority int = len(idxList) / 2
 	var count int = 0
 	var entries = this.log.GetEntries()
-
-	/* find N such that N > commitIndex */
-	for ; n < commitIndex; n++ {
-	}
 
 	/* computing how many has a matchIndex greater than N*/
 	if !(len(entries) == 0) {

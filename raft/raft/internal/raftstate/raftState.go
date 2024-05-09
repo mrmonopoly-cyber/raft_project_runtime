@@ -3,6 +3,7 @@ package raftstate
 import (
 	"math/rand"
 	l "raft/internal/raft_log"
+    "raft/internal/node/commonMatchIndex"
 	"time"
 )
 
@@ -50,6 +51,8 @@ type State interface {
 	GetLeaderIpPublic() string
 	SetLeaderIpPublic(ip string)
 	SetLeaderIpPrivate(ip string)
+    
+    commonmatchindex.CommonMatchIndex
 }
 
 
@@ -69,5 +72,6 @@ func NewState(term uint64, idPrivate string, idPublic string, role Role, fsRootD
 	s.voting = true
 	s.log = l.NewLogEntry([]string{idPrivate})
 	s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
+    s.CommonMatchIndex = commonmatchindex.NewCommonMatchIndex(1) //just myself at the beginning
 	return s
 }

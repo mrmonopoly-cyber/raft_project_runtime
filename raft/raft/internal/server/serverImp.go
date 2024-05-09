@@ -29,13 +29,13 @@ type pairMex struct{
 }
 
 type server struct {
+    wg             sync.WaitGroup
 	_state         state.State
 	messageChannel chan pairMex
 	unstableNodes   *sync.Map
 	stableNodes     *sync.Map
     clientNodes    *sync.Map
 	listener       net.Listener
-	wg             sync.WaitGroup
 }
 
 func (s *server) Start() {
@@ -180,11 +180,9 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 
     if s._state.Leader() {
         log.Println("i'm leader, joining conf")
-        go func (){
-            s.wg.Add(1)
-            defer s.wg.Done()
-            s.joinConf(workingNode)
-        }()
+        s._state.IncreaseNodeNum()
+        go s.updateCommonMatch(*workingNode)
+        go s.joinConf(workingNode)
     }
 
     if s._state.IsInConf((*workingNode).GetIp()){
@@ -202,6 +200,7 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
             s.stableNodes.Delete(nodeIp);
             s.unstableNodes.Delete(nodeIp);
             s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
+            s._state.DecreaseNodeNum()
             break
         }
         if message != nil {
@@ -210,6 +209,14 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
         }
     }
 
+}
+
+func (s *server) updateCommonMatch(workingNode node.Node){
+    for  s._state.Leader(){ //WARN: polling
+       if (*workingNode.GetNodeState()).GetMatchIndex() >= s._state.GetCommonMatchIndex(){
+            s._state.IncreaseUpdatedNode(workingNode.GetIp())
+       }
+    }
 }
 
 func (s *server) joinConf(workingNode *node.Node){
@@ -298,12 +305,7 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
 func (s *server) run() {
     for {
         var mess pairMex
-        /* To keep LastApplied and Leader's commitIndex always up to dated  */
-        log.Printf("check updating last applied")
-        s._state.UpdateLastApplied()
-        if s._state.Leader() {
-            s._state.CheckCommitIndex(s.getMatchIndexes())
-        }
+        var newCommitIndex int
 
         select {
         case mess = <-s.messageChannel:
@@ -367,12 +369,15 @@ func (s *server) run() {
                     defer s.wg.Done()
                     s.leaderHearthBit()
                 }()
+                s._state.AutoCommitLogEntry(false)
             }
             //         log.Println("rpc processed")
         case <-s._state.ElectionTimeout().C:
             if !s._state.Leader() {
                 s.startNewElection()
             }
+        case newCommitIndex = <-s._state.ChanUpdateNode():
+            s._state.SetCommitIndex(int64(newCommitIndex))
         }
     }
 }
@@ -399,6 +404,15 @@ func (s *server) startNewElection(){
         s._state.SetLeaderIpPublic(s._state.GetIdPublic())
         s._state.ResetElection()
         go s.leaderHearthBit()
+        s._state.ResetCommonsMatchIndex(int(s._state.GetCommitIndex()))
+        for _, v := range s._state.GetConfig() {
+            var follower,found = s.unstableNodes.Load(v)
+            if !found{
+                log.Println("node not found when becomming leader: ",v)
+            }
+            go s.updateCommonMatch(follower.(node.Node))
+
+        }
     }else {
      //   log.Println("sending to everybody request vote :" + voteRequest.ToString())
         s.sendAll(&voteRequest)
@@ -418,8 +432,8 @@ func (s *server) leaderHearthBit(){
             s._state.StartHearthbeatTimeout()
         }
     }
+    s._state.AutoCommitLogEntry(true)
     s.setVolState()
-
     log.Println("no longer LEADER, stop sending hearthbit")
 }
 
