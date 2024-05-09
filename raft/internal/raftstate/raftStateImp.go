@@ -41,8 +41,8 @@ func (this *raftStateImpl) GetCommonMatchIndex() int {
 }
 
 // IncreaseMatchIndex implements State.
-func (this *raftStateImpl) IncreaseMatchIndex() {
-    this.CommonMatchIndex.IncreaseMatchIndex()
+func (this *raftStateImpl) IncreaseNodeNum() {
+    this.CommonMatchIndex.IncreaseNodeNum()
 }
 
 // AutoCommitLogEntry implements State.
