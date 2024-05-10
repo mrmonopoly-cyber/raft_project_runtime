@@ -27,10 +27,11 @@ func NewLogEntry(baseConf []string) LogEntry {
 	var l = new(log)
 	l.commitIndex = -1
 	l.lastApplied = -1
+    l.logSize = 0
 	l.entries = make([]*p.LogEntry, 0)
     l.cConf = clusterconf.NewConf(baseConf)
 
-    go l.UpdateLastApplied()
+    go l.updateLastApplied()
 
 	return l
 }

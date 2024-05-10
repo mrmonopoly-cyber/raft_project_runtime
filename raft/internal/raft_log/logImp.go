@@ -37,7 +37,9 @@ func (this *log) MinimumCommitIndex(val uint) {
 func (this *log) IncreaseCommitIndex() {
     this.lock.Lock()
     defer this.lock.Unlock()
-	this.commitIndex++
+    if this.commitIndex < int64(this.logSize)-1 {
+        this.commitIndex++
+    }
 }
 
 // DeleteFromEntry implements LogEntry.
@@ -130,25 +132,6 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 	l.Println("Append Entries, after: ", this.entries)
 }
 
-func (this *log) UpdateLastApplied() error {
-	l.Printf("check if can apply some logEntry: commIndex:%v, lastApplied:%v\n", len(this.entries)-1, this.lastApplied)
-	for int(this.commitIndex) > this.lastApplied {
-		this.lastApplied++
-		var entry *p.LogEntry = this.entries[this.lastApplied]
-
-		l.Printf("updating entry: %v", entry)
-		switch entry.OpType {
-		case p.Operation_JOIN_CONF_ADD:
-			this.applyConf(clusterconf.ADD, entry)
-		case p.Operation_JOIN_CONF_DEL:
-			this.applyConf(clusterconf.DEL, entry)
-		default:
-			(*this).localFs.ApplyLogEntry(entry)
-		}
-
-	}
-	return nil
-}
 
 func (this *log) GetCommitIndex() int64 {
 	this.lock.RLock()
@@ -157,6 +140,27 @@ func (this *log) GetCommitIndex() int64 {
 }
 
 // utility
+
+func (this *log) updateLastApplied() error {
+    l.Printf("check if can apply some logEntry: commIndex:%v, lastApplied:%v\n", len(this.entries)-1, this.lastApplied)
+    for int(this.commitIndex) > this.lastApplied {
+        this.lastApplied++
+        var entry *p.LogEntry = this.entries[this.lastApplied]
+
+        l.Printf("updating entry: %v", entry)
+        switch entry.OpType {
+        case p.Operation_JOIN_CONF_ADD:
+            this.applyConf(clusterconf.ADD, entry)
+        case p.Operation_JOIN_CONF_DEL:
+            this.applyConf(clusterconf.DEL, entry)
+        default:
+            (*this).localFs.ApplyLogEntry(entry)
+        }
+
+    }
+    return nil
+}
+
 func (this *log) applyConf(ope clusterconf.CONF_OPE, entry *p.LogEntry) {
 	var confUnfiltered string = string(entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, " ")
