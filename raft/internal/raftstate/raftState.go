@@ -43,13 +43,15 @@ type State interface {
 	GetNumNotSupporters() uint64
 	ResetElection()
 
-    CheckCommitIndex(idxList []int)
     l.LogEntry
 
 	GetLeaderIpPrivate() string
 	GetLeaderIpPublic() string
 	SetLeaderIpPublic(ip string)
 	SetLeaderIpPrivate(ip string)
+
+    //LEADER
+    GetLeaderEntryChannel() chan int64
     
 }
 

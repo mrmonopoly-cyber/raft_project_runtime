@@ -1,6 +1,7 @@
 package raft_log
 
 import (
+	"errors"
 	l "log"
 	localfs "raft/internal/localFs"
 	clusterconf "raft/internal/raftstate/clusterConf"
@@ -10,11 +11,11 @@ import (
 )
 
 type log struct {
-	lock sync.RWMutex
-    newEntryToApply chan int
+	lock            sync.RWMutex
+	newEntryToApply chan int
 
 	entries     []*p.LogEntry
-    logSize     uint
+	logSize     uint
 	commitIndex int64
 	lastApplied int
 
@@ -22,36 +23,44 @@ type log struct {
 	localFs localfs.LocalFs
 }
 
+// GetEntriAt implements LogEntry.
+func (this *log) GetEntriAt(index int64) (*p.LogEntry, error) {
+    if index < int64(this.logSize)-1 {
+        return this.entries[index],nil
+    }
+    return nil,errors.New("invalid index: " + string(rune(index)))
+}
+
 // MinimumCommitIndex implements LogEntry.
 func (this *log) MinimumCommitIndex(val uint) {
-    this.lock.Lock()
-    defer this.lock.Unlock()
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
-    if val < this.logSize{
-        this.commitIndex=int64(val)
-        return
-    }
-    this.commitIndex = int64(this.logSize)-1
-    if this.commitIndex > int64(this.lastApplied){
-        this.newEntryToApply <- 1
-    }
+	if val < this.logSize {
+		this.commitIndex = int64(val)
+		return
+	}
+	this.commitIndex = int64(this.logSize) - 1
+	if this.commitIndex > int64(this.lastApplied) {
+		this.newEntryToApply <- 1
+	}
 }
 
 // IncreaseCommitIndex implements LogEntry.
 func (this *log) IncreaseCommitIndex() {
-    this.lock.Lock()
-    defer this.lock.Unlock()
-    if this.commitIndex < int64(this.logSize)-1 {
-        this.commitIndex++
-        this.newEntryToApply <- 1
-    }
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	if this.commitIndex < int64(this.logSize)-1 {
+		this.commitIndex++
+		this.newEntryToApply <- 1
+	}
 }
 
 // DeleteFromEntry implements LogEntry.
 func (this *log) DeleteFromEntry(entryIndex uint) {
 	for i := int(entryIndex); i < len(this.entries); i++ {
 		this.entries[i] = nil
-        this.logSize--
+		this.logSize--
 	}
 }
 
@@ -122,21 +131,20 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-    var lenEntries = len(this.entries)
+	var lenEntries = len(this.entries)
 
 	l.Println("Append Entries, before: ", this.entries)
 	for _, v := range newEntries {
-        if int(this.logSize) < lenEntries {
-            this.entries[this.logSize] = v
-        }else{
-            this.entries = append(this.entries, v)
-            lenEntries++
-        }
-        this.logSize++
+		if int(this.logSize) < lenEntries {
+			this.entries[this.logSize] = v
+		} else {
+			this.entries = append(this.entries, v)
+			lenEntries++
+		}
+		this.logSize++
 	}
 	l.Println("Append Entries, after: ", this.entries)
 }
-
 
 func (this *log) GetCommitIndex() int64 {
 	this.lock.RLock()
@@ -147,24 +155,24 @@ func (this *log) GetCommitIndex() int64 {
 // utility
 
 func (this *log) updateLastApplied() error {
-    for {
-        select{
-        case <- this.newEntryToApply:
-            this.lastApplied++
-            var entry *p.LogEntry = this.entries[this.lastApplied]
+	for {
+		select {
+		case <-this.newEntryToApply:
+			this.lastApplied++
+			var entry *p.LogEntry = this.entries[this.lastApplied]
 
-            l.Printf("updating entry: %v", entry)
-            switch entry.OpType {
-            case p.Operation_JOIN_CONF_ADD:
-                this.applyConf(clusterconf.ADD, entry)
-            case p.Operation_JOIN_CONF_DEL:
-                this.applyConf(clusterconf.DEL, entry)
-            default:
-                (*this).localFs.ApplyLogEntry(entry)
-            }
-        }
+			l.Printf("updating entry: %v", entry)
+			switch entry.OpType {
+			case p.Operation_JOIN_CONF_ADD:
+				this.applyConf(clusterconf.ADD, entry)
+			case p.Operation_JOIN_CONF_DEL:
+				this.applyConf(clusterconf.DEL, entry)
+			default:
+				(*this).localFs.ApplyLogEntry(entry)
+			}
+		}
 
-    }
+	}
 }
 
 func (this *log) applyConf(ope clusterconf.CONF_OPE, entry *p.LogEntry) {

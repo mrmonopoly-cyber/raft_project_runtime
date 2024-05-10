@@ -296,6 +296,7 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
 func (s *server) run() {
     for {
         var mess pairMex
+        var leaderCommitEntry int64
 
         select {
         case mess = <-s.messageChannel:
@@ -361,6 +362,65 @@ func (s *server) run() {
             if !s._state.Leader() {
                 s.startNewElection()
             }
+        case leaderCommitEntry = <-s._state.GetLeaderEntryChannel():
+            //TODO: check that at least the majority of the followers has a commit index
+            // >= than this, if not send him an AppendEntryRpc with the entry,
+            //Search only through stable nodes because may be possible that a new node is still 
+            //updating while you check his commitIndex
+            var stabililtThresholds = 0
+            s.stableNodes.Range(func(key, value any) bool {
+                stabililtThresholds++
+                return true
+            })
+            var validNode int =0
+            var err error
+            var entryToCommit *p.LogEntry 
+            var prevEntry *p.LogEntry
+            var leaderCommit = s._state.GetCommitIndex()
+
+            prevEntry,err = s._state.GetEntriAt(leaderCommitEntry-1)
+            if err != nil {
+                log.Panic("invalid index entry: ", leaderCommitEntry-1)
+            }
+
+            entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
+            if err != nil {
+                log.Panic("invalid index entry: ", leaderCommitEntry)
+            }
+
+
+            s.stableNodes.Range(func(key,value any)bool{
+                var nNode node.Node
+                var nodeState nodeState.VolatileNodeState
+                var found bool 
+                var AppendEntry rpcs.Rpc
+                var rawMex []byte
+
+                if validNode > stabililtThresholds {
+                    return true
+                }
+
+                nNode, found = value.(node.Node)
+                if !found {
+                    log.Panicln("failed conversion type node, type is: ", reflect.TypeOf(value))
+                }
+                nodeState = *nNode.GetNodeState()
+
+                if nodeState.GetMatchIndex() >= int(leaderCommitEntry){
+                    validNode++
+                    return true
+                }
+
+                AppendEntry = AppendEntryRpc.NewAppendEntryRPC(
+                    s._state,leaderCommitEntry-1,prevEntry.Term,[]*p.LogEntry{entryToCommit},leaderCommit)
+                rawMex,err = genericmessage.Encode(&AppendEntry)
+                if err != nil {
+                    log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
+                }
+
+                nNode.Send(rawMex)
+                return true
+            })
         }
     }
 }

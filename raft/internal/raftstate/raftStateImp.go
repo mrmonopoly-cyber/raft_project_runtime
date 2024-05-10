@@ -30,16 +30,24 @@ type raftStateImpl struct {
 	nSupporting    uint64
 	nNotSupporting uint64
 	nNodeInCluster uint64
+
+	//LEADER
+	leaderEntryToCommit chan int64
+}
+
+// GetEntriAt implements State.
+func (this *raftStateImpl) GetEntriAt(index int64) (*p.LogEntry, error) {
+    return this.log.GetEntriAt(index)
 }
 
 // IncreaseCommitIndex implements State.
 func (this *raftStateImpl) IncreaseCommitIndex() {
-    this.log.IncreaseCommitIndex()
+	this.log.IncreaseCommitIndex()
 }
 
 // MinimumCommitIndex implements State.
 func (this *raftStateImpl) MinimumCommitIndex(val uint) {
-    this.log.MinimumCommitIndex(val)
+	this.log.MinimumCommitIndex(val)
 }
 
 // DeleteFromEntry implements State.
@@ -105,11 +113,17 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 	return this.log.GetEntries()
 }
 
-func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) { 
+func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
 	this.log.AppendEntries(newEntries)
 	if this.role != LEADER {
 		this.log.IncreaseCommitIndex()
+		return
 	}
+	this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
+}
+
+func (this *raftStateImpl) GetLeaderEntryChannel() chan int64 {
+	return this.leaderEntryToCommit
 }
 
 func (this *raftStateImpl) GetCommitIndex() int64 {
@@ -202,28 +216,6 @@ func (this *raftStateImpl) GetNumNotSupporters() uint64 {
 func (this *raftStateImpl) ResetElection() {
 	this.nSupporting = 0
 	this.nNotSupporting = 0
-}
-
-func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
-	var n int = int(this.GetCommitIndex()) + 1
-	var majority int = len(idxList) / 2
-	var count int = 0
-	var entries = this.log.GetEntries()
-
-	/* computing how many has a matchIndex greater than N*/
-	if !(len(entries) == 0) {
-		for i := range idxList {
-			if idxList[i] >= n {
-				count++
-			}
-		}
-
-		/* check if there is a majority of matchIndex[i] >= N and if log[N].term == currentTerm*/
-		if (count >= majority) && (entries[n].GetTerm() == this.GetTerm()) {
-			this.IncreaseCommitIndex()
-		}
-	}
-
 }
 
 // GetLeaderIpPrivate implements State.
