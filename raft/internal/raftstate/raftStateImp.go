@@ -30,12 +30,21 @@ type raftStateImpl struct {
 	nSupporting    uint64
 	nNotSupporting uint64
 	nNodeInCluster uint64
-
 }
 
-// AutoCommitLogEntry implements State.
-func (this *raftStateImpl) AutoCommitLogEntry(start bool) {
-	this.log.AutoCommitLogEntry(start)
+// IncreaseCommitIndex implements State.
+func (this *raftStateImpl) IncreaseCommitIndex() {
+    this.log.IncreaseCommitIndex()
+}
+
+// MinimumCommitIndex implements State.
+func (this *raftStateImpl) MinimumCommitIndex(val uint) {
+    this.log.MinimumCommitIndex(val)
+}
+
+// DeleteFromEntry implements State.
+func (this *raftStateImpl) DeleteFromEntry(entryIndex uint) {
+	this.log.DeleteFromEntry(entryIndex)
 }
 
 // GetNumberNodesInCurrentConf implements State.
@@ -96,20 +105,15 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 	return this.log.GetEntries()
 }
 
-func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
-	var commitIndex = this.GetCommitIndex()
+func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) { 
 	this.log.AppendEntries(newEntries)
 	if this.role != LEADER {
-		this.log.SetCommitIndex(commitIndex + 1)
+		this.log.IncreaseCommitIndex()
 	}
 }
 
 func (this *raftStateImpl) GetCommitIndex() int64 {
 	return this.log.GetCommitIndex()
-}
-
-func (this *raftStateImpl) SetCommitIndex(val int64) {
-	this.log.SetCommitIndex(val)
 }
 
 // LastLogIndex implements State.
@@ -216,7 +220,7 @@ func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
 
 		/* check if there is a majority of matchIndex[i] >= N and if log[N].term == currentTerm*/
 		if (count >= majority) && (entries[n].GetTerm() == this.GetTerm()) {
-			this.SetCommitIndex(int64(n))
+			this.IncreaseCommitIndex()
 		}
 	}
 

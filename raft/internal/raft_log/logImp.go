@@ -10,13 +10,42 @@ import (
 )
 
 type log struct {
-	lock        sync.RWMutex
+	lock sync.RWMutex
+
 	entries     []*p.LogEntry
-	lastApplied int
+    logSize     uint
 	commitIndex int64
-	cConf       clusterconf.Configuration
-	localFs     localfs.LocalFs
-    autoCommit  bool
+	lastApplied int
+
+	cConf   clusterconf.Configuration
+	localFs localfs.LocalFs
+}
+
+// MinimumCommitIndex implements LogEntry.
+func (this *log) MinimumCommitIndex(val uint) {
+    this.lock.Lock()
+    defer this.lock.Unlock()
+
+    if val < this.logSize{
+        this.commitIndex=int64(val)
+        return
+    }
+    this.commitIndex = int64(this.logSize)-1
+}
+
+// IncreaseCommitIndex implements LogEntry.
+func (this *log) IncreaseCommitIndex() {
+    this.lock.Lock()
+    defer this.lock.Unlock()
+	this.commitIndex++
+}
+
+// DeleteFromEntry implements LogEntry.
+func (this *log) DeleteFromEntry(entryIndex uint) {
+	for i := int(entryIndex); i < len(this.entries); i++ {
+		this.entries[i] = nil
+        this.logSize--
+	}
 }
 
 //clusterConf
@@ -49,22 +78,6 @@ func (this *log) GetConfig() []string {
 // UpdateConfiguration implements LogEntry.
 func (this *log) UpdateConfiguration(confOp clusterconf.CONF_OPE, nodeIps []string) {
 	this.cConf.UpdateConfiguration(confOp, nodeIps)
-}
-
-// AutoCommitLogEntry implements LogEntry.
-func (this *log) AutoCommitLogEntry(start bool) {
-    if !this.autoCommit && start{
-        this.autoCommit = true
-        go func(){
-            for this.autoCommit && this.commitIndex < int64(len(this.entries)){ //WARN: polling
-                this.commitIndex++
-            }
-        }()
-        return
-    }
-    if this.autoCommit && !start {
-        this.autoCommit = false
-    }
 }
 
 //log
@@ -102,10 +115,18 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
+    var lenEntries = len(this.entries)
+
 	l.Println("Append Entries, before: ", this.entries)
-    for _, v := range newEntries {
-        this.entries = append(this.entries, v)
-    }
+	for _, v := range newEntries {
+        if int(this.logSize) < lenEntries {
+            this.entries[this.logSize] = v
+        }else{
+            this.entries = append(this.entries, v)
+            lenEntries++
+        }
+        this.logSize++
+	}
 	l.Println("Append Entries, after: ", this.entries)
 }
 
@@ -133,12 +154,6 @@ func (this *log) GetCommitIndex() int64 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.commitIndex
-}
-
-func (this *log) SetCommitIndex(val int64) {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	this.commitIndex = val
 }
 
 // utility

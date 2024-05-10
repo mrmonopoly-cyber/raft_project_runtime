@@ -1,16 +1,23 @@
 package AppendEntryRpc
 
 import (
-    "fmt"
-    "log"
-    "raft/internal/node/nodeState"
-    "raft/internal/raftstate"
-    "raft/internal/rpcs"
-    app_resp "raft/internal/rpcs/AppendResponse"
+	"fmt"
+	"log"
+	"raft/internal/node/nodeState"
+	"raft/internal/raftstate"
+	"raft/internal/rpcs"
+	app_resp "raft/internal/rpcs/AppendResponse"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
-    "strconv"
+	"strconv"
 
-    "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/proto"
+)
+
+type ERRORS uint8
+const(
+    C0 ERRORS = iota
+    C2 ERRORS = iota
+    C3 ERRORS = iota
 )
 
 type AppendEntryRpc struct {
@@ -57,21 +64,21 @@ func NewAppendEntryRPC(state raftstate.State, prevLogIndex int64, prevLogTerm ui
     }
 }
 
-func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobuf.LogEntry) (bool, int) {
+func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobuf.LogEntry) (ERRORS, int) {
     var logSize = len(entries)
     if prevLogIndex < 0 {
-        return true, 0
+        return C0, 0
     }
 
     if logSize == 0  && prevLogIndex > 0{
         log.Println("case 2: logSize = 0")
-        return false, 0
+        return C2, 0
     }
 
     if logSize-1 < int(prevLogIndex) {
         log.Println("case 2")
         log.Printf("logSize - 1: %d, and prevLogIndex: %d", (logSize-1), int(prevLogIndex))
-        return false, (logSize - 1)
+        return C2, (logSize - 1)
     }
     fmt.Print("case 3")
   log.Println(entries)
@@ -80,9 +87,9 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
     consistent := entries[prevLogIndex].GetTerm() == prevLogTerm
 
     if consistent {
-        return true, (int(prevLogIndex) + 1)
+        return C0, (int(prevLogIndex) + 1)
     } else {
-        return false, int(prevLogIndex)
+        return C3, int(prevLogIndex)
     }
 }
 
@@ -93,7 +100,7 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
     var id string = (*state).GetIdPrivate()
     var myTerm uint64 = (*state).GetTerm()
     var nextIdx int
-    var consistent bool
+    var consistent ERRORS
     var prevLogIndex int64 = this.pMex.GetPrevLogIndex()
     var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
     var entries []*protobuf.LogEntry = (*state).GetEntries()
@@ -101,9 +108,8 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
 
     var resp *rpcs.Rpc = nil
     var leaderCommit int64
-    var lastNewEntryIdx int64
 
-    if this.pMex.GetTerm() < myTerm {
+    if this.pMex.GetTerm() < myTerm { //case 1
         return respondeAppend(id, false, myTerm, -1)
     }
 
@@ -117,27 +123,22 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
     (*state).SetLeaderIpPublic(this.pMex.LeaderIdPublic)
 
     if len(newEntries) > 0 {
-
         //log.Println("received Append Entry", newEntries)
         consistent, nextIdx = checkConsistency(prevLogIndex, prevLogTerm, entries)
-        fmt.Println(!consistent)
+        switch consistent{
+            case C2:
+                resp = respondeAppend(id, false, myTerm, nextIdx)
+            case C3:
+                (*state).DeleteFromEntry(uint(nextIdx))
+                resp = respondeAppend(id, false, myTerm, nextIdx)
+            default:
+                (*state).AppendEntries(newEntries)
+                leaderCommit = this.pMex.GetLeaderCommit()
 
-        if !consistent {
-            fmt.Println("Not consistent")
-            resp = respondeAppend(id, false, myTerm, nextIdx)
-        } else {
-            (*state).AppendEntries(newEntries)
-            leaderCommit = this.pMex.GetLeaderCommit()
-            lastNewEntryIdx = int64(len(entries) - 1)
-
-            if leaderCommit > (*state).GetCommitIndex() {
-                if leaderCommit > lastNewEntryIdx {
-                    (*state).SetCommitIndex(lastNewEntryIdx)
-                } else {
-                    (*state).SetCommitIndex(leaderCommit)
+                if leaderCommit > (*state).GetCommitIndex() {
+                    (*state).MinimumCommitIndex(uint(leaderCommit))
                 }
-            }
-            resp = respondeAppend(id, true , myTerm, (*state).LastLogIndex())
+                resp = respondeAppend(id, true , myTerm, (*state).LastLogIndex())
         }
     } 
 

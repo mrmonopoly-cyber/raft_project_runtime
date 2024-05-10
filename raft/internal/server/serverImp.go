@@ -354,12 +354,7 @@ func (s *server) run() {
 
             if s._state.Leader() && oldRole != state.LEADER {
                 s.setVolState() 
-                go func (){
-                    s.wg.Add(1)
-                    defer s.wg.Done()
-                    s.leaderHearthBit()
-                }()
-                s._state.AutoCommitLogEntry(false)
+                go s.leaderHearthBit()
             }
             //         log.Println("rpc processed")
         case <-s._state.ElectionTimeout().C:
@@ -411,7 +406,6 @@ func (s *server) leaderHearthBit(){
             s._state.StartHearthbeatTimeout()
         }
     }
-    s._state.AutoCommitLogEntry(true)
     s.setVolState()
     log.Println("no longer LEADER, stop sending hearthbit")
 }
