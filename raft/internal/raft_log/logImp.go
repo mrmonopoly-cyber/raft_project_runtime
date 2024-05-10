@@ -11,6 +11,7 @@ import (
 
 type log struct {
 	lock sync.RWMutex
+    newEntryToApply chan int
 
 	entries     []*p.LogEntry
     logSize     uint
@@ -31,6 +32,9 @@ func (this *log) MinimumCommitIndex(val uint) {
         return
     }
     this.commitIndex = int64(this.logSize)-1
+    if this.commitIndex > int64(this.lastApplied){
+        this.newEntryToApply <- 1
+    }
 }
 
 // IncreaseCommitIndex implements LogEntry.
@@ -39,6 +43,7 @@ func (this *log) IncreaseCommitIndex() {
     defer this.lock.Unlock()
     if this.commitIndex < int64(this.logSize)-1 {
         this.commitIndex++
+        this.newEntryToApply <- 1
     }
 }
 
@@ -142,23 +147,24 @@ func (this *log) GetCommitIndex() int64 {
 // utility
 
 func (this *log) updateLastApplied() error {
-    l.Printf("check if can apply some logEntry: commIndex:%v, lastApplied:%v\n", len(this.entries)-1, this.lastApplied)
-    for int(this.commitIndex) > this.lastApplied {
-        this.lastApplied++
-        var entry *p.LogEntry = this.entries[this.lastApplied]
+    for {
+        select{
+        case <- this.newEntryToApply:
+            this.lastApplied++
+            var entry *p.LogEntry = this.entries[this.lastApplied]
 
-        l.Printf("updating entry: %v", entry)
-        switch entry.OpType {
-        case p.Operation_JOIN_CONF_ADD:
-            this.applyConf(clusterconf.ADD, entry)
-        case p.Operation_JOIN_CONF_DEL:
-            this.applyConf(clusterconf.DEL, entry)
-        default:
-            (*this).localFs.ApplyLogEntry(entry)
+            l.Printf("updating entry: %v", entry)
+            switch entry.OpType {
+            case p.Operation_JOIN_CONF_ADD:
+                this.applyConf(clusterconf.ADD, entry)
+            case p.Operation_JOIN_CONF_DEL:
+                this.applyConf(clusterconf.DEL, entry)
+            default:
+                (*this).localFs.ApplyLogEntry(entry)
+            }
         }
 
     }
-    return nil
 }
 
 func (this *log) applyConf(ope clusterconf.CONF_OPE, entry *p.LogEntry) {
