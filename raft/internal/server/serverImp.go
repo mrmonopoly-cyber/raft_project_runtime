@@ -448,17 +448,18 @@ func (s *server) startNewElection(){
             var found bool 
             var raw_mex []byte
             var err error
+            var candidateLastLogIndex int
 
             nNode, found = value.(node.Node)
             if !found {
                 var s = reflect.TypeOf(value)
                 log.Panicln("failed conversion type node, type is: ", s)
             }
-
+            candidateLastLogIndex = nNode.GetNodeState().GetMatchIndex()
             RequestVoteRPC.NewRequestVoteRPC(
                 s._state.GetTerm(),
                 s._state.GetIdPrivate(),
-                int64(nNode.GetNodeState().GetMatchIndex()),
+                int64(candidateLastLogIndex),
                 entryTerm)
 
             raw_mex,err = genericmessage.Encode(&voteRequest)
