@@ -70,7 +70,7 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
             err = erroConn
             continue
         }
-        new_node = node.NewNode(serversIp[i], port, nodeConn)
+        new_node = node.NewNode(serversIp[i], port, nodeConn,this._state.GetStatePool())
         log.Printf("connected to new node, storing it: %v\n", new_node.GetIp())
         (*this).unstableNodes.Store(new_node.GetIp(), new_node)
         go (*this).handleResponseSingleNode(new_node)
@@ -104,7 +104,7 @@ func (s *server) acceptIncomingConn() {
         }
 
         log.Printf("node with ip %v not found", newConncetionIp)
-        var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
+        var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn, s._state.GetStatePool())
         s.unstableNodes.Store(new_node.GetIp(),new_node)
         go func ()  {
             s.wg.Add(1)
@@ -131,10 +131,15 @@ func (s* server) handleNewClientConnection(client node.Node){
         var ok = "ok"
         var leaderIp p.PublicIp = p.PublicIp{IP: ok,}
         var mex,err = proto.Marshal(&leaderIp)
-        var nodeState nodeState.VolatileNodeState = client.GetNodeState()
+        var nodeState nodeState.VolatileNodeState
 
         if err != nil {
             log.Panicln("error encoding confirmation leader public ip for client:",err)
+        }
+    
+        nodeState,err = client.GetNodeState()
+        if err != nil {
+            log.Panicln(err)
         }
 
         client.Send(mex)
@@ -229,9 +234,13 @@ func (s *server) joinConf(workingNode node.Node){
 }
 
 func (s *server) updateNewNode(workingNode node.Node){
-    var volatileState nodeState.VolatileNodeState = workingNode.GetNodeState()
+    var volatileState nodeState.VolatileNodeState
     var err error
 
+    volatileState,err = workingNode.GetNodeState()
+    if err != nil {
+        log.Panicln(err)
+    }
     log.Printf("updating node %v\n", workingNode.GetIp())
 
     log.Printf("\nupdating, list of entries to send: %v\n\n",s._state.GetEntries())
@@ -323,7 +332,10 @@ func (s *server) run() {
             senderNode = f.(node.Node)
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
-            senderState = senderNode.GetNodeState()
+            senderState,errEn = senderNode.GetNodeState()
+            if errEn != nil {
+                log.Panicln(errEn)
+            }
             resp = (*rpcCall).Execute(&s._state, &senderState)
 
             if s._state.ConfChanged() {
@@ -405,7 +417,10 @@ func (s *server) run() {
                 if !found {
                     log.Panicln("failed conversion type node, type is: ", reflect.TypeOf(value))
                 }
-                nodeState = nNode.GetNodeState()
+                nodeState,err = nNode.GetNodeState()
+                if err!=nil {
+                    log.Panicln(err)
+                }
 
                 if nodeState.GetMatchIndex() >= int(leaderCommitEntry){
                     validNode++
@@ -449,13 +464,18 @@ func (s *server) startNewElection(){
             var raw_mex []byte
             var err error
             var candidateLastLogIndex int
+            var nodeState nodeState.VolatileNodeState
 
             nNode, found = value.(node.Node)
             if !found {
                 var s = reflect.TypeOf(value)
                 log.Panicln("failed conversion type node, type is: ", s)
             }
-            candidateLastLogIndex = nNode.GetNodeState().GetMatchIndex()
+            nodeState,err = nNode.GetNodeState()
+            if err != nil {
+                log.Panicln(err)
+            }
+            candidateLastLogIndex = nodeState.GetMatchIndex()
             RequestVoteRPC.NewRequestVoteRPC(
                 s._state.GetTerm(),
                 s._state.GetIdPrivate(),
@@ -490,33 +510,24 @@ func (s *server) leaderHearthBit(){
     log.Println("no longer LEADER, stop sending hearthbit")
 }
 
-func (s *server) getMatchIndexes() []int {
-  var idxList = make([]int, 0) 
-  s.stableNodes.Range(func(key, value any) bool {
-    var nNode node.Node
-    var err bool
-
-    nNode,err = value.(node.Node)
-    if !err {
-      panic("error type is not a node.Node")
-    }
-
-    idxList = append(idxList, nNode.GetNodeState().GetMatchIndex())
-    return true
-  })
-  return idxList
-}
-
 func (s *server) setVolState() {
     s.stableNodes.Range(func(key, value any) bool {
             var nNode node.Node
-            var err bool
+            var nodeState nodeState.VolatileNodeState
+            var found bool
+            var err error
 
-            nNode,err = value.(node.Node)
-            if !err {
+            nNode,found = value.(node.Node)
+            if !found{
                 panic("error type is not a node.Node")
             }
-            nNode.ResetState(s._state.LastLogIndex())
+
+            nodeState,err = nNode.GetNodeState()
+            if err != nil {
+                log.Panicln(err)
+            }
+
+            nodeState.InitVolatileState(s._state.LastLogIndex())
         return true;
     })
 }

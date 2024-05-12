@@ -3,6 +3,7 @@ package raftstate
 import (
 	"math/rand"
 	l "raft/internal/raft_log"
+	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 	"time"
 )
 
@@ -52,7 +53,7 @@ type State interface {
 
     //LEADER
     GetLeaderEntryChannel() chan int64
-    
+    GetStatePool() nodematchidx.NodeCommonMatch
 }
 
 
@@ -72,5 +73,6 @@ func NewState(term uint64, idPrivate string, idPublic string, role Role, fsRootD
 	s.voting = true
 	s.log = l.NewLogEntry([]string{idPrivate})
 	s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
+    s.statePool = nodematchidx.NewNodeCommonMatch()
 	return s
 }

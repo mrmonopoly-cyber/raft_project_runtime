@@ -3,6 +3,7 @@ package raftstate
 import (
 	l "raft/internal/raft_log"
 	clusterconf "raft/internal/raftstate/clusterConf"
+	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"time"
 )
@@ -33,11 +34,17 @@ type raftStateImpl struct {
 
 	//LEADER
 	leaderEntryToCommit chan int64
+	statePool           nodematchidx.NodeCommonMatch
+}
+
+// GetStatePool implements State.
+func (this *raftStateImpl) GetStatePool() nodematchidx.NodeCommonMatch {
+    return this.statePool
 }
 
 // GetEntriAt implements State.
 func (this *raftStateImpl) GetEntriAt(index int64) (*p.LogEntry, error) {
-    return this.log.GetEntriAt(index)
+	return this.log.GetEntriAt(index)
 }
 
 // IncreaseCommitIndex implements State.
