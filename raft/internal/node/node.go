@@ -12,7 +12,7 @@ type Node interface {
 	Recv() ([]byte, error)
 	GetIp() string
 	GetPort() string
-    GetNodeState() *nodeState.VolatileNodeState
+    GetNodeState() nodeState.VolatileNodeState
     ResetState(lastLogIndex int)
 }
 

@@ -52,8 +52,8 @@ func (this *node) Recv() ([]byte, error) {
 	return buffer.Bytes(), nil 
 }
 
-func (this *node)GetNodeState() *nodeState.VolatileNodeState{
-    return &this.nodeState   
+func (this *node)GetNodeState() nodeState.VolatileNodeState{
+    return this.nodeState   
 }
 
 func (this *node) CloseConnection(){
