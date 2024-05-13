@@ -386,6 +386,7 @@ func (s *server) run() {
             var leaderCommit = s._state.GetCommitIndex()
             var oneSendDone bool = false
 
+            log.Println("new log entry to propagate")
             prevEntry,err = s._state.GetEntriAt(leaderCommitEntry-1)
             if err != nil {
                 log.Panic("invalid index entry: ", leaderCommitEntry-1)
