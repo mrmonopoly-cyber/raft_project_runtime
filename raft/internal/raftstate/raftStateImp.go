@@ -244,3 +244,12 @@ func (this *raftStateImpl) SetLeaderIpPublic(ip string) {
 func (this *raftStateImpl) SetLeaderIpPrivate(ip string) {
 	(*this).leaderIdPrivate = ip
 }
+
+func (this *raftStateImpl) LeaaderUpdateCommitIndex(){
+    for{
+        select{
+        case <- this.statePool.GetNotifyChannel():
+            this.IncreaseCommitIndex()
+        }
+    }
+}
