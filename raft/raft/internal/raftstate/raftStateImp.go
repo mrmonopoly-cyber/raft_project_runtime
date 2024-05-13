@@ -128,6 +128,7 @@ func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
 		this.log.IncreaseCommitIndex()
 		return
 	}
+    log.Println("leader, request to send log Entry to follower")
 	this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
 }
 
