@@ -54,6 +54,8 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 	var err error
 	var nodeStatePriv nodeState.VolatileNodeState
 	var matchIdx int
+    var numNodeHalf = c.numNode/2
+
 	nodeStatePriv, err = c.findNode(ip)
 	if err != nil {
 		return err
@@ -63,19 +65,46 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 	case NEXT:
 		nodeStatePriv.SetNextIndex(value)
 	case MATCH:
-        //FIX: incomplete implementation
-		matchIdx = nodeStatePriv.GetMatchIndex()
-		nodeStatePriv.SetMatchIndex(value)
-		if matchIdx < c.commonIdx && value >= c.commonIdx {
-			c.numStable++
-			if c.numStable > int(c.numNode)/2 {
-				c.commonIdx++
-				c.numStable = 0
-				c.notifyChann <- c.commonIdx
-			}
-		}
-	}
+        /*
+        TODO: when you want to update the match index of a node:
+        1- check if, before updating, the node has at least the commonIdx as match index
+            1.1- if true: update the match index of node and return
+            1.2- if false:
+                1.2.1- update the match index of node
+                1.2.2- check if the new match index is < the commonIdx:
+                    1.2.2.1- if true: return
+                    1.2.2.2- if false:
+                        numStable++
+                        for numStable > numNode/2:
+                            notifyChann <- commonIdx
+                            commonIdx++
+                            numStable=0
+                            foreach nodestate ns:
+                                if ns.matchIndex > commonIdx:
+                                    numStable++
+        */
+        matchIdx = nodeStatePriv.GetMatchIndex()
+        nodeStatePriv.SetMatchIndex(value)
+        if matchIdx >= c.commonIdx || value < c.commonIdx{
+            return nil
+        }
+        c.numStable++
+        for c.numStable > int(numNodeHalf){
+            c.notifyChann <- c.commonIdx
+            c.commonIdx++
+            c.numStable=0
+            c.allNodeStates.Range(func(key, value any) bool {
+                var nodeStateP = value.(nodeState.VolatileNodeState)
+                if nodeStateP.GetMatchIndex() > c.commonIdx{
+                    c.numStable++
+                }
+                return true
+            })
+        }
 
+
+        
+    }
 	return nil
 }
 
