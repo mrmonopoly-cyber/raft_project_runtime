@@ -70,10 +70,10 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
             err = erroConn
             continue
         }
-        new_node = node.NewNode(serversIp[i], port, nodeConn)
+        new_node = node.NewNode(serversIp[i], port, nodeConn,this._state.GetStatePool())
         log.Printf("connected to new node, storing it: %v\n", new_node.GetIp())
         (*this).unstableNodes.Store(new_node.GetIp(), new_node)
-        go (*this).handleResponseSingleNode(&new_node)
+        go (*this).handleResponseSingleNode(new_node)
 	}
 
     return failedConn,err
@@ -104,18 +104,18 @@ func (s *server) acceptIncomingConn() {
         }
 
         log.Printf("node with ip %v not found", newConncetionIp)
-        var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn)
+        var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn, s._state.GetStatePool())
         s.unstableNodes.Store(new_node.GetIp(),new_node)
         go func ()  {
             s.wg.Add(1)
             defer s.wg.Done()
-            s.handleConnection(&new_node)
+            s.handleConnection(new_node)
         }()
 	}
 }
 
-func (s* server) handleConnection(workingNode *node.Node){
-    var nodeIp string = (*workingNode).GetIp()
+func (s* server) handleConnection(workingNode node.Node){
+    var nodeIp string = workingNode.GetIp()
 
     if strings.Contains(nodeIp, "10.0.0") {
         s.handleResponseSingleNode(workingNode)
@@ -124,35 +124,41 @@ func (s* server) handleConnection(workingNode *node.Node){
     s.handleNewClientConnection(workingNode)
 }
 
-func (s* server) handleNewClientConnection(client *node.Node){
+func (s* server) handleNewClientConnection(client node.Node){
     log.Println("new client request to cluster")
     if s._state.Leader(){
         var clientReq rpcs.Rpc = &ClientReq.ClientReq{}
         var ok = "ok"
         var leaderIp p.PublicIp = p.PublicIp{IP: ok,}
         var mex,err = proto.Marshal(&leaderIp)
+        var nodeState nodeState.VolatileNodeState
 
         if err != nil {
             log.Panicln("error encoding confirmation leader public ip for client:",err)
         }
-
-        (*client).Send(mex)
-
-        mex,err = (*client).Recv()
+    
+        nodeState,err = client.GetNodeState()
         if err != nil {
-            fmt.Printf("error in reading from node %v with error %v\n",(*client).GetIp(), err)
-            (*client).CloseConnection()
+            log.Panicln(err)
+        }
+
+        client.Send(mex)
+
+        mex,err = client.Recv()
+        if err != nil {
+            fmt.Printf("error in reading from node %v with error %v\n",client.GetIp(), err)
+            client.CloseConnection()
             return
         }
 
         err = clientReq.Decode(mex)
         if err != nil {
-            fmt.Printf("error in decoding client request from node %v with error %v\n",(*client).GetIp(), err)
-            (*client).CloseConnection()
+            fmt.Printf("error in decoding client request from node %v with error %v\n",client.GetIp(), err)
+            client.CloseConnection()
             return
         }
         log.Println("managing client Request: ", clientReq.ToString())
-        clientReq.Execute(&s._state,(*client).GetNodeState())
+        clientReq.Execute(&s._state,&nodeState)
     }else{
         var leaderIp p.PublicIp = p.PublicIp{IP: s._state.GetLeaderIpPublic(),}
         var mex,err = proto.Marshal(&leaderIp)
@@ -162,13 +168,13 @@ func (s* server) handleNewClientConnection(client *node.Node){
             log.Panicln("error encoding leader public ip for client:",err)
         }
 
-        (*client).Send(mex)
+        client.Send(mex)
     }
-    (*client).CloseConnection()
+    client.CloseConnection()
 }
 
-func (s *server) handleResponseSingleNode(workingNode *node.Node) {
-    var nodeIp = (*workingNode).GetIp()
+func (s *server) handleResponseSingleNode(workingNode node.Node) {
+    var nodeIp = workingNode.GetIp()
     var message []byte
     var errMes error
     var newConfDelete p.LogEntry = p.LogEntry{
@@ -180,73 +186,38 @@ func (s *server) handleResponseSingleNode(workingNode *node.Node) {
 
     if s._state.Leader() {
         log.Println("i'm leader, joining conf")
-        s._state.IncreaseNodeNum()
-        go s.updateCommonMatch(*workingNode)
         go s.joinConf(workingNode)
     }
 
-    if s._state.IsInConf((*workingNode).GetIp()){
-        s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
+    if s._state.IsInConf(workingNode.GetIp()){
+        s.stableNodes.Store(workingNode.GetIp(),workingNode)
     }
 
     for{
-        message, errMes = (*workingNode).Recv()
+        message, errMes = workingNode.Recv()
         if errMes != nil {
             fmt.Printf("error in reading from node %v with error %v",nodeIp, errMes)
             if !s._state.Leader() {
                 s._state.StartElectionTimeout()
             }
-            (*workingNode).CloseConnection()
+            workingNode.CloseConnection()
             s.stableNodes.Delete(nodeIp);
             s.unstableNodes.Delete(nodeIp);
             if s._state.Leader(){
                 s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
             }
-            s._state.DecreaseNodeNum()
             break
         }
         if message != nil {
             s.messageChannel <- 
-            pairMex{genericmessage.Decode(message),(*workingNode).GetIp()}
+            pairMex{genericmessage.Decode(message),workingNode.GetIp()}
         }
     }
 
 }
 
-func (s *server) updateCommonMatch(workingNode node.Node){
-    var entries = s._state.GetEntries()
-    var entryToSend *p.LogEntry
-    var appendEntry rpcs.Rpc 
-    var prevLogEntry *p.LogEntry
-    var nodeState nodeState.VolatileNodeState
-    var rawMex []byte
-    var err error
-
-    for  s._state.Leader(){ //WARN: polling
-       if (*workingNode.GetNodeState()).GetMatchIndex() >= s._state.GetCommonMatchIndex(){
-            s._state.IncreaseUpdatedNode(workingNode.GetIp())
-       }
-       if (*workingNode.GetNodeState()).GetMatchIndex() < int(s._state.GetCommitIndex()){
-           entryToSend = entries[(*workingNode.GetNodeState()).GetNextIndex()]
-           nodeState = *workingNode.GetNodeState()
-           prevLogEntry = entries[nodeState.GetMatchIndex()]
-           appendEntry = AppendEntryRpc.NewAppendEntryRPC(
-               s._state,int64(nodeState.GetMatchIndex()),prevLogEntry.GetTerm(),
-               []*p.LogEntry{entryToSend},s._state.GetCommitIndex())
-               rawMex, err =genericmessage.Encode(&appendEntry)
-               if err != nil{
-                   log.Panicln("error encoding new AppendEntry: ",appendEntry.ToString())
-               }
-               err = workingNode.Send(rawMex)
-               if err != nil {
-                    log.Panicln("error sending AppendEntry in node: ",workingNode.GetIp())
-               }
-       }
-    }
-}
-
-func (s *server) joinConf(workingNode *node.Node){
-    var nodeIp = (*workingNode).GetIp()
+func (s *server) joinConf(workingNode node.Node){
+    var nodeIp = workingNode.GetIp()
 
     s._state.UpdateConfiguration(clusterconf.ADD,[]string{nodeIp})
     log.Println("debug, joinConf : ,", s._state.GetConfig())
@@ -262,22 +233,26 @@ func (s *server) joinConf(workingNode *node.Node){
     s.updateNewNode(workingNode)              
 }
 
-func (s *server) updateNewNode(workingNode *node.Node){
-    var volatileState *nodeState.VolatileNodeState = (*workingNode).GetNodeState()
+func (s *server) updateNewNode(workingNode node.Node){
+    var volatileState nodeState.VolatileNodeState
     var err error
 
-    log.Printf("updating node %v\n", (*workingNode).GetIp())
+    volatileState,err = workingNode.GetNodeState()
+    if err != nil {
+        log.Panicln(err)
+    }
+    log.Printf("updating node %v\n", workingNode.GetIp())
 
     log.Printf("\nupdating, list of entries to send: %v\n\n",s._state.GetEntries())
 
     for  i,e := range s._state.GetEntries() {
-        log.Printf("sending update mex to %v with data %v\n",(*workingNode).GetIp(), e)
+        log.Printf("sending update mex to %v with data %v\n",workingNode.GetIp(), e)
         err = s.generateUpdateRequest(workingNode,false,e)
         if err != nil {
             log.Printf("error generata UpdateRequest : %v\n", err)
             return 
         }
-        for  (*volatileState).GetMatchIndex() < i {
+        for  volatileState.GetMatchIndex() < i {
             //WARN: WAIT
         }
     }
@@ -286,12 +261,12 @@ func (s *server) updateNewNode(workingNode *node.Node){
         log.Printf("error generata UpdateRequest : %v\n", err)
         return 
     }
-    log.Printf("adding node %v to the stable queue\n", (*workingNode).GetIp())
-    s.stableNodes.Store((*workingNode).GetIp(),*workingNode)
-    log.Printf("node %v updated\n",(*workingNode).GetIp())
+    log.Printf("adding node %v to the stable queue\n", workingNode.GetIp())
+    s.stableNodes.Store(workingNode.GetIp(),workingNode)
+    log.Printf("node %v updated\n",workingNode.GetIp())
 }
 
-func (this *server) generateUpdateRequest(workingNode *node.Node, voting bool, entry *p.LogEntry) error{
+func (this *server) generateUpdateRequest(workingNode node.Node, voting bool, entry *p.LogEntry) error{
     var updateReq rpcs.Rpc 
     var mex []byte
     var err error
@@ -301,7 +276,7 @@ func (this *server) generateUpdateRequest(workingNode *node.Node, voting bool, e
     if err != nil {
         log.Panic("error encoding UpdateNode rpc")
     }
-    return (*workingNode).Send(mex)
+    return workingNode.Send(mex)
 }
 
 func (s *server) sendAll(rpc *rpcs.Rpc){
@@ -331,7 +306,7 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
 func (s *server) run() {
     for {
         var mess pairMex
-        var newCommitIndex int
+        var leaderCommitEntry int64
 
         select {
         case mess = <-s.messageChannel:
@@ -343,7 +318,7 @@ func (s *server) run() {
             var errEn error
             var f any
             var ok bool
-            var senderState *nodeState.VolatileNodeState
+            var senderState nodeState.VolatileNodeState
             var senderNode node.Node
             var newConf []string
             var failedConn []string
@@ -357,8 +332,11 @@ func (s *server) run() {
             senderNode = f.(node.Node)
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
-            senderState = senderNode.GetNodeState()
-            resp = (*rpcCall).Execute(&s._state, senderState)
+            senderState,errEn = senderNode.GetNodeState()
+            if errEn != nil {
+                log.Panicln(errEn)
+            }
+            resp = (*rpcCall).Execute(&s._state, &senderState)
 
             if s._state.ConfChanged() {
                 log.Printf("configuration changed, adding the new nodes\n")
@@ -390,37 +368,79 @@ func (s *server) run() {
 
             if s._state.Leader() && oldRole != state.LEADER {
                 s.setVolState() 
-                go func (){
-                    s.wg.Add(1)
-                    defer s.wg.Done()
-                    s.leaderHearthBit()
-                }()
-                s._state.AutoCommitLogEntry(false)
+                go s.leaderHearthBit()
             }
             //         log.Println("rpc processed")
         case <-s._state.ElectionTimeout().C:
             if !s._state.Leader() {
                 s.startNewElection()
             }
-        case newCommitIndex = <-s._state.ChanUpdateNode():
-            s._state.SetCommitIndex(int64(newCommitIndex))
+        case leaderCommitEntry = <-s._state.GetLeaderEntryChannel():
+            //TODO: check that at least the majority of the followers has a commit index
+            // >= than this, if not send him an AppendEntryRpc with the entry,
+            //Search only through stable nodes because may be possible that a new node is still 
+            //updating while you check his commitIndex
+            var err error
+            var entryToCommit *p.LogEntry 
+            var prevEntry *p.LogEntry
+            var leaderCommit = s._state.GetCommitIndex()
+            var oneSendDone bool = false
+
+            prevEntry,err = s._state.GetEntriAt(leaderCommitEntry-1)
+            if err != nil {
+                log.Panic("invalid index entry: ", leaderCommitEntry-1)
+            }
+
+            entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
+            if err != nil {
+                log.Panic("invalid index entry: ", leaderCommitEntry)
+            }
+
+
+            s.stableNodes.Range(func(key,value any)bool{
+                var nNode node.Node
+                var nodeState nodeState.VolatileNodeState
+                var found bool 
+                var AppendEntry rpcs.Rpc
+                var rawMex []byte
+
+                nNode, found = value.(node.Node)
+                if !found {
+                    log.Panicln("failed conversion type node, type is: ", reflect.TypeOf(value))
+                }
+                nodeState,err = nNode.GetNodeState()
+                if err!=nil {
+                    log.Panicln(err)
+                }
+
+                if nodeState.GetMatchIndex() >= int(leaderCommitEntry){
+                    return true
+                }
+
+                AppendEntry = AppendEntryRpc.NewAppendEntryRPC(
+                    s._state,leaderCommitEntry-1,prevEntry.Term,[]*p.LogEntry{entryToCommit},leaderCommit)
+                rawMex,err = genericmessage.Encode(&AppendEntry)
+                if err != nil {
+                    log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
+                }
+
+                nNode.Send(rawMex)
+                oneSendDone = true
+                return true
+            })
+            if !oneSendDone && s._state.GetNumberNodesInCurrentConf() != 1 {
+                log.Panicln("invalid leader commitIndex, too old compared to the follower, impossible")
+            }
         }
     }
 }
 
 func (s *server) startNewElection(){
     log.Println("started new election");
-    var len_ent int
-    var voteRequest rpcs.Rpc
     var entryTerm uint64 = s._state.GetTerm()
 
     s._state.IncrementTerm()
 
-    voteRequest = RequestVoteRPC.NewRequestVoteRPC(
-        s._state.GetTerm(),
-        s._state.GetIdPrivate(),
-        int64(len_ent),
-        entryTerm)
 
     s._state.IncreaseSupporters()
     if s._state.GetNumberNodesInCurrentConf() == 1 {
@@ -430,21 +450,40 @@ func (s *server) startNewElection(){
         s._state.SetLeaderIpPublic(s._state.GetIdPublic())
         s._state.ResetElection()
         go s.leaderHearthBit()
-        s._state.ResetCommonsMatchIndex(int(s._state.GetCommitIndex()))
-        for _, v := range s._state.GetConfig() {
-            if s._state.GetIdPrivate() == v {
-                continue
-            }
-            var follower,found = s.unstableNodes.Load(v)
-            if !found{
-                log.Println("node not found when becomming leader: ",v)
-            }
-            go s.updateCommonMatch(follower.(node.Node))
-
-        }
     }else {
-     //   log.Println("sending to everybody request vote :" + voteRequest.ToString())
-        s.sendAll(&voteRequest)
+        s.stableNodes.Range(func(key, value any) bool {
+            var voteRequest rpcs.Rpc 
+            var nNode node.Node 
+            var found bool 
+            var raw_mex []byte
+            var err error
+            var candidateLastLogIndex int
+            var nodeState nodeState.VolatileNodeState
+
+            nNode, found = value.(node.Node)
+            if !found {
+                var s = reflect.TypeOf(value)
+                log.Panicln("failed conversion type node, type is: ", s)
+            }
+            nodeState,err = nNode.GetNodeState()
+            if err != nil {
+                log.Panicln(err)
+            }
+            candidateLastLogIndex = nodeState.GetMatchIndex()
+            RequestVoteRPC.NewRequestVoteRPC(
+                s._state.GetTerm(),
+                s._state.GetIdPrivate(),
+                int64(candidateLastLogIndex),
+                entryTerm)
+
+            raw_mex,err = genericmessage.Encode(&voteRequest)
+            if err != nil {
+                log.Panicln("error in Encoding this voteRequest: ",(voteRequest).ToString())
+            }
+            log.Printf("sending to %v with key %v\n", nNode.GetIp(),key)
+            nNode.Send(raw_mex)
+            return true
+        })
     }
 }
 
@@ -461,38 +500,28 @@ func (s *server) leaderHearthBit(){
             s._state.StartHearthbeatTimeout()
         }
     }
-    s._state.AutoCommitLogEntry(true)
     s.setVolState()
     log.Println("no longer LEADER, stop sending hearthbit")
-}
-
-func (s *server) getMatchIndexes() []int {
-  var idxList = make([]int, 0) 
-  s.stableNodes.Range(func(key, value any) bool {
-    var nNode node.Node
-    var err bool
-
-    nNode,err = value.(node.Node)
-    if !err {
-      panic("error type is not a node.Node")
-    }
-
-    idxList = append(idxList, (*nNode.GetNodeState()).GetMatchIndex())
-    return true
-  })
-  return idxList
 }
 
 func (s *server) setVolState() {
     s.stableNodes.Range(func(key, value any) bool {
             var nNode node.Node
-            var err bool
+            var nodeState nodeState.VolatileNodeState
+            var found bool
+            var err error
 
-            nNode,err = value.(node.Node)
-            if !err {
+            nNode,found = value.(node.Node)
+            if !found{
                 panic("error type is not a node.Node")
             }
-            nNode.ResetState(s._state.LastLogIndex())
+
+            nodeState,err = nNode.GetNodeState()
+            if err != nil {
+                log.Panicln(err)
+            }
+
+            nodeState.InitVolatileState(s._state.LastLogIndex())
         return true;
     })
 }

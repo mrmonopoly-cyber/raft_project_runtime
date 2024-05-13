@@ -7,12 +7,17 @@ import (
 
 type LogEntry interface {
 	GetEntries() []*p.LogEntry
-	GetCommitIndex() int64
-	More_recent_log(last_log_index int64, last_log_term uint64) bool
-	SetCommitIndex(val int64)
-	AppendEntries(newEntries []*p.LogEntry)
+    GetEntriAt(index int64) (*p.LogEntry,error)
+    AppendEntries(newEntries []*p.LogEntry)
+    DeleteFromEntry(entryIndex uint)
+
+    GetCommitIndex() int64
+    IncreaseCommitIndex()
+    MinimumCommitIndex(val uint)
+
 	LastLogIndex() int
-    AutoCommitLogEntry(start bool)
+
+    More_recent_log(last_log_index int64, last_log_term uint64) bool
 
     clusterconf.Configuration
 }
@@ -23,11 +28,11 @@ func NewLogEntry(baseConf []string) LogEntry {
 	var l = new(log)
 	l.commitIndex = -1
 	l.lastApplied = -1
+    l.logSize = 0
 	l.entries = make([]*p.LogEntry, 0)
     l.cConf = clusterconf.NewConf(baseConf)
-    l.autoCommit = false
 
-    go l.UpdateLastApplied()
+    go l.updateLastApplied()
 
 	return l
 }

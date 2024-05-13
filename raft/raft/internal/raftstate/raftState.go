@@ -3,7 +3,7 @@ package raftstate
 import (
 	"math/rand"
 	l "raft/internal/raft_log"
-    "raft/internal/node/commonMatchIndex"
+	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 	"time"
 )
 
@@ -44,24 +44,25 @@ type State interface {
 	GetNumNotSupporters() uint64
 	ResetElection()
 
-    CheckCommitIndex(idxList []int)
     l.LogEntry
 
 	GetLeaderIpPrivate() string
 	GetLeaderIpPublic() string
 	SetLeaderIpPublic(ip string)
 	SetLeaderIpPrivate(ip string)
-    
-    commonmatchindex.CommonMatchIndex
+
+    //LEADER
+    GetLeaderEntryChannel() chan int64
+    GetStatePool() nodematchidx.NodeCommonMatch
 }
 
 
 
-func NewState(term uint64, idPrivate string, idPublic string, role Role, fsRootDir string) State {
+func NewState(idPrivate string, idPublic string, fsRootDir string) State {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	var s = new(raftStateImpl)
-	s.role = role
-	s.term = term
+	s.role = FOLLOWER
+	s.term = 0
 	s.idPrivate = idPrivate
 	s.idPublic = idPublic
 	s.electionTimeout = time.NewTimer(MAX_ELECTION_TIMEOUT)
@@ -72,6 +73,8 @@ func NewState(term uint64, idPrivate string, idPublic string, role Role, fsRootD
 	s.voting = true
 	s.log = l.NewLogEntry([]string{idPrivate})
 	s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
-    s.CommonMatchIndex = commonmatchindex.NewCommonMatchIndex(1) //just myself at the beginning
+    s.statePool = nodematchidx.NewNodeCommonMatch()
+
+    go s.LeaaderUpdateCommitIndex()
 	return s
 }

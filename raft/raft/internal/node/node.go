@@ -4,6 +4,7 @@ import (
 	"net"
 	"raft/internal/node/address"
 	"raft/internal/node/nodeState"
+	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 )
 
 type Node interface {
@@ -12,16 +13,17 @@ type Node interface {
 	Recv() ([]byte, error)
 	GetIp() string
 	GetPort() string
-    GetNodeState() *nodeState.VolatileNodeState
-    ResetState(lastLogIndex int)
+    GetNodeState() (nodeState.VolatileNodeState,error)
 }
 
 
-func NewNode(remoteAddr string, remotePort string, nodeConn net.Conn) (Node) {
-	return &node{
+func NewNode(remoteAddr string, remotePort string, nodeConn net.Conn, statePool nodematchidx.NodeCommonMatch) Node {
+	var nNode *node = &node{
 		addr: address.NewNodeAddress(remoteAddr, remotePort),
         conn: nodeConn,
-        nodeState: nodeState.NewVolatileState(),
+        statepool: statePool,
 	}
+    nNode.statepool.AddNode(remoteAddr)
+    return nNode
 }
 

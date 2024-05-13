@@ -1,6 +1,7 @@
 package raft_log
 
 import (
+	"errors"
 	l "log"
 	localfs "raft/internal/localFs"
 	clusterconf "raft/internal/raftstate/clusterConf"
@@ -10,13 +11,57 @@ import (
 )
 
 type log struct {
-	lock        sync.RWMutex
+	lock            sync.RWMutex
+	newEntryToApply chan int
+
 	entries     []*p.LogEntry
-	lastApplied int
+	logSize     uint
 	commitIndex int64
-	cConf       clusterconf.Configuration
-	localFs     localfs.LocalFs
-    autoCommit  bool
+	lastApplied int
+
+	cConf   clusterconf.Configuration
+	localFs localfs.LocalFs
+}
+
+// GetEntriAt implements LogEntry.
+func (this *log) GetEntriAt(index int64) (*p.LogEntry, error) {
+    if index < int64(this.logSize)-1 {
+        return this.entries[index],nil
+    }
+    return nil,errors.New("invalid index: " + string(rune(index)))
+}
+
+// MinimumCommitIndex implements LogEntry.
+func (this *log) MinimumCommitIndex(val uint) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
+	if val < this.logSize {
+		this.commitIndex = int64(val)
+		return
+	}
+	this.commitIndex = int64(this.logSize) - 1
+	if this.commitIndex > int64(this.lastApplied) {
+		this.newEntryToApply <- 1
+	}
+}
+
+// IncreaseCommitIndex implements LogEntry.
+func (this *log) IncreaseCommitIndex() {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	if this.commitIndex < int64(this.logSize)-1 {
+		this.commitIndex++
+		this.newEntryToApply <- 1
+	}
+}
+
+// DeleteFromEntry implements LogEntry.
+func (this *log) DeleteFromEntry(entryIndex uint) {
+	for i := int(entryIndex); i < len(this.entries); i++ {
+		this.entries[i] = nil
+		this.logSize--
+	}
 }
 
 //clusterConf
@@ -49,22 +94,6 @@ func (this *log) GetConfig() []string {
 // UpdateConfiguration implements LogEntry.
 func (this *log) UpdateConfiguration(confOp clusterconf.CONF_OPE, nodeIps []string) {
 	this.cConf.UpdateConfiguration(confOp, nodeIps)
-}
-
-// AutoCommitLogEntry implements LogEntry.
-func (this *log) AutoCommitLogEntry(start bool) {
-    if !this.autoCommit && start{
-        this.autoCommit = true
-        go func(){
-            for this.autoCommit && this.commitIndex < int64(len(this.entries)){ //WARN: polling
-                this.commitIndex++
-            }
-        }()
-        return
-    }
-    if this.autoCommit && !start {
-        this.autoCommit = false
-    }
 }
 
 //log
@@ -102,31 +131,19 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
+	var lenEntries = len(this.entries)
+
 	l.Println("Append Entries, before: ", this.entries)
-    for _, v := range newEntries {
-        this.entries = append(this.entries, v)
-    }
-	l.Println("Append Entries, after: ", this.entries)
-}
-
-func (this *log) UpdateLastApplied() error {
-	l.Printf("check if can apply some logEntry: commIndex:%v, lastApplied:%v\n", len(this.entries)-1, this.lastApplied)
-	for int(this.commitIndex) > this.lastApplied {
-		this.lastApplied++
-		var entry *p.LogEntry = this.entries[this.lastApplied]
-
-		l.Printf("updating entry: %v", entry)
-		switch entry.OpType {
-		case p.Operation_JOIN_CONF_ADD:
-			this.applyConf(clusterconf.ADD, entry)
-		case p.Operation_JOIN_CONF_DEL:
-			this.applyConf(clusterconf.DEL, entry)
-		default:
-			(*this).localFs.ApplyLogEntry(entry)
+	for _, v := range newEntries {
+		if int(this.logSize) < lenEntries {
+			this.entries[this.logSize] = v
+		} else {
+			this.entries = append(this.entries, v)
+			lenEntries++
 		}
-
+		this.logSize++
 	}
-	return nil
+	l.Println("Append Entries, after: ", this.entries)
 }
 
 func (this *log) GetCommitIndex() int64 {
@@ -135,13 +152,29 @@ func (this *log) GetCommitIndex() int64 {
 	return this.commitIndex
 }
 
-func (this *log) SetCommitIndex(val int64) {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	this.commitIndex = val
+// utility
+
+func (this *log) updateLastApplied() error {
+	for {
+		select {
+		case <-this.newEntryToApply:
+			this.lastApplied++
+			var entry *p.LogEntry = this.entries[this.lastApplied]
+
+			l.Printf("updating entry: %v", entry)
+			switch entry.OpType {
+			case p.Operation_JOIN_CONF_ADD:
+				this.applyConf(clusterconf.ADD, entry)
+			case p.Operation_JOIN_CONF_DEL:
+				this.applyConf(clusterconf.DEL, entry)
+			default:
+				(*this).localFs.ApplyLogEntry(entry)
+			}
+		}
+
+	}
 }
 
-// utility
 func (this *log) applyConf(ope clusterconf.CONF_OPE, entry *p.LogEntry) {
 	var confUnfiltered string = string(entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, " ")

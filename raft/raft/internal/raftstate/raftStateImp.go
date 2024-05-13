@@ -1,9 +1,10 @@
 package raftstate
 
 import (
-	commonmatchindex "raft/internal/node/commonMatchIndex"
+	"log"
 	l "raft/internal/raft_log"
 	clusterconf "raft/internal/raftstate/clusterConf"
+	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"time"
 )
@@ -32,22 +33,34 @@ type raftStateImpl struct {
 	nNotSupporting uint64
 	nNodeInCluster uint64
 
-    commonmatchindex.CommonMatchIndex
+	//LEADER
+	leaderEntryToCommit chan int64
+	statePool           nodematchidx.NodeCommonMatch
 }
 
-// GetCommonMatchIndex implements State.
-func (this *raftStateImpl) GetCommonMatchIndex() int {
-    return this.CommonMatchIndex.GetCommonMatchIndex()
+// GetStatePool implements State.
+func (this *raftStateImpl) GetStatePool() nodematchidx.NodeCommonMatch {
+    return this.statePool
 }
 
-// IncreaseMatchIndex implements State.
-func (this *raftStateImpl) IncreaseNodeNum() {
-    this.CommonMatchIndex.IncreaseNodeNum()
+// GetEntriAt implements State.
+func (this *raftStateImpl) GetEntriAt(index int64) (*p.LogEntry, error) {
+	return this.log.GetEntriAt(index)
 }
 
-// AutoCommitLogEntry implements State.
-func (this *raftStateImpl) AutoCommitLogEntry(start bool) {
-	this.log.AutoCommitLogEntry(start)
+// IncreaseCommitIndex implements State.
+func (this *raftStateImpl) IncreaseCommitIndex() {
+	this.log.IncreaseCommitIndex()
+}
+
+// MinimumCommitIndex implements State.
+func (this *raftStateImpl) MinimumCommitIndex(val uint) {
+	this.log.MinimumCommitIndex(val)
+}
+
+// DeleteFromEntry implements State.
+func (this *raftStateImpl) DeleteFromEntry(entryIndex uint) {
+	this.log.DeleteFromEntry(entryIndex)
 }
 
 // GetNumberNodesInCurrentConf implements State.
@@ -109,19 +122,21 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 }
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
-	var commitIndex = this.GetCommitIndex()
 	this.log.AppendEntries(newEntries)
-	if this.role != LEADER {
-		this.log.SetCommitIndex(commitIndex + 1)
+	if !this.Leader(){
+        log.Println("not leader increasing commitIndex in AppendEntry (state)")
+		this.log.IncreaseCommitIndex()
+		return
 	}
+	this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
+}
+
+func (this *raftStateImpl) GetLeaderEntryChannel() chan int64 {
+	return this.leaderEntryToCommit
 }
 
 func (this *raftStateImpl) GetCommitIndex() int64 {
 	return this.log.GetCommitIndex()
-}
-
-func (this *raftStateImpl) SetCommitIndex(val int64) {
-	this.log.SetCommitIndex(val)
 }
 
 // LastLogIndex implements State.
@@ -212,28 +227,6 @@ func (this *raftStateImpl) ResetElection() {
 	this.nNotSupporting = 0
 }
 
-func (this *raftStateImpl) CheckCommitIndex(idxList []int) {
-	var n int = int(this.GetCommitIndex()) + 1
-	var majority int = len(idxList) / 2
-	var count int = 0
-	var entries = this.log.GetEntries()
-
-	/* computing how many has a matchIndex greater than N*/
-	if !(len(entries) == 0) {
-		for i := range idxList {
-			if idxList[i] >= n {
-				count++
-			}
-		}
-
-		/* check if there is a majority of matchIndex[i] >= N and if log[N].term == currentTerm*/
-		if (count >= majority) && (entries[n].GetTerm() == this.GetTerm()) {
-			this.SetCommitIndex(int64(n))
-		}
-	}
-
-}
-
 // GetLeaderIpPrivate implements State.
 func (this *raftStateImpl) GetLeaderIpPrivate() string {
 	return (*this).leaderIdPrivate
@@ -252,4 +245,13 @@ func (this *raftStateImpl) SetLeaderIpPublic(ip string) {
 // SetLeaderIpPrivate implements State.
 func (this *raftStateImpl) SetLeaderIpPrivate(ip string) {
 	(*this).leaderIdPrivate = ip
+}
+
+func (this *raftStateImpl) LeaaderUpdateCommitIndex(){
+    for{
+        select{
+        case <- this.statePool.GetNotifyChannel():
+            this.IncreaseCommitIndex()
+        }
+    }
 }
