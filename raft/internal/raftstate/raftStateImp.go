@@ -1,6 +1,7 @@
 package raftstate
 
 import (
+	"log"
 	l "raft/internal/raft_log"
 	clusterconf "raft/internal/raftstate/clusterConf"
 	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
@@ -123,6 +124,7 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
 	this.log.AppendEntries(newEntries)
 	if this.role != LEADER {
+        log.Println("not leader increasing commitIndex in AppendEntry (state)")
 		this.log.IncreaseCommitIndex()
 		return
 	}
