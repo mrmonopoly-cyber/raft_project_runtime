@@ -58,11 +58,11 @@ type State interface {
 
 
 
-func NewState(term uint64, idPrivate string, idPublic string, role Role, fsRootDir string) State {
+func NewState(idPrivate string, idPublic string, fsRootDir string) State {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	var s = new(raftStateImpl)
-	s.role = role
-	s.term = term
+	s.role = FOLLOWER
+	s.term = 0
 	s.idPrivate = idPrivate
 	s.idPublic = idPublic
 	s.electionTimeout = time.NewTimer(MAX_ELECTION_TIMEOUT)

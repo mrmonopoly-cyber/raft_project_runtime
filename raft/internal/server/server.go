@@ -12,7 +12,7 @@ type Server interface{
     Start()
 }
 
-func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port string, serversIp []string, fsRootDir string) Server {
+func NewServer(ipAddPrivate string, ipAddrPublic string, port string, serversIp []string, fsRootDir string) Server {
 	listener, err := net.Listen("tcp",":"+port)
 
 	if err != nil {
@@ -22,7 +22,7 @@ func NewServer(term uint64, ipAddPrivate string, ipAddrPublic string, port strin
     log.Printf("my ip are: %v, %v\n",  ipAddPrivate, ipAddrPublic)
 
 	var server = &server{
-		_state:         state.NewState(term, ipAddPrivate, ipAddrPublic, state.FOLLOWER, fsRootDir),
+		_state:         state.NewState(ipAddPrivate, ipAddrPublic, fsRootDir),
 		unstableNodes:    &sync.Map{},
 		stableNodes:    &sync.Map{},
         clientNodes:    &sync.Map{},

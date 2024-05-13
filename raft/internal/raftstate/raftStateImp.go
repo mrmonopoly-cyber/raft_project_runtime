@@ -123,7 +123,7 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
 	this.log.AppendEntries(newEntries)
-	if this.role != LEADER {
+	if !this.Leader(){
         log.Println("not leader increasing commitIndex in AppendEntry (state)")
 		this.log.IncreaseCommitIndex()
 		return
