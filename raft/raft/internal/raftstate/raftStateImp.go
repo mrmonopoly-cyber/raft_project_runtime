@@ -132,8 +132,8 @@ func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
 	this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
 }
 
-func (this *raftStateImpl) GetLeaderEntryChannel() chan int64 {
-	return this.leaderEntryToCommit
+func (this *raftStateImpl) GetLeaderEntryChannel() *chan int64 {
+	return &this.leaderEntryToCommit
 }
 
 func (this *raftStateImpl) GetCommitIndex() int64 {

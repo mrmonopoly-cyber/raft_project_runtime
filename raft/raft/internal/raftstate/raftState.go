@@ -52,7 +52,7 @@ type State interface {
 	SetLeaderIpPrivate(ip string)
 
     //LEADER
-    GetLeaderEntryChannel() chan int64
+    GetLeaderEntryChannel() *chan int64
     GetStatePool() nodematchidx.NodeCommonMatch
 }
 
