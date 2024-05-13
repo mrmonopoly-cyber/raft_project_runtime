@@ -380,16 +380,11 @@ func (s *server) run() {
             // >= than this, if not send him an AppendEntryRpc with the entry,
             //Search only through stable nodes because may be possible that a new node is still 
             //updating while you check his commitIndex
-            var stabililtThresholds = 0
-            s.stableNodes.Range(func(key, value any) bool {
-                stabililtThresholds++
-                return true
-            })
-            var validNode int =0
             var err error
             var entryToCommit *p.LogEntry 
             var prevEntry *p.LogEntry
             var leaderCommit = s._state.GetCommitIndex()
+            var oneSendDone bool = false
 
             prevEntry,err = s._state.GetEntriAt(leaderCommitEntry-1)
             if err != nil {
@@ -409,10 +404,6 @@ func (s *server) run() {
                 var AppendEntry rpcs.Rpc
                 var rawMex []byte
 
-                if validNode > stabililtThresholds {
-                    return true
-                }
-
                 nNode, found = value.(node.Node)
                 if !found {
                     log.Panicln("failed conversion type node, type is: ", reflect.TypeOf(value))
@@ -423,7 +414,6 @@ func (s *server) run() {
                 }
 
                 if nodeState.GetMatchIndex() >= int(leaderCommitEntry){
-                    validNode++
                     return true
                 }
 
@@ -435,8 +425,12 @@ func (s *server) run() {
                 }
 
                 nNode.Send(rawMex)
+                oneSendDone = true
                 return true
             })
+            if !oneSendDone && s._state.GetNumberNodesInCurrentConf() != 1 {
+                log.Panicln("invalid leader commitIndex, too old compared to the follower, impossible")
+            }
         }
     }
 }
