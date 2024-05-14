@@ -19,7 +19,7 @@ type LogEntry interface {
 	LastLogIndex() int
 
     More_recent_log(last_log_index int64, last_log_term uint64) bool
-    clusterConf 
+    cConf 
 }
 
 
