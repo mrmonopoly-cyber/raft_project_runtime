@@ -11,25 +11,39 @@ import (
 )
 
 type log struct {
-	lock            sync.RWMutex
-	newEntryToApply chan int
+    lock            sync.RWMutex
+    newEntryToApply chan int
 
-	entries     []*p.LogEntry
-	logSize     uint
-	commitIndex int64
-	lastApplied int
+    entries     []*p.LogEntry
+    logSize     uint
+    commitIndex int64
+    lastApplied int
 
-	cConf   clusterconf.Configuration
-	localFs localfs.LocalFs
+    realClusterState
+}
+
+type realClusterState struct{
+    cConf   clusterconf.Configuration
+    localFs localfs.LocalFs
+}
+
+
+// GetCommittedEntries implements LogEntry.
+func (this *log) GetCommittedEntries() []*p.LogEntry {
+    var committedEntries []*p.LogEntry = make([]*p.LogEntry, this.commitIndex+1)
+    for i := range committedEntries {
+        committedEntries[i] = this.entries[i]
+    }
+    return committedEntries
 }
 
 // GetEntriAt implements LogEntry.
 func (this *log) GetEntriAt(index int64) (*p.LogEntry, error) {
-    l.Printf("GetEntiesAt: logSize %v, index: %v", this.logSize, index)
-    if (this.logSize==1 && index==0) || (index < int64(this.logSize)-1) {
-        return this.entries[index],nil
-    }
-    return nil,errors.New("invalid index: " + string(rune(index)))
+	l.Printf("GetEntiesAt: logSize %v, index: %v", this.logSize, index)
+	if (this.logSize == 1 && index == 0) || (index < int64(this.logSize)-1) {
+		return this.entries[index], nil
+	}
+	return nil, errors.New("invalid index: " + string(rune(index)))
 }
 
 // MinimumCommitIndex implements LogEntry.

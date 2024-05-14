@@ -6,6 +6,7 @@ import (
 )
 
 type LogEntry interface {
+	GetCommittedEntries() []*p.LogEntry
 	GetEntries() []*p.LogEntry
     GetEntriAt(index int64) (*p.LogEntry,error)
     AppendEntries(newEntries []*p.LogEntry)
