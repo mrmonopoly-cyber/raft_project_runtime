@@ -25,7 +25,8 @@ type log struct {
 
 // GetEntriAt implements LogEntry.
 func (this *log) GetEntriAt(index int64) (*p.LogEntry, error) {
-    if (this.logSize==0 && index==0) || (index < int64(this.logSize)-1) {
+    l.Printf("GetEntiesAt: logSize %v, index: %v", this.logSize, index)
+    if (this.logSize==1 && index==0) || (index < int64(this.logSize)-1) {
         return this.entries[index],nil
     }
     return nil,errors.New("invalid index: " + string(rune(index)))
