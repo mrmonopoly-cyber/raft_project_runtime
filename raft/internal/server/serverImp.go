@@ -382,7 +382,7 @@ func (s *server) run() {
                 s.startNewElection()
             }
         // case leaderCommitEntry = <-(*s._state.GetLeaderEntryChannel()):
-    case leaderCommitEntry = <- *leaderEntryCH:
+    case  <- *leaderEntryCH:
             //TODO: check that at least the majority of the followers has a commit index
             // >= than this, if not send him an AppendEntryRpc with the entry,
             //Search only through stable nodes because may be possible that a new node is still 
