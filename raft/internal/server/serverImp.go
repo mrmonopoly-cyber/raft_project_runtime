@@ -9,7 +9,6 @@ import (
 	"raft/internal/node/nodeState"
 	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
-	clusterconf "raft/internal/raftstate/clusterConf"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/ClientReq"
@@ -219,7 +218,6 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
 func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
 
-    s._state.UpdateConfiguration(clusterconf.ADD,[]string{nodeIp}) //FIX: wrong update
     log.Println("debug, joinConf : ,", s._state.GetConfig())
 
     var newConfEntry p.LogEntry = p.LogEntry{

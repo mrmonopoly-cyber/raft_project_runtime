@@ -76,6 +76,6 @@ func NewState(idPrivate string, idPublic string, fsRootDir string) State {
     s.statePool = nodematchidx.NewNodeCommonMatch()
     s.leaderEntryToCommit = make(chan int64)
 
-    go s.LeaaderUpdateCommitIndex()
+    go s.leaaderUpdateCommitIndex()
 	return s
 }

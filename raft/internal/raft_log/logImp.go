@@ -10,6 +10,13 @@ import (
 	"sync"
 )
 
+type logConf interface{
+    GetNumberNodesInCurrentConf() int
+    IsInConf(ipNode string) bool
+    ConfChanged() bool
+    GetConfig() []string
+}
+
 type log struct {
     lock            sync.RWMutex
     newEntryToApply chan int
