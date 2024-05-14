@@ -7,12 +7,15 @@ type VolatileNodeState interface{
     GetNextIndex() int
     InitVolatileState(lastLogIndex int)
     NextIndexStep()
+    Updated() bool
+    NodeUpdated()
 }
 
 func NewVolatileState() VolatileNodeState{
     return &volatileNodeState{
         nextIndex: -1,
         matchIndex: -1,
+        updated: false,
     }
 }
 
