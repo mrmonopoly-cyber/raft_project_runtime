@@ -389,13 +389,12 @@ func (s *server) run() {
             }
 
             s.applyOnEachConfNode(func(n node.Node) {
-                var nNode node.Node
                 var nodeState nodeState.VolatileNodeState
                 var AppendEntry rpcs.Rpc
                 var rawMex []byte
 
                 numStableNodes++
-                nodeState,err = nNode.GetNodeState()
+                nodeState,err = n.GetNodeState()
                 if err!=nil {
                     log.Panicln(err)
                 }
@@ -411,7 +410,7 @@ func (s *server) run() {
                         log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
                     }
 
-                    nNode.Send(rawMex)
+                    n.Send(rawMex)
                 })
         }
     }
