@@ -272,7 +272,7 @@ func (this *server) generateUpdateRequest(workingNode node.Node, voting bool, en
 
 func (s *server) sendAll(rpc *rpcs.Rpc){
    log.Println("start broadcast")
-   s.applyOnEachConfNode(func(n node.Node) {
+   s.applyOnFollowers(func(n node.Node) {
        var raw_mex []byte
        var err error
 
@@ -388,7 +388,7 @@ func (s *server) run() {
                 log.Panic("invalid index entry: ", leaderCommitEntry)
             }
 
-            s.applyOnEachConfNode(func(n node.Node) {
+            s.applyOnFollowers(func(n node.Node) {
                 var nodeState nodeState.VolatileNodeState
                 var AppendEntry rpcs.Rpc
                 var rawMex []byte
@@ -432,7 +432,7 @@ func (s *server) startNewElection(){
         go s.leaderHearthBit()
         return
     }
-    s.applyOnEachConfNode(func(n node.Node) {
+    s.applyOnFollowers(func(n node.Node) {
             var voteRequest rpcs.Rpc 
             var raw_mex []byte
             var err error
@@ -499,12 +499,16 @@ func (s *server) setVolState() {
     })
 }
 
-func (s* server) applyOnEachConfNode(fn func(n node.Node)){
+func (s* server) applyOnFollowers(fn func(n node.Node)){
     var currentConf []string = s._state.GetConfig()
     for _, v := range currentConf {
         var nNode node.Node 
         var value any
         var found bool
+
+        if v == s._state.GetIdPrivate() {
+            continue
+        }
 
         value, found= s.unstableNodes.Load(v)
         if !found {
