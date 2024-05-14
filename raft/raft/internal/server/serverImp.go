@@ -244,7 +244,6 @@ func (s *server) updateNewNode(workingNode node.Node){
             return 
         }
         for  volatileState.GetMatchIndex() < i {
-            log.Printf("debug waiting: vIndex: %v, entry index: %v\n", volatileState.GetMatchIndex(),i)
             //WARN: WAIT
         }
     }
