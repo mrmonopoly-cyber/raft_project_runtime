@@ -382,15 +382,18 @@ func (s *server) run() {
             //updating while you check his commitIndex
             var err error
             var entryToCommit *p.LogEntry 
-            var prevEntry *p.LogEntry
+            var prevEntryTerm uint64 = 0
             var leaderCommit = s._state.GetCommitIndex()
             var oneSendDone bool = false
             var numStableNodes uint = 0
 
             log.Println("new log entry to propagate")
-            prevEntry,err = s._state.GetEntriAt(leaderCommitEntry)
-            if err != nil {
-                log.Panic("invalid index entry: ", leaderCommitEntry)
+            if leaderCommitEntry-1 >= 0{
+                var prevEntry,err = s._state.GetEntriAt(leaderCommitEntry-1)
+                if err != nil {
+                    log.Panic("invalid index entry: ", leaderCommitEntry)
+                }
+                prevEntryTerm = prevEntry.Term
             }
 
             entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
@@ -421,7 +424,7 @@ func (s *server) run() {
                 }
 
                 AppendEntry = AppendEntryRpc.NewAppendEntryRPC(
-                    s._state,leaderCommitEntry-1,prevEntry.Term,[]*p.LogEntry{entryToCommit},leaderCommit)
+                    s._state,leaderCommitEntry-1,prevEntryTerm,[]*p.LogEntry{entryToCommit},leaderCommit)
                 rawMex,err = genericmessage.Encode(&AppendEntry)
                 if err != nil {
                     log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
