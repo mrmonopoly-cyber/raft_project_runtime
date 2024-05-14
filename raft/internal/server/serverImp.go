@@ -304,15 +304,9 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
 }
 
 func (s *server) run() {
-    var leaderEntryCH = s._state.GetLeaderEntryChannel()
-
-    if leaderEntryCH == nil {
-        panic("leaderEntryCh is nil")
-    }
-
     for {
         var mess pairMex
-        // var leaderCommitEntry int64
+        var leaderCommitEntry int64
 
         select {
         case mess = <-s.messageChannel:
@@ -381,8 +375,7 @@ func (s *server) run() {
             if !s._state.Leader() {
                 s.startNewElection()
             }
-        // case leaderCommitEntry = <-(*s._state.GetLeaderEntryChannel()):
-    case  <- *leaderEntryCH:
+        case leaderCommitEntry = <-(*s._state.GetLeaderEntryChannel()):
             //TODO: check that at least the majority of the followers has a commit index
             // >= than this, if not send him an AppendEntryRpc with the entry,
             //Search only through stable nodes because may be possible that a new node is still 
@@ -394,18 +387,14 @@ func (s *server) run() {
             var oneSendDone bool = false
 
             log.Println("new log entry to propagate")
-            // prevEntry,err = s._state.GetEntriAt(leaderCommitEntry)
-            prevEntry,err = s._state.GetEntriAt(0)
+            prevEntry,err = s._state.GetEntriAt(leaderCommitEntry)
             if err != nil {
-                // log.Panic("invalid index entry: ", leaderCommitEntry)
-                log.Panic("invalid index entry: ", 0)
+                log.Panic("invalid index entry: ", leaderCommitEntry)
             }
 
-            // entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
-            entryToCommit,err = s._state.GetEntriAt(0)
+            entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
             if err != nil {
-                // log.Panic("invalid index entry: ", leaderCommitEntry)
-                log.Panic("invalid index entry: ", 0)
+                log.Panic("invalid index entry: ", leaderCommitEntry)
             }
 
 
@@ -425,14 +414,12 @@ func (s *server) run() {
                     log.Panicln(err)
                 }
 
-                // if nodeState.GetMatchIndex() >= int(leaderCommitEntry){
-                if nodeState.GetMatchIndex() >= int(0){
+                if nodeState.GetMatchIndex() >= int(leaderCommitEntry){
                     return true
                 }
 
                 AppendEntry = AppendEntryRpc.NewAppendEntryRPC(
-                    // s._state,leaderCommitEntry-1,prevEntry.Term,[]*p.LogEntry{entryToCommit},leaderCommit)
-                    s._state,0,prevEntry.Term,[]*p.LogEntry{entryToCommit},leaderCommit)
+                    s._state,leaderCommitEntry-1,prevEntry.Term,[]*p.LogEntry{entryToCommit},leaderCommit)
                 rawMex,err = genericmessage.Encode(&AppendEntry)
                 if err != nil {
                     log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
