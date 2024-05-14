@@ -24,7 +24,6 @@ func NewServer(ipAddPrivate string, ipAddrPublic string, port string, serversIp 
 	var server = &server{
 		_state:         state.NewState(ipAddPrivate, ipAddrPublic, fsRootDir),
 		unstableNodes:    &sync.Map{},
-		stableNodes:    &sync.Map{},
         clientNodes:    &sync.Map{},
 		messageChannel: make(chan pairMex),
 		listener:       listener,
