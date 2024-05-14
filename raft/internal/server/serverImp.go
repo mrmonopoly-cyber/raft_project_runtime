@@ -243,9 +243,9 @@ func (s *server) updateNewNode(workingNode node.Node){
     }
     log.Printf("updating node %v\n", workingNode.GetIp())
 
-    log.Printf("\nupdating, list of entries to send: %v\n\n",s._state.GetEntries())
+    log.Printf("\nupdating, list of entries to send: %v\n\n",s._state.GetCommittedEntries())
 
-    for  i,e := range s._state.GetEntries() {
+    for  i,e := range s._state.GetCommittedEntries() {
         log.Printf("sending update mex to %v with data %v\n",workingNode.GetIp(), e)
         err = s.generateUpdateRequest(workingNode,false,e)
         if err != nil {
