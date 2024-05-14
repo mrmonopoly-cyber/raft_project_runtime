@@ -202,8 +202,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
             break
         }
         if message != nil {
-            s.messageChannel <- 
-            pairMex{genericmessage.Decode(message),workingNode.GetIp()}
+            s.messageChannel <- pairMex{genericmessage.Decode(message),workingNode.GetIp()}
         }
     }
 
@@ -372,7 +371,7 @@ func (s *server) run() {
             var entryToCommit *p.LogEntry 
             var prevEntryTerm uint64 = 0
             var leaderCommit = s._state.GetCommitIndex()
-            var numStableNodes uint = 0
+            var numStableNodes uint = 1
 
             log.Println("new log entry to propagate")
             if leaderCommitEntry-1 >= 0{
