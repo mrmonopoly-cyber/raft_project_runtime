@@ -385,6 +385,7 @@ func (s *server) run() {
             var prevEntry *p.LogEntry
             var leaderCommit = s._state.GetCommitIndex()
             var oneSendDone bool = false
+            var numStableNodes uint = 0
 
             log.Println("new log entry to propagate")
             prevEntry,err = s._state.GetEntriAt(leaderCommitEntry)
@@ -405,6 +406,7 @@ func (s *server) run() {
                 var AppendEntry rpcs.Rpc
                 var rawMex []byte
 
+                numStableNodes++
                 nNode, found = value.(node.Node)
                 if !found {
                     log.Panicln("failed conversion type node, type is: ", reflect.TypeOf(value))
@@ -429,7 +431,7 @@ func (s *server) run() {
                 oneSendDone = true
                 return true
             })
-            if !oneSendDone && s._state.GetNumberNodesInCurrentConf() != 1 {
+            if !oneSendDone && numStableNodes>0{
                 log.Panicln("invalid leader commitIndex, too old compared to the follower, impossible")
             }
         }
