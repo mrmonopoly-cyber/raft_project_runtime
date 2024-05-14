@@ -50,7 +50,7 @@ func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
 }
 
 func NewAppendEntryRPC(state raftstate.State, prevLogIndex int64, prevLogTerm uint64, 
-    entries []*protobuf.LogEntry,leaderCommit int64) rpcs.Rpc {
+    entries []*protobuf.LogEntry) rpcs.Rpc {
     return &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
             Term:         state.GetTerm(),
@@ -59,7 +59,7 @@ func NewAppendEntryRPC(state raftstate.State, prevLogIndex int64, prevLogTerm ui
             PrevLogIndex: prevLogIndex,
             PrevLogTerm:  prevLogTerm,
             Entries:      entries,
-            LeaderCommit: leaderCommit,
+            LeaderCommit: state.GetCommitIndex(),
         },
     }
 }
