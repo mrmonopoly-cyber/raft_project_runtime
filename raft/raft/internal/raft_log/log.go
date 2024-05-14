@@ -31,6 +31,7 @@ func NewLogEntry(baseConf []string) LogEntry {
     l.logSize = 0
 	l.entries = make([]*p.LogEntry, 0)
     l.cConf = clusterconf.NewConf(baseConf)
+    l.newEntryToApply = make(chan int)
 
     go l.updateLastApplied()
 
