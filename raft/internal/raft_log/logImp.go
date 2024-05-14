@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-type logConf interface{
+type cConf interface{
     GetNumberNodesInCurrentConf() int
     IsInConf(ipNode string) bool
     ConfChanged() bool
