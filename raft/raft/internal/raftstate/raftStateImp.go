@@ -3,7 +3,6 @@ package raftstate
 import (
 	"log"
 	l "raft/internal/raft_log"
-	clusterconf "raft/internal/raftstate/clusterConf"
 	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"time"
@@ -81,11 +80,6 @@ func (this *raftStateImpl) IsInConf(nodeIp string) bool {
 	return this.log.IsInConf(nodeIp)
 }
 
-// CommitConfig implements State.
-func (this *raftStateImpl) CommitConfig() {
-	(*this).log.CommitConfig()
-}
-
 // ConfStatus implements State.
 func (this *raftStateImpl) ConfChanged() bool {
 	return this.log.ConfChanged()
@@ -94,11 +88,6 @@ func (this *raftStateImpl) ConfChanged() bool {
 // GetConfig implements State.
 func (this *raftStateImpl) GetConfig() []string {
 	return this.log.GetConfig()
-}
-
-// UpdateConfiguration implements State.
-func (this *raftStateImpl) UpdateConfiguration(confOp clusterconf.CONF_OPE, nodeIps []string) {
-	this.log.UpdateConfiguration(confOp, nodeIps)
 }
 
 func (this *raftStateImpl) GetIdPrivate() string {
@@ -131,8 +120,8 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
 	this.log.AppendEntries(newEntries)
-	if !this.Leader() {
-		log.Println("not leader increasing commitIndex in AppendEntry (state)")
+	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1 {
+		log.Println("auto commit entry")
 		this.log.IncreaseCommitIndex()
 		return
 	}
@@ -256,7 +245,7 @@ func (this *raftStateImpl) SetLeaderIpPrivate(ip string) {
 	(*this).leaderIdPrivate = ip
 }
 
-func (this *raftStateImpl) LeaaderUpdateCommitIndex() {
+func (this *raftStateImpl) leaaderUpdateCommitIndex() {
 	for {
 		select {
 		case <-this.statePool.GetNotifyChannel():
