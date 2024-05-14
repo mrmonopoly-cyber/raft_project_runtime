@@ -38,9 +38,14 @@ type raftStateImpl struct {
 	statePool           nodematchidx.NodeCommonMatch
 }
 
+// GetCommittedEntries implements State.
+func (this *raftStateImpl) GetCommittedEntries() []*p.LogEntry {
+    return this.log.GetCommittedEntries()
+}
+
 // GetStatePool implements State.
 func (this *raftStateImpl) GetStatePool() nodematchidx.NodeCommonMatch {
-    return this.statePool
+	return this.statePool
 }
 
 // GetEntriAt implements State.
@@ -123,12 +128,12 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
 	this.log.AppendEntries(newEntries)
-	if !this.Leader(){
-        log.Println("not leader increasing commitIndex in AppendEntry (state)")
+	if !this.Leader() {
+		log.Println("not leader increasing commitIndex in AppendEntry (state)")
 		this.log.IncreaseCommitIndex()
 		return
 	}
-    log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderEntryToCommit, this.log.GetCommitIndex()+1)
+	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderEntryToCommit, this.log.GetCommitIndex()+1)
 	this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
 }
 
@@ -248,11 +253,11 @@ func (this *raftStateImpl) SetLeaderIpPrivate(ip string) {
 	(*this).leaderIdPrivate = ip
 }
 
-func (this *raftStateImpl) LeaaderUpdateCommitIndex(){
-    for{
-        select{
-        case <- this.statePool.GetNotifyChannel():
-            this.IncreaseCommitIndex()
-        }
-    }
+func (this *raftStateImpl) LeaaderUpdateCommitIndex() {
+	for {
+		select {
+		case <-this.statePool.GetNotifyChannel():
+			this.IncreaseCommitIndex()
+		}
+	}
 }
