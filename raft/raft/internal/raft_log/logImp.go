@@ -47,7 +47,7 @@ func (this *log) GetCommittedEntries() []*p.LogEntry {
 // GetEntriAt implements LogEntry.
 func (this *log) GetEntriAt(index int64) (*p.LogEntry, error) {
 	l.Printf("GetEntiesAt: logSize %v, index: %v", this.logSize, index)
-	if (this.logSize == 1 && index == 0) || (index < int64(this.logSize)-1) {
+	if (this.logSize == 1 && index == 0) || (index < int64(this.logSize)) {
 		return this.entries[index], nil
 	}
 	return nil, errors.New("invalid index: " + string(rune(index)))
