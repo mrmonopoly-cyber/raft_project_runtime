@@ -304,6 +304,12 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
 }
 
 func (s *server) run() {
+    var leaderEntryCH = s._state.GetLeaderEntryChannel()
+
+    if leaderEntryCH == nil {
+        panic("leaderEntryCh is nil")
+    }
+
     for {
         var mess pairMex
         var leaderCommitEntry int64
@@ -375,7 +381,8 @@ func (s *server) run() {
             if !s._state.Leader() {
                 s.startNewElection()
             }
-        case leaderCommitEntry = <-(*s._state.GetLeaderEntryChannel()):
+        // case leaderCommitEntry = <-(*s._state.GetLeaderEntryChannel()):
+    case leaderCommitEntry = <- *leaderEntryCH:
             //TODO: check that at least the majority of the followers has a commit index
             // >= than this, if not send him an AppendEntryRpc with the entry,
             //Search only through stable nodes because may be possible that a new node is still 
@@ -387,9 +394,9 @@ func (s *server) run() {
             var oneSendDone bool = false
 
             log.Println("new log entry to propagate")
-            prevEntry,err = s._state.GetEntriAt(leaderCommitEntry-1)
+            prevEntry,err = s._state.GetEntriAt(leaderCommitEntry)
             if err != nil {
-                log.Panic("invalid index entry: ", leaderCommitEntry-1)
+                log.Panic("invalid index entry: ", leaderCommitEntry)
             }
 
             entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
