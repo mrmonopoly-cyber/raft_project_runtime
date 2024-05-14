@@ -219,7 +219,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
 func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
 
-    s._state.UpdateConfiguration(clusterconf.ADD,[]string{nodeIp})
+    s._state.UpdateConfiguration(clusterconf.ADD,[]string{nodeIp}) //FIX: wrong update
     log.Println("debug, joinConf : ,", s._state.GetConfig())
 
     var newConfEntry p.LogEntry = p.LogEntry{
@@ -297,7 +297,10 @@ func (s *server) sendAll(rpc *rpcs.Rpc){
             log.Panicln("error in Encoding this rpc: ",(*rpc).ToString())
         }
         log.Printf("sending to %v with key %v\n", nNode.GetIp(),key)
-        nNode.Send(raw_mex)
+        err = nNode.Send(raw_mex)
+        if err != nil{
+            log.Panicln("error sending message to node ",err)
+        }
         return true
     })
    log.Println("end broadcast")
@@ -420,6 +423,7 @@ func (s *server) run() {
                 }
 
                 if nodeState.GetMatchIndex() >= int(leaderCommitEntry){
+                    oneSendDone=true
                     return true
                 }
 

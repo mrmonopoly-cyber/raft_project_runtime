@@ -25,7 +25,7 @@ type AppendEntryRpc struct {
 }
 
 func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
-    var entries []*protobuf.LogEntry = state.GetEntries()
+    var entries []*protobuf.LogEntry = state.GetCommittedEntries()
     prevLogIndex := len(entries) - 1
     var prevLogTerm uint64 = 0
     if len(entries) > 0 {

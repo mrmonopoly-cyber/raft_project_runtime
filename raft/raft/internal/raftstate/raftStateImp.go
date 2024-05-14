@@ -33,9 +33,12 @@ type raftStateImpl struct {
 	nNotSupporting uint64
 	nNodeInCluster uint64
 
-	//LEADER
-	leaderEntryToCommit chan int64
-	statePool           nodematchidx.NodeCommonMatch
+    leader
+}
+
+type leader struct{
+    leaderEntryToCommit chan int64
+    statePool           nodematchidx.NodeCommonMatch
 }
 
 // GetCommittedEntries implements State.
