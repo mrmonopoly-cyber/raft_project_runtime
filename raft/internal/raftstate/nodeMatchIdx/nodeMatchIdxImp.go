@@ -65,6 +65,7 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 	case NEXT:
 		nodeStatePriv.SetNextIndex(value)
 	case MATCH:
+        log.Printf("updating match index, numNodes %v, stable %v\n", c.numNode, c.numStable)
         /*
         TODO: when you want to update the match index of a node:
         1- check if, before updating, the node has at least the commonIdx as match index
