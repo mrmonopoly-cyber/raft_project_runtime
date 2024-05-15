@@ -106,13 +106,14 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 		                   for numStable > numNode/2:
 		                       notifyChann <- commonIdx
 		                       commonIdx++
-		                       numStable=0
+		                       numStable=1
 		                       foreach nodestate ns:
 		                           if ns.matchIndex > commonIdx:
 		                               numStable++
 		*/
 		matchIdx = nodeStatePriv.GetMatchIndex()
 		nodeStatePriv.SetMatchIndex(value)
+        log.Printf("check mathc index, current: %v, common %v\n",matchIdx, c.commonIdx)
 		if matchIdx >= c.commonIdx || value < c.commonIdx {
 			return nil
 		}
@@ -120,7 +121,7 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 		for c.numStable > int(numNodeHalf) {
 			c.notifyChann <- c.commonIdx
 			c.commonIdx++
-			c.numStable = 0
+			c.numStable = 1
 			c.allNodeStates.Range(func(key, value any) bool {
 				var nodeStateP = value.(nodeState.VolatileNodeState)
 				if nodeStateP.GetMatchIndex() > c.commonIdx {
