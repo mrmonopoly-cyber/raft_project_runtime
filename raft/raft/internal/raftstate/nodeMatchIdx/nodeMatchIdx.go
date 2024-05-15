@@ -21,6 +21,7 @@ type NodeCommonMatch interface{
     InitVolatileState(ip string, lastLogIndex int)
     Updated(ip string) bool
     DoneUpdating(ip string)
+    IncreaseCommonMathcIndex()
 }
 
 func NewNodeCommonMatch() NodeCommonMatch{

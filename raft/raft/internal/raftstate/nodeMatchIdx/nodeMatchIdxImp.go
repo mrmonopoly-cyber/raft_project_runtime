@@ -16,13 +16,18 @@ type commonMatchNode struct {
 	numStable     int
 }
 
+// IncreaseCommonMathcIndex implements NodeCommonMatch.
+func (c *commonMatchNode) IncreaseCommonMathcIndex() {
+    c.commonIdx++
+}
+
 // DoneUpdating implements NodeCommonMatch.
 func (c *commonMatchNode) DoneUpdating(ip string) {
 	var nodeState, err = c.findNode(ip)
 	if err != nil {
 		return
 	}
-    nodeState.NodeUpdated()
+	nodeState.NodeUpdated()
 }
 
 // Updated implements NodeCommonMatch.
@@ -31,7 +36,7 @@ func (c *commonMatchNode) Updated(ip string) bool {
 	if err != nil {
 		return false
 	}
-    return nodeState.Updated()
+	return nodeState.Updated()
 }
 
 // InitVolatileState implements NodeCommonMatch.
@@ -92,7 +97,7 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 	case NEXT:
 		nodeStatePriv.SetNextIndex(value)
 	case MATCH:
-		log.Printf("updating match index with value %v, numNodes %v, stable %v\n",value, c.numNode, c.numStable)
+		log.Printf("updating match index with value %v, numNodes %v, stable %v\n", value, c.numNode, c.numStable)
 		/*
 		   TODO: when you want to update the match index of a node:
 		   1- check if, before updating, the node has at least the commonIdx as match index
@@ -113,7 +118,7 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 		*/
 		matchIdx = nodeStatePriv.GetMatchIndex()
 		nodeStatePriv.SetMatchIndex(value)
-        log.Printf("check mathc index, current: %v, common %v\n",matchIdx, c.commonIdx)
+		log.Printf("check mathc index, current: %v, common %v\n", matchIdx, c.commonIdx)
 		if matchIdx >= c.commonIdx || value < c.commonIdx {
 			return nil
 		}
