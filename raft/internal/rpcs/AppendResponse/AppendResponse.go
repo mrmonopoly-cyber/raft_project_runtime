@@ -43,7 +43,7 @@ func (this *AppendResponse) Execute(state *raftstate.State, senderState *nodeSta
             //log.Println((*senderState).GetNextIndex())
         }
     } else {
-        log.Printf("response ok increasing match and next index of node: %v\n", this.pMex.Id)
+        log.Printf("response ok increasing match and next index of node: %v\n", *this.pMex.Id)
         (*senderState).SetNextIndex(int(this.pMex.GetLogIndexError())+1)
         (*senderState).SetMatchIndex(int(this.pMex.GetLogIndexError()))
     }
