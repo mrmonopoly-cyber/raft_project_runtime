@@ -370,7 +370,6 @@ func (s *server) run() {
             var err error
             var entryToCommit *p.LogEntry 
             var prevEntryTerm uint64 = 0
-            var leaderCommit = s._state.GetCommitIndex()
             var numStableNodes uint = 1
 
             log.Println("new log entry to propagate")
@@ -403,14 +402,14 @@ func (s *server) run() {
                 }
 
                 AppendEntry = AppendEntryRpc.NewAppendEntryRPC(
-                    s._state,leaderCommitEntry-1,prevEntryTerm,[]*p.LogEntry{entryToCommit},leaderCommit)
-                    rawMex,err = genericmessage.Encode(&AppendEntry)
-                    if err != nil {
-                        log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
-                    }
+                    s._state,leaderCommitEntry-1,prevEntryTerm,[]*p.LogEntry{entryToCommit})
+                rawMex,err = genericmessage.Encode(&AppendEntry)
+                if err != nil {
+                    log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
+                }
 
-                    n.Send(rawMex)
-                })
+                n.Send(rawMex)
+            })
         }
     }
 }
