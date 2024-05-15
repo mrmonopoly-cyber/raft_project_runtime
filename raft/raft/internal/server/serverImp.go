@@ -423,7 +423,7 @@ func (s *server) startNewElection(){
             var candidateLastLogIndex int
 
             candidateLastLogIndex = n.GetMatchIndex()
-            RequestVoteRPC.NewRequestVoteRPC(
+            voteRequest = RequestVoteRPC.NewRequestVoteRPC(
                 s._state.GetTerm(),
                 s._state.GetIdPrivate(),
                 int64(candidateLastLogIndex),
