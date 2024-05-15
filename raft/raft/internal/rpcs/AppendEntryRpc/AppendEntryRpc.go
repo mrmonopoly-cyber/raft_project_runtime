@@ -3,7 +3,7 @@ package AppendEntryRpc
 import (
 	"fmt"
 	"log"
-	"raft/internal/node/nodeState"
+	"raft/internal/node"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	app_resp "raft/internal/rpcs/AppendResponse"
@@ -94,16 +94,16 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
 }
 
 // Manage implements rpcs.Rpc.
-func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
+func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
 
-    var role raftstate.Role = (*state).GetRole()
-    var id string = (*state).GetIdPrivate()
-    var myTerm uint64 = (*state).GetTerm()
+    var role raftstate.Role = state.GetRole()
+    var id string = state.GetIdPrivate()
+    var myTerm uint64 = state.GetTerm()
     var nextIdx int
     var consistent ERRORS
     var prevLogIndex int64 = this.pMex.GetPrevLogIndex()
     var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
-    var entries []*protobuf.LogEntry = (*state).GetEntries()
+    var entries []*protobuf.LogEntry = state.GetEntries()
     var newEntries []*protobuf.LogEntry = this.pMex.GetEntries()
 
     var resp *rpcs.Rpc = nil
@@ -113,14 +113,14 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
         return respondeAppend(id, false, myTerm, -1)
     }
 
-    (*state).StopElectionTimeout()
+    state.StopElectionTimeout()
 
     if role != raftstate.FOLLOWER {
-        (*state).SetRole(raftstate.FOLLOWER)
+        state.SetRole(raftstate.FOLLOWER)
     }
 
-    (*state).SetLeaderIpPrivate(this.pMex.LeaderIdPrivate)
-    (*state).SetLeaderIpPublic(this.pMex.LeaderIdPublic)
+    state.SetLeaderIpPrivate(this.pMex.LeaderIdPrivate)
+    state.SetLeaderIpPublic(this.pMex.LeaderIdPublic)
 
     if len(newEntries) > 0 {
         //log.Println("received Append Entry", newEntries)
@@ -129,25 +129,25 @@ func (this *AppendEntryRpc) Execute(state *raftstate.State, senderState *nodeSta
             case C2:
                 resp = respondeAppend(id, false, myTerm, nextIdx)
             case C3:
-                (*state).DeleteFromEntry(uint(nextIdx))
+                state.DeleteFromEntry(uint(nextIdx))
                 resp = respondeAppend(id, false, myTerm, nextIdx)
             default:
-                (*state).AppendEntries(newEntries)
+                state.AppendEntries(newEntries)
                 leaderCommit = this.pMex.GetLeaderCommit()
 
-                if leaderCommit > (*state).GetCommitIndex() {
-                    (*state).MinimumCommitIndex(uint(leaderCommit))
+                if leaderCommit > state.GetCommitIndex() {
+                    state.MinimumCommitIndex(uint(leaderCommit))
                 }
-                resp = respondeAppend(id, true , myTerm, (*state).LastLogIndex())
+                resp = respondeAppend(id, true , myTerm, state.LastLogIndex())
         }
     } 
 
     if resp == nil {
         log.Println("hearthbeat")
-        resp = respondeAppend(id, true, myTerm, (*state).LastLogIndex())
+        resp = respondeAppend(id, true, myTerm, state.LastLogIndex())
     }
 
-    (*state).StartElectionTimeout()
+    state.StartElectionTimeout()
     return resp
 }
 

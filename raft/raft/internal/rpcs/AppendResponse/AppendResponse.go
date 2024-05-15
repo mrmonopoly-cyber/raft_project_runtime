@@ -2,11 +2,12 @@ package AppendResponse
 
 import (
 	"log"
+	"raft/internal/node"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
-	"raft/internal/node/nodeState"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strconv"
+
 	//
 	"google.golang.org/protobuf/proto"
 )
@@ -29,23 +30,23 @@ func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError in
 }
 
 // Manage implements rpcs.Rpc.
-func (this *AppendResponse) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
+func (this *AppendResponse) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
     var resp *rpcs.Rpc = nil
     var term uint64 = this.pMex.GetTerm()
     if !this.pMex.GetSuccess() {
-        if term > (*state).GetTerm() {
-            (*state).SetTerm(term)
-            (*state).SetRole(raftstate.FOLLOWER)
+        if term > state.GetTerm() {
+            state.SetTerm(term)
+            state.SetRole(raftstate.FOLLOWER)
         } else {
             log.Println("consistency fail")
             //log.Println(this.pMex.GetLogIndexError())
-            (*senderState).SetNextIndex(int(this.pMex.GetLogIndexError()))
+            sender.SetNextIndex(int(this.pMex.GetLogIndexError()))
             //log.Println((*senderState).GetNextIndex())
         }
     } else {
         log.Printf("response ok increasing match and next index of node: %v\n", *this.pMex.Id)
-        (*senderState).SetNextIndex(int(this.pMex.GetLogIndexError())+1)
-        (*senderState).SetMatchIndex(int(this.pMex.GetLogIndexError()))
+        sender.SetNextIndex(int(this.pMex.GetLogIndexError())+1)
+        sender.SetMatchIndex(int(this.pMex.GetLogIndexError()))
     }
 
     return resp

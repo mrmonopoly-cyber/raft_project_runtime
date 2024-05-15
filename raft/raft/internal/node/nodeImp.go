@@ -6,15 +6,15 @@ import (
 	"io"
 	"net"
 	"raft/internal/node/address"
-	"raft/internal/raftstate/nodeMatchIdx"
-    "raft/internal/node/nodeState"
+	"raft/internal/node/nodeState"
 )
 
 type node struct {
-	addr address.NodeAddress
-	conn net.Conn
-	statepool nodematchidx.NodeCommonMatch
+	addr      address.NodeAddress
+	conn      net.Conn
+    volPrivState
 }
+
 
 // Read_rpc implements Node.
 func (this *node) Recv() ([]byte, error) {
@@ -51,12 +51,12 @@ func (this *node) Recv() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func (this *node) GetNodeState() (nodeState.VolatileNodeState,error){
-    var nodeState,err = this.statepool.GetNodeState(this.GetIp())
-    if err!=nil {
-        return nil,err
-    }
-    return nodeState,err
+func (this *node) GetNodeState() (nodeState.VolatileNodeState, error) {
+	var nodeState, err = this.statepool.GetNodeState(this.GetIp())
+	if err != nil {
+		return nil, err
+	}
+	return nodeState, err
 }
 
 func (this *node) CloseConnection() {

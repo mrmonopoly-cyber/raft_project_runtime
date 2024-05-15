@@ -2,10 +2,10 @@ package NEW_RPC
 
 import (
 	"log"
+	"raft/internal/node"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
-	"raft/internal/node/nodeState"
-  "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -19,7 +19,7 @@ func NewNEW_RPCRPC(term uint64) rpcs.Rpc {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *NEW_RPC) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
+func (this *NEW_RPC) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
     panic("dummy implementation")
 }
 
