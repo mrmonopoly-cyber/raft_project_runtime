@@ -2,10 +2,10 @@ package UpdateNodeResp
 
 import (
 	"log"
+	"raft/internal/node"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
-	"raft/internal/node/nodeState"
-    "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -23,8 +23,8 @@ func NewUpdateNodeRespRPC() rpcs.Rpc {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *UpdateNodeResp) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
-    (*senderState).NextIndexStep()
+func (this *UpdateNodeResp) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
+    sender.NextIndexStep()
     return nil
 }
 

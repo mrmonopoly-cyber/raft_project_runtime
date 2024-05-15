@@ -18,6 +18,9 @@ type NodeCommonMatch interface{
     UpdateNodeState(ip string, indexType INDEX, value int) error
     GetNodeState(ip string) (nodeState.VolatileNodeState,error)
     GetNodeIndex(ip string, indexType INDEX) (int,error)
+    InitVolatileState(ip string, lastLogIndex int)
+    Updated(ip string) bool
+    DoneUpdating(ip string)
 }
 
 func NewNodeCommonMatch() NodeCommonMatch{

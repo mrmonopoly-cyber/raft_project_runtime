@@ -2,12 +2,12 @@ package RequestVoteRPC
 
 import (
 	"log"
+	"raft/internal/node"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
+	"raft/internal/rpcs/RequestVoteResponse"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strconv"
-    "raft/internal/rpcs/RequestVoteResponse"
-	"raft/internal/node/nodeState"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -75,33 +75,33 @@ func (this *RequestVoteRPC) GetLastLogTerm() uint64 {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *RequestVoteRPC) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
-	var myVote string = (*state).GetVoteFor()
-	var sender = this.pMex.GetCandidateId()
+func (this *RequestVoteRPC) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
+	var myVote string = state.GetVoteFor()
+	var senderIp = this.pMex.GetCandidateId()
 
-	if !(*state).CanVote() {
+	if !state.CanVote() {
 		log.Printf("request vote: this node cannot vote right now")
 		return nil
 	}
-	if this.pMex.GetTerm() < (*state).GetTerm() {
+	if this.pMex.GetTerm() < state.GetTerm() {
 		log.Printf("request vote: not valid term vote false: my term %v, other therm %v",
-			(*state).GetTerm(), this.pMex.GetTerm())
-		return this.respondeVote(state, &sender, false)
+			state.GetTerm(), this.pMex.GetTerm())
+		return this.respondeVote(state, &senderIp, false)
 	}
 
-    if ! (*state).More_recent_log(this.GetLastLogIndex(), this.GetLastLogTerm()) {
+    if ! state.More_recent_log(this.GetLastLogIndex(), this.GetLastLogTerm()) {
         log.Printf("request vote: log not recent enough")
-        return this.respondeVote(state, &sender,false)
+        return this.respondeVote(state, &senderIp,false)
     }else if myVote == "" || myVote == this.GetCandidateId(){
         log.Printf("request vote: vote accepted, voting for: %v", this.GetCandidateId())
-        (*state).VoteFor(sender)
-        return this.respondeVote(state,&sender,true)
+        state.VoteFor(senderIp)
+        return this.respondeVote(state,&senderIp,true)
     }
 
-	return this.respondeVote(state, &sender, false)
+	return this.respondeVote(state, &senderIp, false)
 }
 
-func (this *RequestVoteRPC) respondeVote(state *raftstate.State, sender *string, vote bool) *rpcs.Rpc{
-    var resp = RequestVoteResponse.NewRequestVoteResponseRPC(*sender,vote, (*state).GetTerm())
+func (this *RequestVoteRPC) respondeVote(state raftstate.State, sender *string, vote bool) *rpcs.Rpc{
+    var resp = RequestVoteResponse.NewRequestVoteResponseRPC(*sender,vote, state.GetTerm())
     return &resp
 }

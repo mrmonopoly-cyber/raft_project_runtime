@@ -2,10 +2,11 @@ package RequestVoteResponse
 
 import (
 	"log"
+	"raft/internal/node"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
-	"raft/internal/node/nodeState"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+
 	"google.golang.org/protobuf/proto"
 )
 
@@ -30,31 +31,31 @@ func (this *RequestVoteResponse) GetId() string {
 
 
 // Manage implements rpcs.Rpc.
-func (this *RequestVoteResponse) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
+func (this *RequestVoteResponse) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
     if this.GetVote() {
         log.Println("received positive vote");
-        (*state).IncreaseSupporters()
+        state.IncreaseSupporters()
     }else {
         log.Println("received negative vote");
-        (*state).IncreaseNotSupporters()
+        state.IncreaseNotSupporters()
     }
     
-    var nodeInCluster = uint64((*state).GetNumberNodesInCurrentConf())
+    var nodeInCluster = uint64(state.GetNumberNodesInCurrentConf())
     var nVictory = nodeInCluster/2
-    var supp = (*state).GetNumSupporters()
-    var notSupp = (*state).GetNumNotSupporters()
+    var supp = state.GetNumSupporters()
+    var notSupp = state.GetNumNotSupporters()
 
     if supp > nVictory {
         log.Println("election won");
-        (*state).SetRole(raftstate.LEADER)
-        (*state).SetLeaderIpPrivate((*state).GetIdPrivate())
-        (*state).SetLeaderIpPublic((*state).GetIdPublic())
-        (*state).ResetElection()
+        state.SetRole(raftstate.LEADER)
+        state.SetLeaderIpPrivate(state.GetIdPrivate())
+        state.SetLeaderIpPublic(state.GetIdPublic())
+        state.ResetElection()
         return nil
     }
     if supp + notSupp == nodeInCluster{
         log.Println("election lost");
-        (*state).ResetElection()
+        state.ResetElection()
     }
 
     return nil

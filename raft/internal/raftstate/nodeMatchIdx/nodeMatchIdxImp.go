@@ -16,13 +16,40 @@ type commonMatchNode struct {
 	numStable     int
 }
 
+// DoneUpdating implements NodeCommonMatch.
+func (c *commonMatchNode) DoneUpdating(ip string) {
+	var nodeState, err = c.findNode(ip)
+	if err != nil {
+		return
+	}
+    nodeState.NodeUpdated()
+}
+
+// Updated implements NodeCommonMatch.
+func (c *commonMatchNode) Updated(ip string) bool {
+	var nodeState, err = c.findNode(ip)
+	if err != nil {
+		return false
+	}
+    return nodeState.Updated()
+}
+
+// InitVolatileState implements NodeCommonMatch.
+func (c *commonMatchNode) InitVolatileState(ip string, lastLogIndex int) {
+	var nodeState, err = c.findNode(ip)
+	if err != nil {
+		return
+	}
+	nodeState.InitVolatileState(lastLogIndex)
+}
+
 // GetNodeState implements NodeCommonMatch.
-func (c *commonMatchNode) GetNodeState(ip string) (nodeState.VolatileNodeState,error) {
-    var nodeStatePriv,err = c.findNode(ip)
-    if err != nil {
-        return nil,err
-    }
-    return nodeStatePriv,nil
+func (c *commonMatchNode) GetNodeState(ip string) (nodeState.VolatileNodeState, error) {
+	var nodeStatePriv, err = c.findNode(ip)
+	if err != nil {
+		return nil, err
+	}
+	return nodeStatePriv, nil
 }
 
 // GetNodeState implements NodeCommonMatch.
@@ -54,7 +81,7 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 	var err error
 	var nodeStatePriv nodeState.VolatileNodeState
 	var matchIdx int
-    var numNodeHalf = c.numNode/2
+	var numNodeHalf = c.numNode / 2
 
 	nodeStatePriv, err = c.findNode(ip)
 	if err != nil {
@@ -65,47 +92,45 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 	case NEXT:
 		nodeStatePriv.SetNextIndex(value)
 	case MATCH:
-        log.Printf("updating match index, numNodes %v, stable %v\n", c.numNode, c.numStable)
-        /*
-        TODO: when you want to update the match index of a node:
-        1- check if, before updating, the node has at least the commonIdx as match index
-            1.1- if true: update the match index of node and return
-            1.2- if false:
-                1.2.1- update the match index of node
-                1.2.2- check if the new match index is < the commonIdx:
-                    1.2.2.1- if true: return
-                    1.2.2.2- if false:
-                        numStable++
-                        for numStable > numNode/2:
-                            notifyChann <- commonIdx
-                            commonIdx++
-                            numStable=0
-                            foreach nodestate ns:
-                                if ns.matchIndex > commonIdx:
-                                    numStable++
-        */
-        matchIdx = nodeStatePriv.GetMatchIndex()
-        nodeStatePriv.SetMatchIndex(value)
-        if matchIdx >= c.commonIdx || value < c.commonIdx{
-            return nil
-        }
-        c.numStable++
-        for c.numStable > int(numNodeHalf){
-            c.notifyChann <- c.commonIdx
-            c.commonIdx++
-            c.numStable=0
-            c.allNodeStates.Range(func(key, value any) bool {
-                var nodeStateP = value.(nodeState.VolatileNodeState)
-                if nodeStateP.GetMatchIndex() > c.commonIdx{
-                    c.numStable++
-                }
-                return true
-            })
-        }
+		log.Printf("updating match index, numNodes %v, stable %v\n", c.numNode, c.numStable)
+		/*
+		   TODO: when you want to update the match index of a node:
+		   1- check if, before updating, the node has at least the commonIdx as match index
+		       1.1- if true: update the match index of node and return
+		       1.2- if false:
+		           1.2.1- update the match index of node
+		           1.2.2- check if the new match index is < the commonIdx:
+		               1.2.2.1- if true: return
+		               1.2.2.2- if false:
+		                   numStable++
+		                   for numStable > numNode/2:
+		                       notifyChann <- commonIdx
+		                       commonIdx++
+		                       numStable=0
+		                       foreach nodestate ns:
+		                           if ns.matchIndex > commonIdx:
+		                               numStable++
+		*/
+		matchIdx = nodeStatePriv.GetMatchIndex()
+		nodeStatePriv.SetMatchIndex(value)
+		if matchIdx >= c.commonIdx || value < c.commonIdx {
+			return nil
+		}
+		c.numStable++
+		for c.numStable > int(numNodeHalf) {
+			c.notifyChann <- c.commonIdx
+			c.commonIdx++
+			c.numStable = 0
+			c.allNodeStates.Range(func(key, value any) bool {
+				var nodeStateP = value.(nodeState.VolatileNodeState)
+				if nodeStateP.GetMatchIndex() > c.commonIdx {
+					c.numStable++
+				}
+				return true
+			})
+		}
 
-
-        
-    }
+	}
 	return nil
 }
 
@@ -113,8 +138,8 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 func (c *commonMatchNode) AddNode(ip string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-    
-    var newState nodeState.VolatileNodeState = nodeState.NewVolatileState()
+
+	var newState nodeState.VolatileNodeState = nodeState.NewVolatileState()
 
 	c.allNodeStates.Store(ip, newState)
 	c.numNode++

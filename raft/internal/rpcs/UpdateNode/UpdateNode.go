@@ -2,7 +2,7 @@ package UpdateNode
 
 import (
 	"log"
-	"raft/internal/node/nodeState"
+	"raft/internal/node"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/UpdateNodeResp"
@@ -25,13 +25,13 @@ func NewUpdateNodeRPC(voteAble bool, log *protobuf.LogEntry) rpcs.Rpc {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *UpdateNode) Execute(state *raftstate.State, senderState *nodeState.VolatileNodeState) *rpcs.Rpc {
+func (this *UpdateNode) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
     var resp = UpdateNodeResp.NewUpdateNodeRespRPC()
 
     log.Printf("updating log entry with new entry %v\n",this.pMex.Log)
-    (*state).VoteRight(this.pMex.Votante)
+    state.VoteRight(this.pMex.Votante)
     if this.pMex.Log != nil {
-        (*state).AppendEntries([]*protobuf.LogEntry{this.pMex.Log})
+        state.AppendEntries([]*protobuf.LogEntry{this.pMex.Log})
         return &resp
     }
     return nil

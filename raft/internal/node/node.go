@@ -13,7 +13,8 @@ type Node interface {
 	Recv() ([]byte, error)
 	GetIp() string
 	GetPort() string
-    GetNodeState() (nodeState.VolatileNodeState,error)
+
+    nodeState.VolatileNodeState
 }
 
 
@@ -21,7 +22,9 @@ func NewNode(remoteAddr string, remotePort string, nodeConn net.Conn, statePool 
 	var nNode *node = &node{
 		addr: address.NewNodeAddress(remoteAddr, remotePort),
         conn: nodeConn,
-        statepool: statePool,
+        volPrivState: volPrivState{
+            statepool: statePool,
+        },
 	}
     nNode.statepool.AddNode(remoteAddr)
     return nNode
