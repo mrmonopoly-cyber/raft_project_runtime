@@ -387,6 +387,7 @@ func (s *server) run() {
             }
 
             s.applyOnFollowers(func(n node.Node) {
+                log.Println("propagate log entry to: ",n.GetIp())
                 var nodeState nodeState.VolatileNodeState
                 var AppendEntry rpcs.Rpc
                 var rawMex []byte
