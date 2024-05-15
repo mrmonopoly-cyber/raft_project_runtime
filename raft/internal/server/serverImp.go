@@ -409,6 +409,7 @@ func (s *server) run() {
                     log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
                 }
 
+                log.Println("sending log entry to: ",n.GetIp())
                 n.Send(rawMex)
             })
         }
