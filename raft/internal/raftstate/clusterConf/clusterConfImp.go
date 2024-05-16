@@ -65,17 +65,19 @@ func (this *conf) UpdateConfiguration(op CONF_OPE, nodeIps []string) {
         for _, v := range nodeIps {
             this.newConf[v] = v
         }
+        this.joinConf = true
     case DEL:
         for _, v := range nodeIps {
             delete(this.newConf,v)
+            delete(this.oldConf,v)
         }
+        this.joinConf = true
     default:
         log.Println("invalid configuration operation, doing nothing, given: ", op)
         return
     }
     
 	this.changed = true
-	this.joinConf = true
 }
 
 func (this *conf) CommitConfig() {
