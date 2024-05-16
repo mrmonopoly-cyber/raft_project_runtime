@@ -158,39 +158,39 @@ func respondeAppend(id string, success bool, term uint64, error int) *rpcs.Rpc {
         success,
         term,
         error)
-        return &appendEntryResp
-    }
+    return &appendEntryResp
+}
 
-    // ToString implements rpcs.Rpc.
-    func (this *AppendEntryRpc) ToString() string {
-        var entries string
-        for _, el := range this.pMex.Entries {
-            entries += el.String()
-        }
-        return "{term : " + strconv.Itoa(int(this.pMex.GetTerm())) + 
-        ", leaderIdPrivate: " + this.pMex.GetLeaderIdPrivate() +
-        ", leaderIdPublic: " + this.pMex.GetLeaderIdPublic() +
-        ", prevLogIndex: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) +
-        ", prevLogTerm: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) + 
-        ", entries: " + entries +
-        ", leaderCommit: " + strconv.Itoa(int(this.pMex.LeaderCommit)) + "}"
+// ToString implements rpcs.Rpc.
+func (this *AppendEntryRpc) ToString() string {
+    var entries string
+    for _, el := range this.pMex.Entries {
+        entries += el.String()
     }
+    return "{term : " + strconv.Itoa(int(this.pMex.GetTerm())) + 
+    ", leaderIdPrivate: " + this.pMex.GetLeaderIdPrivate() +
+    ", leaderIdPublic: " + this.pMex.GetLeaderIdPublic() +
+    ", prevLogIndex: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) +
+    ", prevLogTerm: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) + 
+    ", entries: " + entries +
+    ", leaderCommit: " + strconv.Itoa(int(this.pMex.LeaderCommit)) + "}"
+}
 
-    func (this *AppendEntryRpc) Encode() ([]byte, error) {
+func (this *AppendEntryRpc) Encode() ([]byte, error) {
 
-        var mess []byte
-        var err error
-        mess, err = proto.Marshal(&(*this).pMex)
-        if err != nil {
-            log.Panicln("error in Encoding Append Entry: ", err)
-        }
-        return mess, err
+    var mess []byte
+    var err error
+    mess, err = proto.Marshal(&(*this).pMex)
+    if err != nil {
+        log.Panicln("error in Encoding Append Entry: ", err)
     }
+    return mess, err
+}
 
-    func (this *AppendEntryRpc) Decode(rawMex []byte) error {
-        err := proto.Unmarshal(rawMex, &this.pMex)
-        if err != nil {
-            log.Panicln("error in Decoding Append Entry: ", err)
-        }
-        return err
+func (this *AppendEntryRpc) Decode(rawMex []byte) error {
+    err := proto.Unmarshal(rawMex, &this.pMex)
+    if err != nil {
+        log.Panicln("error in Decoding Append Entry: ", err)
     }
+    return err
+}
