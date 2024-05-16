@@ -143,11 +143,6 @@ func (this *raftStateImpl) LastLogIndex() int {
 	return this.log.LastLogIndex()
 }
 
-// More_recent_log implements State.
-func (this *raftStateImpl) More_recent_log(last_log_index int64, last_log_term uint64) bool {
-	return this.log.More_recent_log(last_log_index, last_log_term)
-}
-
 func (this *raftStateImpl) StartElectionTimeout() {
 	this.electionTimeout.Reset(time.Duration((*this).electionTimeoutRaw))
 }
@@ -194,11 +189,6 @@ func (this *raftStateImpl) IncrementTerm() {
 
 func (this *raftStateImpl) VoteFor(id string) {
 	this.voteFor = id
-}
-
-// MoreRecentLog implements State.
-func (this *raftStateImpl) MoreRecentLog(lastLogIndex int64, lastLogTerm uint64) bool {
-	return this.log.More_recent_log(lastLogIndex, lastLogTerm)
 }
 
 // GetNumSupporters implements State.

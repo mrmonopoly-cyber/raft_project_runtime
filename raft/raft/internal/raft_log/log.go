@@ -17,8 +17,8 @@ type LogEntry interface {
     MinimumCommitIndex(val uint)
 
 	LastLogIndex() int
+	LastLogTerm() uint
 
-    More_recent_log(last_log_index int64, last_log_term uint64) bool
     cConf 
 }
 
