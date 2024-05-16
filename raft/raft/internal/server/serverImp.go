@@ -436,7 +436,7 @@ func (s *server) startNewElection(){
                 if err != nil {
                     log.Panicln("error in Encoding this voteRequest: ",(voteRequest).ToString())
                 }
-                log.Printf("sending to %v with key %v\n", n.GetIp(),n.GetIp())
+                log.Printf("sending election request %v to %v\n", voteRequest.ToString(),n.GetIp())
                 n.Send(raw_mex)
             })
 }
