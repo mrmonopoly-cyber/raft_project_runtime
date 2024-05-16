@@ -223,13 +223,20 @@ func (s *server) joinConf(workingNode node.Node){
 
 func (s *server) updateNewNode(workingNode node.Node){
     var err error
+    var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
+    var numCommEntr = len(commitedEntries)
+    var canVote = false
+
     log.Printf("updating node %v\n", workingNode.GetIp())
-
     log.Printf("\nupdating, list of entries to send: %v\n\n",s._state.GetCommittedEntries())
-
-    for  i,e := range s._state.GetCommittedEntries() {
-        log.Printf("sending update mex to %v with data %v\n",workingNode.GetIp(), e)
-        err = s.generateUpdateRequest(workingNode,false,e)
+    
+    for i := 0; i < numCommEntr; i++ {
+        log.Printf("sending update mex to %v with data %v\n",workingNode.GetIp(), commitedEntries[i])
+        if i == numCommEntr-1{
+            log.Println("last entry, setting voteRight True for node: ", workingNode.GetIp())
+            canVote = true
+        }
+        err = s.generateUpdateRequest(workingNode,canVote,commitedEntries[i])
         if err != nil {
             log.Printf("error generata UpdateRequest : %v\n", err)
             return 
@@ -237,11 +244,7 @@ func (s *server) updateNewNode(workingNode node.Node){
         for  workingNode.GetMatchIndex() < i {
             //WARN: WAIT
         }
-    }
-    err = s.generateUpdateRequest(workingNode,true,nil)
-    if err != nil {
-        log.Printf("error generata UpdateRequest : %v\n", err)
-        return 
+        
     }
     log.Printf("node %v updated\n",workingNode.GetIp())
     workingNode.NodeUpdated()
