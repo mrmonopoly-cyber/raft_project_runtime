@@ -193,7 +193,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
             }
             workingNode.CloseConnection()
             s.unstableNodes.Delete(nodeIp);
-            if s._state.Leader(){
+            if s._state.Leader() || s._state.GetNumberNodesInCurrentConf() == 2{
                 s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
             }
             break
