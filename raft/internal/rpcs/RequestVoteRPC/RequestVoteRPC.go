@@ -83,21 +83,23 @@ func (this *RequestVoteRPC) Execute(state raftstate.State, sender node.Node) *rp
 		log.Printf("request vote: this node cannot vote right now")
 		return nil
 	}
-	if this.pMex.GetTerm() < state.GetTerm() {
-		log.Printf("request vote: not valid term vote false: my term %v, other therm %v",
-			state.GetTerm(), this.pMex.GetTerm())
-		return this.respondeVote(state, &senderIp, false)
-	}
 
-    if ! state.More_recent_log(this.GetLastLogIndex(), this.GetLastLogTerm()) {
-        log.Printf("request vote: log not recent enough")
-        return this.respondeVote(state, &senderIp,false)
-    }else if myVote == "" || myVote == this.GetCandidateId(){
-        log.Printf("request vote: vote accepted, voting for: %v", this.GetCandidateId())
-        state.VoteFor(senderIp)
-        return this.respondeVote(state,&senderIp,true)
+    /*TODO: check validity of the vote:
+        term >= this.term
+        votedFor == NULL OR votedFor == candidateId,
+        lastLogIdx >= this.lastLogIdx,
+        lastLogTerm >= this.lastLogTerm,
+
+
+    */
+    
+    if (this.pMex.Term >= state.GetTerm()) && (myVote == "" || myVote == this.pMex.CandidateId) &&
+        (this.pMex.LastLogIndex >= int64(state.LastLogIndex())) && (this.pMex.LastLogTerm >= uint64(state.LastLogTerm())){
+            log.Println("vote accepted")
+            return this.respondeVote(state,&senderIp,true)
     }
 
+    log.Println("vote rejected")
 	return this.respondeVote(state, &senderIp, false)
 }
 

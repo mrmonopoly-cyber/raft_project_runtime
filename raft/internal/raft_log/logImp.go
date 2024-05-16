@@ -10,38 +10,38 @@ import (
 	"sync"
 )
 
-type cConf interface{
-    GetNumberNodesInCurrentConf() int
-    IsInConf(ipNode string) bool
-    ConfChanged() bool
-    GetConfig() []string
+type cConf interface {
+	GetNumberNodesInCurrentConf() int
+	IsInConf(ipNode string) bool
+	ConfChanged() bool
+	GetConfig() []string
 }
 
 type log struct {
-    lock            sync.RWMutex
-    newEntryToApply chan int
+	lock            sync.RWMutex
+	newEntryToApply chan int
 
-    entries     []*p.LogEntry
-    logSize     uint
-    commitIndex int64
-    lastApplied int
+	entries     []*p.LogEntry
+	logSize     uint
+	commitIndex int64
+	lastApplied int
 
-    realClusterState
+	realClusterState
 }
 
-type realClusterState struct{
-    cConf   clusterconf.Configuration
-    localFs localfs.LocalFs
-}
 
+type realClusterState struct {
+	cConf   clusterconf.Configuration
+	localFs localfs.LocalFs
+}
 
 // GetCommittedEntries implements LogEntry.
 func (this *log) GetCommittedEntries() []*p.LogEntry {
-    var committedEntries []*p.LogEntry = make([]*p.LogEntry, this.commitIndex+1)
-    for i := range committedEntries {
-        committedEntries[i] = this.entries[i]
-    }
-    return committedEntries
+	var committedEntries []*p.LogEntry = make([]*p.LogEntry, this.commitIndex+1)
+	for i := range committedEntries {
+		committedEntries[i] = this.entries[i]
+	}
+	return committedEntries
 }
 
 // GetEntriAt implements LogEntry.
@@ -129,25 +129,17 @@ func (this *log) GetEntries() []*p.LogEntry {
 func (this *log) LastLogIndex() int {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	return len(this.entries) - 1
+
+    var committedEntr = this.GetCommittedEntries()
+    return len(committedEntr)-1
 }
 
-func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) bool {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
+// LastLogTerm implements LogEntry.
+func (this *log) LastLogTerm() uint {
+    var committedEntr = this.GetCommittedEntries()
+    var lasLogIdx = this.LastLogIndex()
 
-	if last_log_index >= this.commitIndex {
-        l.Printf("lastlogidx good enough")
-		var entries []*p.LogEntry = this.GetCommittedEntries()
-		if len(entries) <= int(last_log_index) {
-			return true
-		}
-		if last_log_term >= (entries[last_log_index]).Term {
-			return true
-		}
-	}
-	return false
-
+    return uint(committedEntr[lasLogIdx].Term)
 }
 
 func (this *log) AppendEntries(newEntries []*p.LogEntry) {
