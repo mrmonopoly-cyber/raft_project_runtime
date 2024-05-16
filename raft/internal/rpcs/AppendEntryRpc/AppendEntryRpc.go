@@ -63,22 +63,21 @@ func NewAppendEntryRPC(state raftstate.State, prevLogIndex int64, prevLogTerm ui
         },
     }
 }
-
-func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobuf.LogEntry) (ERRORS, int) {
+func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobuf.LogEntry) (bool, int) {
     var logSize = len(entries)
     if prevLogIndex < 0 {
-        return C0, 0
+        return true, 0
     }
 
     if logSize == 0  && prevLogIndex > 0{
         log.Println("case 2: logSize = 0")
-        return C2, 0
+        return false, 0
     }
 
     if logSize-1 < int(prevLogIndex) {
         log.Println("case 2")
         log.Printf("logSize - 1: %d, and prevLogIndex: %d", (logSize-1), int(prevLogIndex))
-        return C2, (logSize - 1)
+        return false, (logSize - 1)
     }
     fmt.Print("case 3")
   log.Println(entries)
@@ -87,20 +86,49 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
     consistent := entries[prevLogIndex].GetTerm() == prevLogTerm
 
     if consistent {
-        return C0, (int(prevLogIndex) + 1)
+        return true, (int(prevLogIndex) + 1)
     } else {
-        return C3, int(prevLogIndex)
+        return false, int(prevLogIndex)
     }
 }
 
-// Manage implements rpcs.Rpc.
+
+// func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobuf.LogEntry) (ERRORS, int) {
+//     var logSize = len(entries)
+//     if prevLogIndex < 0 {
+//         return C0, 0
+//     }
+//
+//     if logSize == 0  && prevLogIndex > 0{
+//         log.Println("case 2: logSize = 0")
+//         return C2, 0
+//     }
+//
+//     if logSize-1 < int(prevLogIndex) {
+//         log.Println("case 2")
+//         log.Printf("logSize - 1: %d, and prevLogIndex: %d", (logSize-1), int(prevLogIndex))
+//         return C2, (logSize - 1)
+//     }
+//     fmt.Print("case 3")
+//   log.Println(entries)
+//   log.Printf("prevLogTerm: %d,, getTerm: %d, getDescr: %s,, getType: %o", prevLogTerm, entries[prevLogIndex].GetTerm(), entries[prevLogIndex].GetDescription(), entries[prevLogIndex].GetOpType())
+//     
+//     consistent := entries[prevLogIndex].GetTerm() == prevLogTerm
+//
+//     if consistent {
+//         return C0, (int(prevLogIndex) + 1)
+//     } else {
+//         return C3, int(prevLogIndex)
+//     }
+// }
+
 func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
 
     var role raftstate.Role = state.GetRole()
     var id string = state.GetIdPrivate()
     var myTerm uint64 = state.GetTerm()
     var nextIdx int
-    var consistent ERRORS
+    var consistent bool
     var prevLogIndex int64 = this.pMex.GetPrevLogIndex()
     var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
     var entries []*protobuf.LogEntry = state.GetEntries()
@@ -108,8 +136,9 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) *rp
 
     var resp *rpcs.Rpc = nil
     var leaderCommit int64
+    var lastNewEntryIdx int64
 
-    if this.pMex.GetTerm() < myTerm { //case 1
+    if this.pMex.GetTerm() < myTerm {
         return respondeAppend(id, false, myTerm, -1)
     }
 
@@ -123,22 +152,29 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) *rp
     state.SetLeaderIpPublic(this.pMex.LeaderIdPublic)
 
     if len(newEntries) > 0 {
+
         //log.Println("received Append Entry", newEntries)
         consistent, nextIdx = checkConsistency(prevLogIndex, prevLogTerm, entries)
-        switch consistent{
-            case C2:
-                resp = respondeAppend(id, false, myTerm, nextIdx)
-            case C3:
-                state.DeleteFromEntry(uint(nextIdx))
-                resp = respondeAppend(id, false, myTerm, nextIdx)
-            default:
-                state.AppendEntries(newEntries)
-                leaderCommit = this.pMex.GetLeaderCommit()
+        fmt.Println(!consistent)
 
-                if leaderCommit > state.GetCommitIndex() {
-                    state.MinimumCommitIndex(uint(leaderCommit))
-                }
-                resp = respondeAppend(id, true , myTerm, state.LastLogIndex())
+        if !consistent {
+            fmt.Println("Not consistent")
+            resp = respondeAppend(id, false, myTerm, nextIdx)
+        } else {
+            // state.AppendEntries(newEntries, nextIdx)
+            state.AppendEntries(newEntries)
+            leaderCommit = this.pMex.GetLeaderCommit()
+            lastNewEntryIdx = int64(len(entries) - 1)
+
+            if leaderCommit > state.GetCommitIndex() {
+                state.MinimumCommitIndex(uint(lastNewEntryIdx))
+                // if leaderCommit > lastNewEntryIdx {
+                //     state.SetCommitIndex(lastNewEntryIdx)
+                // } else {
+                //     state.SetCommitIndex(leaderCommit)
+                // }
+            }
+            resp = respondeAppend(id, true , myTerm, state.LastLogIndex())
         }
     } 
 
@@ -150,6 +186,64 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) *rp
     state.StartElectionTimeout()
     return resp
 }
+
+// Manage implements rpcs.Rpc.
+// func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
+//
+//     var role raftstate.Role = state.GetRole()
+//     var id string = state.GetIdPrivate()
+//     var myTerm uint64 = state.GetTerm()
+//     var nextIdx int
+//     var consistent ERRORS
+//     var prevLogIndex int64 = this.pMex.GetPrevLogIndex()
+//     var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
+//     var entries []*protobuf.LogEntry = state.GetEntries()
+//     var newEntries []*protobuf.LogEntry = this.pMex.GetEntries()
+//
+//     var resp *rpcs.Rpc = nil
+//     var leaderCommit int64
+//
+//     if this.pMex.GetTerm() < myTerm { //case 1
+//         return respondeAppend(id, false, myTerm, -1)
+//     }
+//
+//     state.StopElectionTimeout()
+//
+//     if role != raftstate.FOLLOWER {
+//         state.SetRole(raftstate.FOLLOWER)
+//     }
+//
+//     state.SetLeaderIpPrivate(this.pMex.LeaderIdPrivate)
+//     state.SetLeaderIpPublic(this.pMex.LeaderIdPublic)
+//
+//     if len(newEntries) > 0 {
+//         //log.Println("received Append Entry", newEntries)
+//         consistent, nextIdx = checkConsistency(prevLogIndex, prevLogTerm, entries)
+//         switch consistent{
+//             case C2:
+//                 resp = respondeAppend(id, false, myTerm, nextIdx)
+//             case C3:
+//                 state.DeleteFromEntry(uint(nextIdx))
+//                 resp = respondeAppend(id, false, myTerm, nextIdx)
+//             default:
+//                 state.AppendEntries(newEntries)
+//                 leaderCommit = this.pMex.GetLeaderCommit()
+//
+//                 if leaderCommit > state.GetCommitIndex() {
+//                     state.MinimumCommitIndex(uint(leaderCommit))
+//                 }
+//                 resp = respondeAppend(id, true , myTerm, state.LastLogIndex())
+//         }
+//     } 
+//
+//     if resp == nil {
+//         log.Println("hearthbeat")
+//         resp = respondeAppend(id, true, myTerm, state.LastLogIndex())
+//     }
+//
+//     state.StartElectionTimeout()
+//     return resp
+// }
 
 func respondeAppend(id string, success bool, term uint64, error int) *rpcs.Rpc {
     var appendEntryResp rpcs.Rpc = app_resp.NewAppendResponseRPC(
