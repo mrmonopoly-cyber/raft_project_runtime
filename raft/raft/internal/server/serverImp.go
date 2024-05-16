@@ -405,7 +405,6 @@ func (s *server) run() {
 
 func (s *server) startNewElection(){
     log.Println("started new election");
-    var entryTerm uint64 = s._state.GetTerm()
 
     s._state.IncrementTerm()
     s._state.IncreaseSupporters()
@@ -423,14 +422,16 @@ func (s *server) startNewElection(){
             var voteRequest rpcs.Rpc 
             var raw_mex []byte
             var err error
-            var candidateLastLogIndex int
+            var lastLogIndex int
+            var lastLogTerm uint
 
-            candidateLastLogIndex = s._state.LastLogIndex()
+            lastLogIndex = s._state.LastLogIndex()
+            lastLogTerm = s._state.LastLogTerm()
             voteRequest = RequestVoteRPC.NewRequestVoteRPC(
                 s._state.GetTerm(),
                 s._state.GetIdPrivate(),
-                int64(candidateLastLogIndex),
-                entryTerm)
+                int64(lastLogIndex),
+                uint64(lastLogTerm))
 
                 raw_mex,err = genericmessage.Encode(&voteRequest)
                 if err != nil {
