@@ -32,17 +32,22 @@ type raftStateImpl struct {
 	nNotSupporting uint64
 	nNodeInCluster uint64
 
-    leader
+	leader
 }
 
-type leader struct{
-    leaderEntryToCommit chan int64
-    statePool           nodematchidx.NodeCommonMatch
+// LastLogTerm implements State.
+func (this *raftStateImpl) LastLogTerm() uint {
+    return this.log.LastLogTerm()
+}
+
+type leader struct {
+	leaderEntryToCommit chan int64
+	statePool           nodematchidx.NodeCommonMatch
 }
 
 // GetCommittedEntries implements State.
 func (this *raftStateImpl) GetCommittedEntries() []*p.LogEntry {
-    return this.log.GetCommittedEntries()
+	return this.log.GetCommittedEntries()
 }
 
 // GetStatePool implements State.
@@ -123,7 +128,7 @@ func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
 	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1 {
 		log.Println("auto commit entry")
 		this.log.IncreaseCommitIndex()
-        this.statePool.IncreaseCommonMathcIndex()
+		this.statePool.IncreaseCommonMathcIndex()
 		return
 	}
 	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderEntryToCommit, this.log.GetCommitIndex()+1)
