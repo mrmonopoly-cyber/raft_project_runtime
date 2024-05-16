@@ -71,7 +71,9 @@ func (this *conf) UpdateConfiguration(op CONF_OPE, nodeIps []string) {
             delete(this.newConf,v)
             delete(this.oldConf,v)
         }
-        this.joinConf = true
+        if !this.joinConf {
+            this.joinConf = false
+        }
     default:
         log.Println("invalid configuration operation, doing nothing, given: ", op)
         return
