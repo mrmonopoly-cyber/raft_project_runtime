@@ -96,6 +96,7 @@ func (this *RequestVoteRPC) Execute(state raftstate.State, sender node.Node) *rp
     if (this.pMex.Term >= state.GetTerm()) && (myVote == "" || myVote == this.pMex.CandidateId) &&
         (this.pMex.LastLogIndex >= int64(state.LastLogIndex())) && (this.pMex.LastLogTerm >= uint64(state.LastLogTerm())){
             log.Println("vote accepted")
+            state.VoteFor(this.pMex.CandidateId)
             return this.respondeVote(state,&senderIp,true)
     }
 
