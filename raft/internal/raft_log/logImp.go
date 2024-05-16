@@ -137,7 +137,7 @@ func (this *log) More_recent_log(last_log_index int64, last_log_term uint64) boo
 	defer this.lock.RUnlock()
 
 	if last_log_index >= this.commitIndex {
-		var entries []*p.LogEntry = this.GetEntries()
+		var entries []*p.LogEntry = this.GetCommittedEntries()
 		if len(entries) <= int(last_log_index) {
 			return true
 		}
