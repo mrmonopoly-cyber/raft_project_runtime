@@ -425,7 +425,7 @@ func (s *server) startNewElection(){
             var err error
             var candidateLastLogIndex int
 
-            candidateLastLogIndex = n.GetMatchIndex()
+            candidateLastLogIndex = s._state.LastLogIndex()
             voteRequest = RequestVoteRPC.NewRequestVoteRPC(
                 s._state.GetTerm(),
                 s._state.GetIdPrivate(),
