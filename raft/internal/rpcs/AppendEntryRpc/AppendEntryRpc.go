@@ -36,7 +36,7 @@ func GenerateHearthbeat(state raftstate.State, nextIndex int) rpcs.Rpc {
 
     var prevLogIndex = nextIndex-1
     var prevLogTerm uint64 = 0
-    if prevLogIndex <0{
+    if prevLogIndex >=0{
         prevLogTerm = committedEntries[prevLogIndex].Term
     }
 
