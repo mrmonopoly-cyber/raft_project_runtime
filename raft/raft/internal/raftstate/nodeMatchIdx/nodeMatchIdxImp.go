@@ -7,15 +7,9 @@ import (
 	"sync"
 )
 
-type EntryToSend struct{
-    EntryIndex int
-    Ip string
-}
-
 type commonMatchNode struct {
 	lock                sync.RWMutex
 	notifyChannNewEntry chan int
-	notifyChannOldEntry chan EntryToSend
 	allNodeStates       sync.Map
 	behindNode          sync.Map
 	numNode             uint
@@ -104,7 +98,6 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 	var err error
 	var nodeStatePriv nodeState.VolatileNodeState
 	var matchIdx int
-	var nextIdx int
 	var numNodeHalf = c.numNode / 2
 
 	nodeStatePriv, err = c.findNode(ip)
@@ -114,14 +107,7 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 
 	switch indexType {
 	case NEXT:
-		nextIdx = nodeStatePriv.GetNextIndex()
 		nodeStatePriv.SetNextIndex(value)
-		if value < nextIdx {
-			c.notifyChannOldEntry <- EntryToSend{
-                EntryIndex: value,
-                Ip: ip,
-            }
-		}
 	case MATCH:
 		log.Printf("updating match index with value %v, numNodes %v, stable %v\n", value, c.numNode, c.numStable)
 		/*
@@ -192,14 +178,6 @@ func (c *commonMatchNode) GetNotifyChannel() chan int {
 	defer c.lock.RUnlock()
 
 	return c.notifyChannNewEntry
-}
-
-// GetNotifyChannelOldEntry implements NodeCommonMatch.
-func (c *commonMatchNode) GetNotifyChannelOldEntry() chan EntryToSend{
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	return c.notifyChannOldEntry
 }
 
 // utility

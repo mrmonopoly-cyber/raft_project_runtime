@@ -13,7 +13,6 @@ const(
 
 type NodeCommonMatch interface{
     GetNotifyChannel() chan int
-    GetNotifyChannelOldEntry() chan EntryToSend
     AddNode(ip string)
     RemNode(ip string)
     UpdateNodeState(ip string, indexType INDEX, value int) error
@@ -29,7 +28,6 @@ type NodeCommonMatch interface{
 func NewNodeCommonMatch() NodeCommonMatch{
     return &commonMatchNode{
     	notifyChannNewEntry: make(chan int),
-    	notifyChannOldEntry: make(chan EntryToSend),
     	allNodeStates:   sync.Map{},
     	numNode:     1,
     	commonIdx:   -1,
