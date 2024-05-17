@@ -207,18 +207,25 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
 
 func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
-
-    log.Println("debug, joinConf : ,", s._state.GetConfig())
-
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_ADD,
         Term: s._state.GetTerm(),
         Payload: []byte(nodeIp),
         Description: "added new node " + nodeIp + " to configuration: ",
     }
+    var commitConf p.LogEntry = p.LogEntry{
+        Term: s._state.GetTerm(),
+        Description: "committing configuration for the node updated",
+        OpType: p.Operation_COMMIT_CONFIG,
+        Payload: []byte(workingNode.GetIp()),
+    }
+
+    log.Println("debug, joinConf : ,", s._state.GetConfig())
+
 
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
     s.updateNewNode(workingNode)              
+    s._state.AppendEntries([]*p.LogEntry{&commitConf})
 }
 
 func (s *server) updateNewNode(workingNode node.Node){
@@ -248,6 +255,7 @@ func (s *server) updateNewNode(workingNode node.Node){
     }
     log.Printf("node %v updated\n",workingNode.GetIp())
     workingNode.NodeUpdated()
+
 }
 
 func (this *server) generateUpdateRequest(workingNode node.Node, voting bool, entry *p.LogEntry) error{

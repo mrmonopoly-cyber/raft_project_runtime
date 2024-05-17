@@ -2,6 +2,7 @@ package clusterconf
 
 import (
 	"log"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"sync"
 )
 
@@ -55,21 +56,29 @@ func (this *conf) GetConfig() []string {
 	return res
 }
 
-func (this *conf) UpdateConfiguration(op CONF_OPE, nodeIps []string) {
+func (this *conf) UpdateConfiguration(op protobuf.Operation, nodeIps []string) {
 	log.Printf("Updating conf with new nodes: %v\n", nodeIps)
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
     switch op{
-    case ADD:
+    case protobuf.Operation_JOIN_CONF_ADD:
         for _, v := range nodeIps {
             this.newConf[v] = v
         }
         this.joinConf = true
-    case DEL:
+    case protobuf.Operation_JOIN_CONF_DEL:
         for _, v := range nodeIps {
             delete(this.newConf,v)
             delete(this.oldConf,v)
+        }
+    case protobuf.Operation_COMMIT_CONFIG:
+        for _, v := range nodeIps {
+            delete(this.newConf,v)
+            this.oldConf[v] = v
+        }
+        if len(this.newConf) == 0 {
+            this.joinConf = false
         }
     default:
         log.Println("invalid configuration operation, doing nothing, given: ", op)

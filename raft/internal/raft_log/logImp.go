@@ -5,6 +5,7 @@ import (
 	l "log"
 	localfs "raft/internal/localFs"
 	clusterconf "raft/internal/raftstate/clusterConf"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strings"
 	"sync"
@@ -114,7 +115,7 @@ func (this *log) GetConfig() []string {
 }
 
 // UpdateConfiguration implements LogEntry.
-func (this *log) UpdateConfiguration(confOp clusterconf.CONF_OPE, nodeIps []string) {
+func (this *log) UpdateConfiguration(confOp protobuf.Operation, nodeIps []string) {
 	this.cConf.UpdateConfiguration(confOp, nodeIps)
 }
 
@@ -182,10 +183,8 @@ func (this *log) updateLastApplied() error {
 
 			l.Printf("updating entry: %v", entry)
 			switch entry.OpType {
-			case p.Operation_JOIN_CONF_ADD:
-				this.applyConf(clusterconf.ADD, entry)
-			case p.Operation_JOIN_CONF_DEL:
-				this.applyConf(clusterconf.DEL, entry)
+			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL, p.Operation_COMMIT_CONFIG:
+				this.applyConf(entry.OpType, entry)
 			default:
 				(*this).localFs.ApplyLogEntry(entry)
 			}
@@ -194,7 +193,7 @@ func (this *log) updateLastApplied() error {
 	}
 }
 
-func (this *log) applyConf(ope clusterconf.CONF_OPE, entry *p.LogEntry) {
+func (this *log) applyConf(ope protobuf.Operation, entry *p.LogEntry) {
 	var confUnfiltered string = string(entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, " ")
 	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
