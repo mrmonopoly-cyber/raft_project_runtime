@@ -263,27 +263,6 @@ func (this *server) generateUpdateRequest(workingNode node.Node, voting bool, en
     return workingNode.Send(mex)
 }
 
-func (s *server) sendAll(rpc *rpcs.Rpc){
-   log.Println("start broadcast")
-   s.applyOnFollowers(func(n node.Node) {
-       var raw_mex []byte
-       var err error
-
-       raw_mex,err = genericmessage.Encode(rpc)
-       if err != nil {
-           log.Panicln("error in Encoding this rpc: ",(*rpc).ToString())
-       }
-       log.Printf("sending to %v with key %v\n", n.GetIp(),n.GetIp())
-       err = n.Send(raw_mex)
-       if err != nil{
-           log.Panicln("error sending message to node ",err)
-       }
-
-
-   })
-   log.Println("end broadcast")
-}
-
 func (s *server) run() {
     for {
         var mess pairMex
@@ -343,7 +322,6 @@ func (s *server) run() {
             }
 
             if s._state.Leader() && oldRole != state.LEADER {
-                // s.setVolState() 
                 s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
                 go s.leaderHearthBit()
             }
@@ -452,29 +430,30 @@ func (s *server) leaderHearthBit(){
 
             hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
             log.Println("sending hearthbit")
-            s.sendAll(&hearthBit)
+            log.Println("start broadcast")
+            s.applyOnFollowers(func(n node.Node) {
+                var raw_mex []byte
+                var err error
+
+                raw_mex,err = genericmessage.Encode(&hearthBit)
+                if err != nil {
+                    log.Panicln("error in Encoding this rpc: ",hearthBit.ToString())
+                }
+                log.Printf("sending to %v with key %v\n", n.GetIp(),n.GetIp())
+                err = n.Send(raw_mex)
+                if err != nil{
+                    log.Panicln("error sending message to node ",err)
+                }
+
+
+            })
+            log.Println("end broadcast")
             s._state.StartHearthbeatTimeout()
         }
     }
-    // s.setVolState()
     s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
     log.Println("no longer LEADER, stop sending hearthbit")
 }
-
-// func (s *server) setVolState() {
-//     s.unstableNodes.Range(func(key, value any) bool {
-//             var nNode node.Node
-//             var found bool
-//
-//             nNode,found = value.(node.Node)
-//             if !found{
-//                 panic("error type is not a node.Node")
-//             }
-//
-//             nNode.InitVolatileState(s._state.LastLogIndex())
-//         return true;
-//     })
-// }
 
 func (s* server) applyOnFollowers(fn func(n node.Node)){
     var currentConf []string = s._state.GetConfig()

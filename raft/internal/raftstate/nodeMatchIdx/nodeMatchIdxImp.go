@@ -11,6 +11,7 @@ type commonMatchNode struct {
 	lock          sync.RWMutex
 	notifyChann   chan int
 	allNodeStates sync.Map
+    behindNode sync.Map
 	numNode       uint
 	commonIdx     int
 	numStable     int
@@ -18,12 +19,12 @@ type commonMatchNode struct {
 
 // InitCommonMatch implements NodeCommonMatch.
 func (c *commonMatchNode) InitCommonMatch(commonMatchIndex int) {
-    c.commonIdx = commonMatchIndex
-    c.allNodeStates.Range(func(key, value any) bool {
-        var nodeState = value.(nodeState.VolatileNodeState)
-        nodeState.InitVolatileState(commonMatchIndex)
-        return true
-    })
+	c.commonIdx = commonMatchIndex
+	c.allNodeStates.Range(func(key, value any) bool {
+		var nodeState = value.(nodeState.VolatileNodeState)
+		nodeState.InitVolatileState(commonMatchIndex)
+		return true
+	})
 }
 
 // IncreaseCommonMathcIndex implements NodeCommonMatch.
