@@ -475,6 +475,6 @@ func (s* server) applyOnFollowers(fn func(n node.Node)){
             var s = reflect.TypeOf(value)
             log.Panicln("failed conversion type node, type is: ", s)
         }
-        fn(nNode)
+        go fn(nNode)
     }
 }
