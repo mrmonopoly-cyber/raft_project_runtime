@@ -8,6 +8,7 @@ import (
 	"raft/internal/node"
 	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
+	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/ClientReq"
@@ -263,31 +264,11 @@ func (this *server) generateUpdateRequest(workingNode node.Node, voting bool, en
     return workingNode.Send(mex)
 }
 
-func (s *server) sendAll(rpc *rpcs.Rpc){
-   log.Println("start broadcast")
-   s.applyOnFollowers(func(n node.Node) {
-       var raw_mex []byte
-       var err error
-
-       raw_mex,err = genericmessage.Encode(rpc)
-       if err != nil {
-           log.Panicln("error in Encoding this rpc: ",(*rpc).ToString())
-       }
-       log.Printf("sending to %v with key %v\n", n.GetIp(),n.GetIp())
-       err = n.Send(raw_mex)
-       if err != nil{
-           log.Panicln("error sending message to node ",err)
-       }
-
-
-   })
-   log.Println("end broadcast")
-}
-
 func (s *server) run() {
     for {
         var mess pairMex
         var leaderCommitEntry int64
+        var MexToSend nodematchidx.EntryToSend
 
         select {
         case mess = <-s.messageChannel:
@@ -343,7 +324,6 @@ func (s *server) run() {
             }
 
             if s._state.Leader() && oldRole != state.LEADER {
-                // s.setVolState() 
                 s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
                 go s.leaderHearthBit()
             }
@@ -400,6 +380,35 @@ func (s *server) run() {
                 log.Printf("sending appendEntry to: %v, %v",n.GetIp(), AppendEntry.ToString())
                 n.Send(rawMex)
             })
+        case MexToSend = <- s._state.GetStatePool().GetNotifyChannelOldEntry():
+            var v,ok = s.unstableNodes.Load(MexToSend.Ip)
+            var nNode node.Node
+            var missingEntry []*p.LogEntry = make([]*p.LogEntry, 0)
+            var committedEntry = s._state.GetCommittedEntries()
+            var appendEntry rpcs.Rpc
+            var PrevLogTerm = committedEntry[MexToSend.EntryIndex-1].Term
+            var rawMex []byte
+            var err error
+
+            if !ok{
+                log.Panicf("node not found %v\n",MexToSend.EntryIndex)
+            }
+            nNode = v.(node.Node)
+
+            for i := MexToSend.EntryIndex; i < len(committedEntry); i++ {
+                missingEntry = append(missingEntry, committedEntry[i])
+            }
+
+            appendEntry = AppendEntryRpc.NewAppendEntryRPC(s._state, 
+                int64(MexToSend.EntryIndex),PrevLogTerm,missingEntry)
+            
+            rawMex,err = genericmessage.Encode(&appendEntry)
+            if err!= nil{
+                log.Panicf("error encoding appendEntry for response: %v\n", appendEntry.ToString())
+            }
+
+            log.Printf("sending fixing response to %v with data: %v\n",MexToSend.Ip, appendEntry.ToString() )
+            nNode.Send(rawMex)
         }
     }
 }
@@ -452,29 +461,30 @@ func (s *server) leaderHearthBit(){
 
             hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
             log.Println("sending hearthbit")
-            s.sendAll(&hearthBit)
+            log.Println("start broadcast")
+            s.applyOnFollowers(func(n node.Node) {
+                var raw_mex []byte
+                var err error
+
+                raw_mex,err = genericmessage.Encode(&hearthBit)
+                if err != nil {
+                    log.Panicln("error in Encoding this rpc: ",hearthBit.ToString())
+                }
+                log.Printf("sending to %v with key %v\n", n.GetIp(),n.GetIp())
+                err = n.Send(raw_mex)
+                if err != nil{
+                    log.Panicln("error sending message to node ",err)
+                }
+
+
+            })
+            log.Println("end broadcast")
             s._state.StartHearthbeatTimeout()
         }
     }
-    // s.setVolState()
     s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
     log.Println("no longer LEADER, stop sending hearthbit")
 }
-
-// func (s *server) setVolState() {
-//     s.unstableNodes.Range(func(key, value any) bool {
-//             var nNode node.Node
-//             var found bool
-//
-//             nNode,found = value.(node.Node)
-//             if !found{
-//                 panic("error type is not a node.Node")
-//             }
-//
-//             nNode.InitVolatileState(s._state.LastLogIndex())
-//         return true;
-//     })
-// }
 
 func (s* server) applyOnFollowers(fn func(n node.Node)){
     var currentConf []string = s._state.GetConfig()

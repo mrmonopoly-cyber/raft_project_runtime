@@ -139,7 +139,11 @@ func (this *log) LastLogTerm() uint {
     var committedEntr = this.GetCommittedEntries()
     var lasLogIdx = this.LastLogIndex()
 
-    return uint(committedEntr[lasLogIdx].Term)
+    if lasLogIdx >= 0{
+        return uint(committedEntr[lasLogIdx].Term)
+    }
+    return 0
+
 }
 
 func (this *log) AppendEntries(newEntries []*p.LogEntry) {
