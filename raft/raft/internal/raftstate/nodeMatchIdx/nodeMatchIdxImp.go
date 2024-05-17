@@ -117,7 +117,10 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 		nextIdx = nodeStatePriv.GetNextIndex()
 		nodeStatePriv.SetNextIndex(value)
 		if value < nextIdx {
-			c.notifyChannOldEntry <- value
+			c.notifyChannOldEntry <- EntryToSend{
+                EntryIndex: value,
+                Ip: ip,
+            }
 		}
 	case MATCH:
 		log.Printf("updating match index with value %v, numNodes %v, stable %v\n", value, c.numNode, c.numStable)
