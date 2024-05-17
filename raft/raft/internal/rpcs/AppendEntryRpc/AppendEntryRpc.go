@@ -28,7 +28,7 @@ func GenerateHearthbeat(state raftstate.State, nextIndex int) rpcs.Rpc {
     var missingEntry []*protobuf.LogEntry = make([]*protobuf.LogEntry, 0)
     var committedEntries = state.GetCommittedEntries()
 
-    if nextIndex > 0{
+    if nextIndex >= 0{
         for i := nextIndex; i < state.LastLogIndex(); i++ {
             missingEntry = append(missingEntry,committedEntries[i] )
         }
@@ -36,7 +36,7 @@ func GenerateHearthbeat(state raftstate.State, nextIndex int) rpcs.Rpc {
 
     var prevLogIndex = nextIndex-1
     var prevLogTerm uint64 = 0
-    if prevLogIndex <0{
+    if prevLogIndex >=0{
         prevLogTerm = committedEntries[prevLogIndex].Term
     }
 
