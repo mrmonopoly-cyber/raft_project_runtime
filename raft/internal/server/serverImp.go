@@ -8,7 +8,6 @@ import (
 	"raft/internal/node"
 	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
-	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/ClientReq"
@@ -268,7 +267,6 @@ func (s *server) run() {
     for {
         var mess pairMex
         var leaderCommitEntry int64
-        var MexToSend nodematchidx.EntryToSend
 
         select {
         case mess = <-s.messageChannel:
@@ -380,35 +378,6 @@ func (s *server) run() {
                 log.Printf("sending appendEntry to: %v, %v",n.GetIp(), AppendEntry.ToString())
                 n.Send(rawMex)
             })
-        case MexToSend = <- s._state.GetStatePool().GetNotifyChannelOldEntry():
-            var v,ok = s.unstableNodes.Load(MexToSend.Ip)
-            var nNode node.Node
-            var missingEntry []*p.LogEntry = make([]*p.LogEntry, 0)
-            var committedEntry = s._state.GetCommittedEntries()
-            var appendEntry rpcs.Rpc
-            var PrevLogTerm = committedEntry[MexToSend.EntryIndex-1].Term
-            var rawMex []byte
-            var err error
-
-            if !ok{
-                log.Panicf("node not found %v\n",MexToSend.EntryIndex)
-            }
-            nNode = v.(node.Node)
-
-            for i := MexToSend.EntryIndex; i < len(committedEntry); i++ {
-                missingEntry = append(missingEntry, committedEntry[i])
-            }
-
-            appendEntry = AppendEntryRpc.NewAppendEntryRPC(s._state, 
-                int64(MexToSend.EntryIndex),PrevLogTerm,missingEntry)
-            
-            rawMex,err = genericmessage.Encode(&appendEntry)
-            if err!= nil{
-                log.Panicf("error encoding appendEntry for response: %v\n", appendEntry.ToString())
-            }
-
-            log.Printf("sending fixing response to %v with data: %v\n",MexToSend.Ip, appendEntry.ToString() )
-            nNode.Send(rawMex)
         }
     }
 }
