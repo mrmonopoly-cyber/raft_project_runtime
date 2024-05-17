@@ -460,7 +460,7 @@ func (s *server) leaderHearthBit(){
             var hearthBit rpcs.Rpc
 
             hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
-            log.Println("sending hearthbit")
+            log.Println("sending hearthbit: %v", hearthBit.ToString())
             log.Println("start broadcast")
             s.applyOnFollowers(func(n node.Node) {
                 var raw_mex []byte
