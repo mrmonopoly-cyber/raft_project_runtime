@@ -31,7 +31,7 @@ func (this *RequestVoteResponse) GetId() string {
 
 
 // Manage implements rpcs.Rpc.
-func (this *RequestVoteResponse) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
+func (this *RequestVoteResponse) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     if this.GetVote() {
         log.Println("received positive vote");
         state.IncreaseSupporters()

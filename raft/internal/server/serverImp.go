@@ -272,10 +272,10 @@ func (s *server) run() {
 
         select {
         case mess = <-s.messageChannel:
-            var rpcCall *rpcs.Rpc
+            var rpcCall rpcs.Rpc
             var sender string = mess.sender
             var oldRole raftstate.Role
-            var resp *rpcs.Rpc
+            var resp rpcs.Rpc
             var byEnc []byte
             var errEn error
             var f any
@@ -292,8 +292,8 @@ func (s *server) run() {
 
             senderNode = f.(node.Node)
             oldRole = s._state.GetRole()
-            rpcCall = mess.payload
-            resp = (*rpcCall).Execute(s._state, senderNode)
+            rpcCall = *mess.payload
+            resp = rpcCall.Execute(s._state, senderNode)
 
             if s._state.ConfChanged() {
                 log.Printf("configuration changed, adding the new nodes\n")
@@ -316,9 +316,9 @@ func (s *server) run() {
                 //          log.Println("reponse to send to: ", sender)
 
                 //log.Println("sending mex to: ",sender)
-                byEnc, errEn = genericmessage.Encode(resp)
+                byEnc, errEn = genericmessage.Encode(&resp)
                 if errEn != nil{
-                    log.Panicln("error encoding this rpc: ", (*resp).ToString())
+                    log.Panicln("error encoding this rpc: ", resp.ToString())
                 }
                 senderNode.Send(byEnc)
             }
@@ -460,7 +460,7 @@ func (s *server) leaderHearthBit(){
             var hearthBit rpcs.Rpc
 
             hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
-            log.Println("sending hearthbit: %v", hearthBit.ToString())
+            log.Printf("sending hearthbit: %v\n", hearthBit.ToString())
             log.Println("start broadcast")
             s.applyOnFollowers(func(n node.Node) {
                 var raw_mex []byte

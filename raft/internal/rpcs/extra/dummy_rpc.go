@@ -19,7 +19,7 @@ func NewNEW_RPCRPC(term uint64) rpcs.Rpc {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *NEW_RPC) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
+func (this *NEW_RPC) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     panic("dummy implementation")
 }
 

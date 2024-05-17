@@ -16,7 +16,7 @@ type ClientReq struct {
 
 
 // Manage implements rpcs.Rpc.
-func (this *ClientReq) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
+func (this *ClientReq) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     var operation protobuf.Operation = (*this).pMex.Op
     var newEntries []*protobuf.LogEntry =make([]*protobuf.LogEntry, 1)
     var newLogEntry protobuf.LogEntry
