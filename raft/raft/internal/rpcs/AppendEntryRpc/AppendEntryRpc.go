@@ -126,7 +126,7 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
     state.SetLeaderIpPrivate(this.pMex.LeaderIdPrivate)
     state.SetLeaderIpPublic(this.pMex.LeaderIdPublic)
 
-    if  newEntries != nil {
+    if  len(newEntries) > 0{
         //log.Println("received Append Entry", newEntries)
         consistent, nextIdx = checkConsistency(prevLogIndex, prevLogTerm, entries)
         switch consistent{
