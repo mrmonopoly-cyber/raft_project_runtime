@@ -1,17 +1,13 @@
 package clusterconf
 
-import "sync"
-
-type CONF_OPE uint8
-
-const (
-    ADD CONF_OPE = iota
-    DEL CONF_OPE = iota
+import (
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"sync"
 )
 
 type Configuration interface{
     GetConfig() []string
-    UpdateConfiguration(op CONF_OPE,nodeIps []string)
+    UpdateConfiguration(op protobuf.Operation,nodeIps []string)
     CommitConfig()
     ConfChanged() bool
     IsInConf(nodeIp string) bool

@@ -10,10 +10,11 @@ enum Operation {
   DELETE = 2;
   JOIN_CONF_ADD = 3;
   JOIN_CONF_DEL = 4;
-  NODE_UPDATED = 5;
-  NODE_DELETED = 6;
-  CREATE = 7;
-  RENAME = 8;
+  COMMIT_CONFIG = 5;
+  NODE_UPDATED = 6;
+  NODE_DELETED = 7;
+  CREATE = 8;
+  RENAME = 9;
 }
 
 message logEntry {
