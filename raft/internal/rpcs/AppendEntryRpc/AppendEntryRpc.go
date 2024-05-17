@@ -24,7 +24,14 @@ type AppendEntryRpc struct {
     pMex protobuf.AppendEntriesRequest
 }
 
-func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
+func GenerateHearthbeat(state raftstate.State, nextIndex int) rpcs.Rpc {
+    var missingEntry []*protobuf.LogEntry = make([]*protobuf.LogEntry, 0)
+    var committedEntries = state.GetCommittedEntries()
+
+    for i := nextIndex; i < state.LastLogIndex(); i++ {
+        missingEntry = append(missingEntry,committedEntries[i] )
+    }
+
     var prevLogIndex = state.LastLogIndex()
     var prevLogTerm uint64 = uint64(state.LastLogTerm())
 
@@ -35,7 +42,7 @@ func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
             LeaderIdPublic:     state.GetIdPublic(),
             PrevLogIndex: int64(prevLogIndex),
             PrevLogTerm:  prevLogTerm,
-            Entries:      nil,
+            Entries:      missingEntry,
             LeaderCommit: state.GetCommitIndex(),
         },
     }
