@@ -365,7 +365,10 @@ func (s *server) run() {
                     log.Panicln(err)
                 }
 
-                if n.GetMatchIndex() >= int(leaderCommitEntry) || !n.Updated(){
+                // if n.GetMatchIndex() >= int(leaderCommitEntry) || !n.Updated(){
+                //     return 
+                // }
+                if n.GetMatchIndex() >= int(leaderCommitEntry) {
                     return 
                 }
 

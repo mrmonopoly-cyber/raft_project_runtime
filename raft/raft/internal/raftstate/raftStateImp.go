@@ -27,6 +27,7 @@ type raftStateImpl struct {
 	electionTimeoutRaw int
 
 	log l.LogEntry
+    waitToAppend []*p.LogEntry
 
 	nSupporting    uint64
 	nNotSupporting uint64
@@ -124,6 +125,11 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 }
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
+    if !this.CanVote() {
+        this.waitToAppend = append(this.waitToAppend, newEntries...)
+        return
+    }
+
 	this.log.AppendEntries(newEntries)
 	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1 {
 		log.Println("auto commit entry")
@@ -176,6 +182,10 @@ func (this *raftStateImpl) CanVote() bool {
 
 func (this *raftStateImpl) VoteRight(vote bool) {
 	(*this).voting = vote
+    if vote {
+        this.AppendEntries(this.waitToAppend)
+        this.waitToAppend = make([]*p.LogEntry, 0)
+    }
 }
 
 func (this *raftStateImpl) HeartbeatTimeout() *time.Timer {
