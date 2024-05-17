@@ -428,13 +428,13 @@ func (s *server) leaderHearthBit(){
         case <- s._state.HeartbeatTimeout().C:
             var hearthBit rpcs.Rpc
 
-            log.Printf("sending hearthbit: %v\n", hearthBit.ToString())
             log.Println("start broadcast")
             s.applyOnFollowers(func(n node.Node) {
                 var raw_mex []byte
                 var err error
 
                 hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state, n.GetNextIndex())  
+                log.Printf("sending hearthbit: %v\n", hearthBit.ToString())
                 raw_mex,err = genericmessage.Encode(&hearthBit)
                 if err != nil {
                     log.Panicln("error in Encoding this rpc: ",hearthBit.ToString())
