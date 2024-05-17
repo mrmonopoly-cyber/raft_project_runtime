@@ -343,7 +343,8 @@ func (s *server) run() {
             }
 
             if s._state.Leader() && oldRole != state.LEADER {
-                s.setVolState() 
+                // s.setVolState() 
+                s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
                 go s.leaderHearthBit()
             }
             //         log.Println("rpc processed")
@@ -455,24 +456,25 @@ func (s *server) leaderHearthBit(){
             s._state.StartHearthbeatTimeout()
         }
     }
-    s.setVolState()
+    // s.setVolState()
+    s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
     log.Println("no longer LEADER, stop sending hearthbit")
 }
 
-func (s *server) setVolState() {
-    s.unstableNodes.Range(func(key, value any) bool {
-            var nNode node.Node
-            var found bool
-
-            nNode,found = value.(node.Node)
-            if !found{
-                panic("error type is not a node.Node")
-            }
-
-            nNode.InitVolatileState(s._state.LastLogIndex())
-        return true;
-    })
-}
+// func (s *server) setVolState() {
+//     s.unstableNodes.Range(func(key, value any) bool {
+//             var nNode node.Node
+//             var found bool
+//
+//             nNode,found = value.(node.Node)
+//             if !found{
+//                 panic("error type is not a node.Node")
+//             }
+//
+//             nNode.InitVolatileState(s._state.LastLogIndex())
+//         return true;
+//     })
+// }
 
 func (s* server) applyOnFollowers(fn func(n node.Node)){
     var currentConf []string = s._state.GetConfig()

@@ -16,9 +16,19 @@ type commonMatchNode struct {
 	numStable     int
 }
 
+// InitCommonMatch implements NodeCommonMatch.
+func (c *commonMatchNode) InitCommonMatch(commonMatchIndex int) {
+    c.commonIdx = commonMatchIndex
+    c.allNodeStates.Range(func(key, value any) bool {
+        var nodeState = value.(nodeState.VolatileNodeState)
+        nodeState.InitVolatileState(commonMatchIndex)
+        return true
+    })
+}
+
 // IncreaseCommonMathcIndex implements NodeCommonMatch.
 func (c *commonMatchNode) IncreaseCommonMathcIndex() {
-    c.commonIdx++
+	c.commonIdx++
 }
 
 // DoneUpdating implements NodeCommonMatch.

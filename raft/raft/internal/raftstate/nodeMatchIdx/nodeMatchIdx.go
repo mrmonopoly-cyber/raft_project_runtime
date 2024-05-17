@@ -22,6 +22,7 @@ type NodeCommonMatch interface{
     Updated(ip string) bool
     DoneUpdating(ip string)
     IncreaseCommonMathcIndex()
+    InitCommonMatch(commonMatchIndex int)
 }
 
 func NewNodeCommonMatch() NodeCommonMatch{
