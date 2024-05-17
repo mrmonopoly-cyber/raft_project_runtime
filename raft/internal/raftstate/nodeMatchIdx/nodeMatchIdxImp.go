@@ -7,15 +7,22 @@ import (
 	"sync"
 )
 
-type commonMatchNode struct {
-	lock          sync.RWMutex
-	notifyChann   chan int
-	allNodeStates sync.Map
-    behindNode sync.Map
-	numNode       uint
-	commonIdx     int
-	numStable     int
+type EntryToSend struct{
+    EntryIndex int
+    Ip string
 }
+
+type commonMatchNode struct {
+	lock                sync.RWMutex
+	notifyChannNewEntry chan int
+	notifyChannOldEntry chan EntryToSend
+	allNodeStates       sync.Map
+	behindNode          sync.Map
+	numNode             uint
+	commonIdx           int
+	numStable           int
+}
+
 
 // InitCommonMatch implements NodeCommonMatch.
 func (c *commonMatchNode) InitCommonMatch(commonMatchIndex int) {
@@ -97,6 +104,7 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 	var err error
 	var nodeStatePriv nodeState.VolatileNodeState
 	var matchIdx int
+	var nextIdx int
 	var numNodeHalf = c.numNode / 2
 
 	nodeStatePriv, err = c.findNode(ip)
@@ -106,7 +114,11 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 
 	switch indexType {
 	case NEXT:
+		nextIdx = nodeStatePriv.GetNextIndex()
 		nodeStatePriv.SetNextIndex(value)
+		if value < nextIdx {
+			c.notifyChannOldEntry <- value
+		}
 	case MATCH:
 		log.Printf("updating match index with value %v, numNodes %v, stable %v\n", value, c.numNode, c.numStable)
 		/*
@@ -120,7 +132,7 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 		               1.2.2.2- if false:
 		                   numStable++
 		                   for numStable > numNode/2:
-		                       notifyChann <- commonIdx
+		                       notifyChannNewEntry <- commonIdx
 		                       commonIdx++
 		                       numStable=1
 		                       foreach nodestate ns:
@@ -135,7 +147,7 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 		}
 		c.numStable++
 		for c.numStable > int(numNodeHalf) {
-			c.notifyChann <- c.commonIdx
+			c.notifyChannNewEntry <- c.commonIdx
 			c.commonIdx++
 			c.numStable = 1
 			c.allNodeStates.Range(func(key, value any) bool {
@@ -176,7 +188,15 @@ func (c *commonMatchNode) GetNotifyChannel() chan int {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	return c.notifyChann
+	return c.notifyChannNewEntry
+}
+
+// GetNotifyChannelOldEntry implements NodeCommonMatch.
+func (c *commonMatchNode) GetNotifyChannelOldEntry() chan EntryToSend{
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	return c.notifyChannOldEntry
 }
 
 // utility
