@@ -32,8 +32,8 @@ func GenerateHearthbeat(state raftstate.State, nextIndex int) rpcs.Rpc {
         missingEntry = append(missingEntry,committedEntries[i] )
     }
 
-    var prevLogIndex = state.LastLogIndex()
-    var prevLogTerm uint64 = uint64(state.LastLogTerm())
+    var prevLogIndex = nextIndex-1
+    var prevLogTerm uint64 = committedEntries[prevLogIndex].Term
 
     var app = &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
