@@ -322,6 +322,7 @@ func (s *server) run() {
             }
 
             if s._state.Leader() && oldRole != state.LEADER {
+                log.Printf("init commonMatch pool with lastLogIndex: %v\n",s._state.LastLogIndex())
                 s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
                 go s.leaderHearthBit()
             }
