@@ -24,9 +24,21 @@ type AppendEntryRpc struct {
     pMex protobuf.AppendEntriesRequest
 }
 
-func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
-    var prevLogIndex = state.LastLogIndex()
-    var prevLogTerm uint64 = uint64(state.LastLogTerm())
+func GenerateHearthbeat(state raftstate.State, nextIndex int) rpcs.Rpc {
+    var missingEntry []*protobuf.LogEntry = make([]*protobuf.LogEntry, 0)
+    var committedEntries = state.GetCommittedEntries()
+
+    if nextIndex >= 0{
+        for i := nextIndex; i < state.LastLogIndex(); i++ {
+            missingEntry = append(missingEntry,committedEntries[i] )
+        }
+    }
+
+    var prevLogIndex = nextIndex-1
+    var prevLogTerm uint64 = 0
+    if prevLogIndex >=0{
+        prevLogTerm = committedEntries[prevLogIndex].Term
+    }
 
     var app = &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
@@ -35,7 +47,7 @@ func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
             LeaderIdPublic:     state.GetIdPublic(),
             PrevLogIndex: int64(prevLogIndex),
             PrevLogTerm:  prevLogTerm,
-            Entries:      nil,
+            Entries:      missingEntry,
             LeaderCommit: state.GetCommitIndex(),
         },
     }
@@ -119,7 +131,7 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
     state.SetLeaderIpPrivate(this.pMex.LeaderIdPrivate)
     state.SetLeaderIpPublic(this.pMex.LeaderIdPublic)
 
-    if  newEntries != nil {
+    if  len(newEntries) > 0{
         //log.Println("received Append Entry", newEntries)
         consistent, nextIdx = checkConsistency(prevLogIndex, prevLogTerm, entries)
         switch consistent{
