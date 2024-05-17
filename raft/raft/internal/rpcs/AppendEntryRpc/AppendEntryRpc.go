@@ -91,7 +91,7 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
 
 
 //Manage implements rpcs.Rpc.
-func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
+func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
 
     var role raftstate.Role = state.GetRole()
     var id string = state.GetIdPrivate()
@@ -103,7 +103,7 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) *rp
     var entries []*protobuf.LogEntry = state.GetEntries()
     var newEntries []*protobuf.LogEntry = this.pMex.GetEntries()
 
-    var resp *rpcs.Rpc = nil
+    var resp rpcs.Rpc = nil
     var leaderCommit int64
 
     if this.pMex.GetTerm() < myTerm { //case 1
@@ -142,19 +142,20 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) *rp
     if resp == nil {
         log.Println("hearthbeat")
         resp = respondeAppend(id, true, myTerm, state.LastLogIndex())
+        log.Println("hearthbit resp: ", resp.ToString())
     }
 
     state.StartElectionTimeout()
     return resp
 }
 
-func respondeAppend(id string, success bool, term uint64, error int) *rpcs.Rpc {
+func respondeAppend(id string, success bool, term uint64, error int) rpcs.Rpc {
     var appendEntryResp rpcs.Rpc = app_resp.NewAppendResponseRPC(
         id,
         success,
         term,
         error)
-    return &appendEntryResp
+    return appendEntryResp
 }
 
 // ToString implements rpcs.Rpc.

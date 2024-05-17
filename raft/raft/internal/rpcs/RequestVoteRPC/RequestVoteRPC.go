@@ -75,7 +75,7 @@ func (this *RequestVoteRPC) GetLastLogTerm() uint64 {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *RequestVoteRPC) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
+func (this *RequestVoteRPC) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
 	var myVote string = state.GetVoteFor()
 	var senderIp = this.pMex.GetCandidateId()
 
@@ -110,7 +110,7 @@ func (this *RequestVoteRPC) Execute(state raftstate.State, sender node.Node) *rp
 	return this.respondeVote(state, &senderIp, false)
 }
 
-func (this *RequestVoteRPC) respondeVote(state raftstate.State, sender *string, vote bool) *rpcs.Rpc{
+func (this *RequestVoteRPC) respondeVote(state raftstate.State, sender *string, vote bool) rpcs.Rpc{
     var resp = RequestVoteResponse.NewRequestVoteResponseRPC(*sender,vote, state.GetTerm())
-    return &resp
+    return resp
 }

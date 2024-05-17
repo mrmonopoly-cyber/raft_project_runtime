@@ -30,8 +30,8 @@ func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError in
 }
 
 // Manage implements rpcs.Rpc.
-func (this *AppendResponse) Execute(state raftstate.State, sender node.Node) *rpcs.Rpc {
-    var resp *rpcs.Rpc = nil
+func (this *AppendResponse) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
+    var resp rpcs.Rpc = nil
     var term uint64 = this.pMex.GetTerm()
     if !this.pMex.GetSuccess() {
         if term > state.GetTerm() {

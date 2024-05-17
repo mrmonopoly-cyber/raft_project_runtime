@@ -7,7 +7,7 @@ import (
 
 type Rpc interface {
 	ToString() string
-	Execute(state raftstate.State, sender node.Node) *Rpc
+	Execute(state raftstate.State, sender node.Node) Rpc
 	Encode() ([]byte, error)
 	Decode(rawMex []byte) error
 }
