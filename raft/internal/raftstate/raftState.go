@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	l "raft/internal/raft_log"
 	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
-	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"time"
 )
 
@@ -77,7 +76,6 @@ func NewState(idPrivate string, idPublic string, fsRootDir string) State {
     s.statePool = nodematchidx.NewNodeCommonMatch()
     s.leaderEntryToCommit = make(chan int64)
     s.voteFor = ""
-    s.waitToAppend = make([]*protobuf.LogEntry, 0)
 
     go s.leaaderUpdateCommitIndex()
 	return s
