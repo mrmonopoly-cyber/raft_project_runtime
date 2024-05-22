@@ -1,5 +1,5 @@
 <network>
-  <name>raftAccessNetwork1</name>
+  <name>raftAccessNetwork</name>
   <bridge name="virbr2" stp="on" delay="0"/>
   <domain name="raftAccessNetwork"/>
   <ip address="10.0.0.1" netmask="255.255.255.0">
