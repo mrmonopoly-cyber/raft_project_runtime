@@ -1,10 +1,10 @@
 <network>
-  <name>vmnet4</name>
-  <forward mode='nat' dev="wlan0"/>
-  <bridge name='raft_br' stp='on' delay='5'/>
-  <ip address='10.0.1.0' netmask='255.255.255.0'>
+  <name>raftAccessNetwork1</name>
+  <bridge name="virbr2" stp="on" delay="0"/>
+  <domain name="raftAccessNetwork"/>
+  <ip address="10.0.0.1" netmask="255.255.255.0">
     <dhcp>
-      <range start='10.0.1.1' end='10.0.1.254'/>
+      <range start="10.0.0.128" end="10.0.0.254"/>
     </dhcp>
   </ip>
 </network>
