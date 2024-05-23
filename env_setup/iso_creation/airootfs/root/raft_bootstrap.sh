@@ -17,7 +17,7 @@ while [[ -z $my_ip_private ]]; do
 done
 
 while [[ -z $my_ip_public ]]; do
-    my_ip_public=$(ip addr show | grep 192.168.122 | cut -d' ' -f 6 | cut -d'/' -f1);
+    my_ip_public=$(ip addr show | grep 200.168.122 | cut -d' ' -f 6 | cut -d'/' -f1);
 done
 
 if [[ -e $raft_dir ]];

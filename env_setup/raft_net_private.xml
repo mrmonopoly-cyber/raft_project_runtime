@@ -1,10 +1,10 @@
 <network>
-  <name>raftAccessNetwork</name>
+  <name>raft_network_private</name>
   <bridge name="virbr2" stp="on" delay="0"/>
-  <domain name="raftAccessNetwork"/>
+  <domain name="raft_network"/>
   <ip address="10.0.0.1" netmask="255.255.255.0">
     <dhcp>
-      <range start="10.0.0.128" end="10.0.0.254"/>
+      <range start="10.0.0.2" end="10.0.0.254"/>
     </dhcp>
   </ip>
 </network>
