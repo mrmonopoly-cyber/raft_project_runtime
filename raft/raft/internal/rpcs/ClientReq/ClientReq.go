@@ -19,7 +19,7 @@ type ClientReq struct {
 func (this *ClientReq) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     var operation protobuf.Operation = (*this).pMex.Op
     var newEntries []*protobuf.LogEntry =make([]*protobuf.LogEntry, 1)
-    var newLogEntry protobuf.LogEntry
+    var newLogEntry protobuf.LogEntry = protobuf.LogEntry{}
     var op string = "NULL"
 
     newLogEntry.Term = state.GetTerm()
