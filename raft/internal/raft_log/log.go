@@ -1,6 +1,7 @@
 package raft_log
 
 import (
+	localfs "raft/internal/localFs"
 	clusterconf "raft/internal/raftstate/clusterConf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 )
@@ -24,7 +25,7 @@ type LogEntry interface {
 
 
 
-func NewLogEntry(baseConf []string) LogEntry {
+func NewLogEntry(fsRootDir string, baseConf []string) LogEntry {
 	var l = new(log)
 	l.commitIndex = -1
 	l.lastApplied = -1
@@ -32,6 +33,7 @@ func NewLogEntry(baseConf []string) LogEntry {
 	l.entries = make([]*p.LogEntry, 0)
     l.cConf = clusterconf.NewConf(baseConf)
     l.newEntryToApply = make(chan int)
+    l.localFs = localfs.NewFs(fsRootDir)
 
     go l.updateLastApplied()
 

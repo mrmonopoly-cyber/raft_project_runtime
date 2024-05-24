@@ -71,7 +71,7 @@ func NewState(idPrivate string, idPublic string, fsRootDir string) State {
 	s.nSupporting = 0
 	s.nNodeInCluster = 1
 	s.voting = true
-	s.log = l.NewLogEntry([]string{idPrivate})
+	s.log = l.NewLogEntry(fsRootDir,[]string{idPrivate})
 	s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
     s.statePool = nodematchidx.NewNodeCommonMatch()
     s.leaderEntryToCommit = make(chan int64)
