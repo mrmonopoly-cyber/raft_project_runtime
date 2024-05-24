@@ -128,6 +128,7 @@ func (s* server) handleNewClientConnection(client node.Node){
         var ok = "ok"
         var leaderIp p.PublicIp = p.PublicIp{IP: ok,}
         var mex,err = proto.Marshal(&leaderIp)
+        var resp rpcs.Rpc = nil
 
         if err != nil {
             log.Panicln("error encoding confirmation leader public ip for client:",err)
@@ -153,7 +154,16 @@ func (s* server) handleNewClientConnection(client node.Node){
             return
         }
         log.Println("managing client Request: ", clientReq.ToString())
-        clientReq.Execute(s._state,client)
+        resp = clientReq.Execute(s._state,client)
+        
+        if resp != nil{
+            mex,err = genericmessage.Encode(&resp)
+            if err != nil{
+                log.Panicln("error encoding answer for client: ", resp.ToString())
+            }
+            client.Send(mex)
+        }
+
     }else{
         var leaderIp p.PublicIp = p.PublicIp{IP: s._state.GetLeaderIpPublic(),}
         var mex,err = proto.Marshal(&leaderIp)
@@ -193,7 +203,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
             }
             workingNode.CloseConnection()
             s.unstableNodes.Delete(nodeIp);
-            if s._state.Leader() || s._state.GetNumberNodesInCurrentConf() == 2{
+            if s._state.Leader(){
                 s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
             }
             break

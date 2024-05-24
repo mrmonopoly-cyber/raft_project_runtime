@@ -20,33 +20,15 @@ func (this *ClientReq) Execute(state raftstate.State, sender node.Node) rpcs.Rpc
     var operation protobuf.Operation = (*this).pMex.Op
     var newEntries []*protobuf.LogEntry =make([]*protobuf.LogEntry, 1)
     var newLogEntry protobuf.LogEntry = protobuf.LogEntry{}
-    var op string = "NULL"
 
     newLogEntry.Term = state.GetTerm()
     newEntries[0] = &newLogEntry
 
-    switch operation{
-    case protobuf.Operation_READ:
-        log.Printf("testing operation READ, TO IMPLEMENT")
-        newLogEntry.OpType = protobuf.Operation_READ
-        op = "READ"
-    case protobuf.Operation_WRITE:
-        log.Printf("testing operation WRITE, TO IMPLEMENT")
-        newLogEntry.OpType = protobuf.Operation_WRITE
-        op = "WRITE"
-    case protobuf.Operation_DELETE:
-        log.Printf("testing operation DELETE, TO IMPLEMENT")
-        newLogEntry.OpType = protobuf.Operation_DELETE
-        op = "DELETE"
-    default:
-        log.Printf("NOT IMPLMENTED OPERATION %v\n", operation)
-        return nil
-    }
+    newLogEntry.OpType = operation
 
-    newLogEntry.Description = "new " + op + " operation on file" + string((*this).pMex.Others)
+    newLogEntry.Description = "new " + string(operation) + " operation on file" + string((*this).pMex.Others)
 
     state.AppendEntries(newEntries)
-
 
     return nil
 }
