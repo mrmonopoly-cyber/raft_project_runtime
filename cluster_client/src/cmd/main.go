@@ -130,7 +130,7 @@ func GetCluterNodeIp() string{
 
     var ipAddr string = ip[0].Addrs[0].Addr
 
-    if !strings.Contains(ipAddr,"192.168.122"){
+    if !strings.Contains(ipAddr,"200.168.122"){
         ipAddr = ip[1].Addrs[0].Addr
     }
 
