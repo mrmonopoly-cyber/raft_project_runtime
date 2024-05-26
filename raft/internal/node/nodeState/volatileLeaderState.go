@@ -6,7 +6,6 @@ type VolatileNodeState interface{
     GetMatchIndex() int
     GetNextIndex() int
     InitVolatileState(lastLogIndex int)
-    NextIndexStep()
     Updated() bool
     NodeUpdated()
 }
