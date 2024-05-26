@@ -38,11 +38,12 @@ type realClusterState struct {
 
 // GetCommittedEntries implements LogEntry.
 func (this *log) GetCommittedEntries() []*p.LogEntry {
-	var committedEntries []*p.LogEntry = make([]*p.LogEntry, this.commitIndex+1)
-	for i := range committedEntries {
-		committedEntries[i] = this.entries[i]
-	}
-	return committedEntries
+    return this.getEntries(0)
+}
+
+// GetCommittedEntriesRange implements LogEntry.
+func (this *log) GetCommittedEntriesRange(startIndex uint) []*p.LogEntry{
+    return this.getEntries(startIndex)
 }
 
 // GetEntriAt implements LogEntry.
@@ -198,4 +199,12 @@ func (this *log) applyConf(ope protobuf.Operation, entry *p.LogEntry) {
 	var confFiltered []string = strings.Split(confUnfiltered, " ")
 	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
 	this.cConf.UpdateConfiguration(ope, confFiltered)
+}
+
+func (this *log) getEntries(startIndex uint) []*p.LogEntry{
+	var committedEntries []*p.LogEntry = make([]*p.LogEntry, this.commitIndex+1)
+    for i := int(startIndex); i < len(committedEntries); i++ {
+        committedEntries[i] = this.entries[i]
+    }
+	return committedEntries
 }
