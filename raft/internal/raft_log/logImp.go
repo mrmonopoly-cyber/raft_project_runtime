@@ -202,12 +202,10 @@ func (this *log) applyConf(ope protobuf.Operation, entry *p.LogEntry) {
 }
 
 func (this *log) getEntries(startIndex uint) []*p.LogEntry{
-	var committedEntries []*p.LogEntry = make([]*p.LogEntry, this.commitIndex+1 - int64(startIndex))
-    var pos = 0
+	var committedEntries []*p.LogEntry = make([]*p.LogEntry, 0)
 
     for i := int(startIndex); i < len(committedEntries); i++ {
-        pos = i -int(startIndex)
-        committedEntries[pos] = this.entries[pos]
+        committedEntries = append(committedEntries, this.entries[i])
     }
 	return committedEntries
 }
