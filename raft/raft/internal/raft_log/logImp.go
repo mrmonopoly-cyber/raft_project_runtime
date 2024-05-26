@@ -208,7 +208,7 @@ func (this *log) getEntries(startIndex int) []*p.LogEntry{
         startIndex = 0
     }
 
-    for i := int(startIndex); i < int(this.commitIndex); i++ {
+    for i := int(startIndex); i <= int(this.commitIndex); i++ {
         committedEntries = append(committedEntries, this.entries[i])
     }
 	return committedEntries
