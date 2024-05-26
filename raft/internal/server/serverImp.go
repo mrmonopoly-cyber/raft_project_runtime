@@ -490,7 +490,7 @@ func (s* server) applyOnFollowers(fn func(n node.Node)){
 
 func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpcs.Rpc{
     var nodeNextIndex = n.GetNextIndex()
-    var prevLogTerm =0
+    var prevLogTerm uint64 =0
     var hearthBit rpcs.Rpc
     var entryPayload []*p.LogEntry = s._state.GetCommittedEntriesRange(int(nodeNextIndex))
     var prevLogEntry *p.LogEntry
@@ -498,9 +498,7 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
     var prevLogIndex int64 = -1
 
     if toAppend != nil{
-        log.Println("entry to append: ", toAppend)
         entryPayload = append(entryPayload, toAppend...)
-        log.Println("entryPayload :",entryPayload)
     }
 
     if nodeNextIndex <= s._state.LastLogIndex() {
@@ -510,12 +508,12 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
             if err != nil{
                 log.Panicln("error retrieving entry at index :", nodeNextIndex-1)
             }
-            prevLogTerm = int(prevLogEntry.Term)
+            prevLogTerm = prevLogEntry.Term
             prevLogIndex = int64(nodeNextIndex) -1
         }
         
         hearthBit = AppendEntryRpc.NewAppendEntryRPC(
-            s._state, prevLogIndex, uint64(prevLogTerm),entryPayload)
+            s._state, prevLogIndex, prevLogTerm,entryPayload)
 
     }else {
         hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
