@@ -247,11 +247,13 @@ func (s *server) updateNewNode(workingNode node.Node){
     var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,commitedEntries)
     var rawMex []byte
 
+    log.Println("updating node: ",workingNode.GetIp())
     err = s.generateUpdateRequest(workingNode,false,nil)
     if err != nil {
         log.Panicf("error generata UpdateRequest : %v\n", err)
     }
     
+    log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
     rawMex,err = genericmessage.Encode(&appendEntryRpc)
     if err != nil{
         log.Panicf("error encoding appendEntry: %v with error %v\n", appendEntryRpc.ToString(), err)
@@ -265,6 +267,7 @@ func (s *server) updateNewNode(workingNode node.Node){
         log.Panicf("error generata UpdateRequest : %v\n", err)
     }
     workingNode.NodeUpdated()
+    log.Println("done updating node: ",workingNode.GetIp())
 }
 
 func (this *server) generateUpdateRequest(workingNode node.Node, voting bool, entry *p.LogEntry) error{
