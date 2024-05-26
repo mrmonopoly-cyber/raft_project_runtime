@@ -499,6 +499,7 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
     if toAppend != nil{
         log.Println("entry to append: ", toAppend)
         entryPayload = append(entryPayload, toAppend...)
+        log.Println("entryPayload :",entryPayload)
     }
 
     if nodeNextIndex < s._state.LastLogIndex() {
