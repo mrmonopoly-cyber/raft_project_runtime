@@ -244,29 +244,26 @@ func (s *server) joinConf(workingNode node.Node){
 func (s *server) updateNewNode(workingNode node.Node){
     var err error
     var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
-    var numCommEntr = len(commitedEntries)
-    var canVote = false
+    var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,commitedEntries)
+    var rawMex []byte
 
-    log.Printf("updating node %v\n", workingNode.GetIp())
-    log.Printf("\nupdating, list of entries to send: %v\n\n",s._state.GetCommittedEntries())
-    
-    for i := 0; i < numCommEntr; i++ {
-        log.Printf("sending update mex to %v with data %v\n",workingNode.GetIp(), commitedEntries[i])
-        if i == numCommEntr-1{
-            log.Println("last entry, setting voteRight True for node: ", workingNode.GetIp())
-            canVote = true
-        }
-        err = s.generateUpdateRequest(workingNode,canVote,commitedEntries[i])
-        if err != nil {
-            log.Printf("error generata UpdateRequest : %v\n", err)
-            return 
-        }
-        for  workingNode.GetMatchIndex() < i {
-            //WARN: WAIT
-        }
-        
+    err = s.generateUpdateRequest(workingNode,false,nil)
+    if err != nil {
+        log.Panicf("error generata UpdateRequest : %v\n", err)
     }
-    log.Printf("node %v updated\n",workingNode.GetIp())
+    
+    rawMex,err = genericmessage.Encode(&appendEntryRpc)
+    if err != nil{
+        log.Panicf("error encoding appendEntry: %v with error %v\n", appendEntryRpc.ToString(), err)
+    }
+    workingNode.Send(rawMex)
+    for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
+        //WARN: WAIT
+    }
+    err = s.generateUpdateRequest(workingNode,true,nil)
+    if err != nil {
+        log.Panicf("error generata UpdateRequest : %v\n", err)
+    }
     workingNode.NodeUpdated()
 }
 

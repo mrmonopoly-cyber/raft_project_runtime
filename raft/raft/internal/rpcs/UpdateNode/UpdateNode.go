@@ -5,7 +5,6 @@ import (
 	"raft/internal/node"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
-	"raft/internal/rpcs/UpdateNodeResp"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
@@ -26,14 +25,7 @@ func NewUpdateNodeRPC(voteAble bool, log *protobuf.LogEntry) rpcs.Rpc {
 
 // Manage implements rpcs.Rpc.
 func (this *UpdateNode) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
-    var resp = UpdateNodeResp.NewUpdateNodeRespRPC()
-
-    log.Printf("updating log entry with new entry %v\n",this.pMex.Log)
     state.VoteRight(this.pMex.Votante)
-    if this.pMex.Log != nil {
-        state.AppendEntries([]*protobuf.LogEntry{this.pMex.Log})
-        return resp
-    }
     return nil
 }
 

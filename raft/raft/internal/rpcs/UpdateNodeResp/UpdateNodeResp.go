@@ -24,7 +24,6 @@ func NewUpdateNodeRespRPC() rpcs.Rpc {
 
 // Manage implements rpcs.Rpc.
 func (this *UpdateNodeResp) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
-    sender.NextIndexStep()
     return nil
 }
 
