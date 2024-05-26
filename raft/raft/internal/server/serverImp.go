@@ -503,14 +503,17 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
 
     if nodeNextIndex < s._state.LastLogIndex() {
 
-        
-        prevLogEntry,err = s._state.GetEntriAt(int64(nodeNextIndex)-1)
-        if err != nil{
-            log.Panicln("error retrieving entry at index :", nodeNextIndex-1)
+        if nodeNextIndex > 0 {
+            prevLogEntry,err = s._state.GetEntriAt(int64(nodeNextIndex)-1)
+            if err != nil{
+                log.Panicln("error retrieving entry at index :", nodeNextIndex-1)
+            }
+            prevLogTerm = int(prevLogEntry.Term)
         }
-        prevLogTerm = int(prevLogEntry.Term)
+        
         hearthBit = AppendEntryRpc.NewAppendEntryRPC(
             s._state, int64(nodeNextIndex)-1, uint64(prevLogTerm),entryPayload)
+
     }else {
         hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
         log.Printf("sending hearthbit: %v\n", hearthBit.ToString())
