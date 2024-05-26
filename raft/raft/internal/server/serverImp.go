@@ -359,8 +359,8 @@ func (s *server) run() {
             var err error
             var entryToCommit *p.LogEntry 
 
-            log.Println("new log entry to propagate")
             entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
+            log.Println("new log entry to propagate: ", entryToCommit)
             if err != nil {
                 log.Panic("invalid index entry: ", leaderCommitEntry)
             }
@@ -509,7 +509,7 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
         }
 
         hearthBit = AppendEntryRpc.NewAppendEntryRPC(
-            s._state, int64(nodeNextIndex), uint64(prevLogTerm),entryPayload)
+            s._state, int64(nodeNextIndex)-1, uint64(prevLogTerm),entryPayload)
     }else {
         hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
         log.Printf("sending hearthbit: %v\n", hearthBit.ToString())
