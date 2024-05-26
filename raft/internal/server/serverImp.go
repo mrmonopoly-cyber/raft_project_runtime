@@ -202,8 +202,9 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
                 s._state.StartElectionTimeout()
             }
             workingNode.CloseConnection()
-            s.unstableNodes.Delete(nodeIp);
-            if s._state.Leader(){
+            s.unstableNodes.Delete(nodeIp); 
+            //FIX: cannot remove the node until it's removed from the conf
+            if s._state.Leader() || s._state.GetNumberNodesInCurrentConf() == 2{
                 s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
             }
             break
@@ -356,18 +357,8 @@ func (s *server) run() {
             //updating while you check his commitIndex
             var err error
             var entryToCommit *p.LogEntry 
-            var prevEntryTerm uint64 = 0
-            var numStableNodes uint = 1
 
             log.Println("new log entry to propagate")
-            if leaderCommitEntry-1 >= 0{
-                var prevEntry,err = s._state.GetEntriAt(leaderCommitEntry-1)
-                if err != nil {
-                    log.Panic("invalid index entry: ", leaderCommitEntry)
-                }
-                prevEntryTerm = prevEntry.Term
-            }
-
             entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
             if err != nil {
                 log.Panic("invalid index entry: ", leaderCommitEntry)
@@ -378,7 +369,6 @@ func (s *server) run() {
                 var AppendEntry rpcs.Rpc
                 var rawMex []byte
 
-                numStableNodes++
                 if err!=nil {
                     log.Panicln(err)
                 }
@@ -387,8 +377,8 @@ func (s *server) run() {
                     return 
                 }
 
-                AppendEntry = AppendEntryRpc.NewAppendEntryRPC(
-                    s._state,leaderCommitEntry-1,prevEntryTerm,[]*p.LogEntry{entryToCommit})
+                AppendEntry = s.nodeAppendEntryPayload(n,[]*p.LogEntry{entryToCommit})
+
                 rawMex,err = genericmessage.Encode(&AppendEntry)
                 if err != nil {
                     log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
@@ -401,6 +391,7 @@ func (s *server) run() {
     }
 }
 
+//utility
 func (s *server) startNewElection(){
     log.Println("started new election");
 
@@ -445,14 +436,12 @@ func (s *server) leaderHearthBit(){
     for s._state.Leader(){
         select{
         case <- s._state.HeartbeatTimeout().C:
-            var hearthBit rpcs.Rpc
-            hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
-            log.Printf("sending hearthbit: %v\n", hearthBit.ToString())
 
             log.Println("start broadcast")
             s.applyOnFollowers(func(n node.Node) {
                 var raw_mex []byte
                 var err error
+                var hearthBit rpcs.Rpc = s.nodeAppendEntryPayload(n,nil)
 
                 raw_mex,err = genericmessage.Encode(&hearthBit)
                 if err != nil {
@@ -496,4 +485,31 @@ func (s* server) applyOnFollowers(fn func(n node.Node)){
         }
         go fn(nNode)
     }
+}
+
+func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpcs.Rpc{
+    var nodeNextIndex = n.GetNextIndex()
+    var prevLogTerm =0
+    var hearthBit rpcs.Rpc
+    var entryPayload []*p.LogEntry = s._state.GetCommittedEntriesRange(uint(nodeNextIndex))
+    entryPayload = append(entryPayload, toAppend...)
+
+    if n.GetNextIndex() < s._state.LastLogIndex() {
+        if nodeNextIndex > 0 {
+            var prevLogEntry *p.LogEntry
+            var err error
+            prevLogEntry,err = s._state.GetEntriAt(int64(nodeNextIndex)-1)
+            if err != nil{
+                log.Panicln("error retrieving entry at index :", nodeNextIndex-1)
+            }
+            prevLogTerm = int(prevLogEntry.Term)
+        }
+
+        hearthBit = AppendEntryRpc.NewAppendEntryRPC(
+            s._state, int64(nodeNextIndex), uint64(prevLogTerm),entryPayload)
+    }else {
+        hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
+        log.Printf("sending hearthbit: %v\n", hearthBit.ToString())
+    }
+    return hearthBit
 }

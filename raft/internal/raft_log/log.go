@@ -8,6 +8,8 @@ import (
 
 type LogEntry interface {
 	GetCommittedEntries() []*p.LogEntry
+	GetCommittedEntriesRange(startIndex uint) []*p.LogEntry
+
 	GetEntries() []*p.LogEntry
     GetEntriAt(index int64) (*p.LogEntry,error)
     AppendEntries(newEntries []*p.LogEntry)
@@ -20,7 +22,8 @@ type LogEntry interface {
 	LastLogIndex() int
 	LastLogTerm() uint
 
-    cConf 
+    //conf info
+    cConf
 }
 
 
