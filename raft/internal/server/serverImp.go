@@ -244,7 +244,7 @@ func (s *server) joinConf(workingNode node.Node){
 func (s *server) updateNewNode(workingNode node.Node){
     var err error
     var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
-    var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,commitedEntries)
+    var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
     var rawMex []byte
 
     log.Println("updating node: ",workingNode.GetIp())
@@ -495,6 +495,7 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
     var entryPayload []*p.LogEntry = s._state.GetCommittedEntriesRange(int(nodeNextIndex))
     var prevLogEntry *p.LogEntry
     var err error
+    var prevLogIndex int64 = -1
 
     if toAppend != nil{
         log.Println("entry to append: ", toAppend)
@@ -510,10 +511,11 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
                 log.Panicln("error retrieving entry at index :", nodeNextIndex-1)
             }
             prevLogTerm = int(prevLogEntry.Term)
+            prevLogIndex = int64(nodeNextIndex) -1
         }
         
         hearthBit = AppendEntryRpc.NewAppendEntryRPC(
-            s._state, int64(nodeNextIndex)-1, uint64(prevLogTerm),entryPayload)
+            s._state, prevLogIndex, uint64(prevLogTerm),entryPayload)
 
     }else {
         hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
