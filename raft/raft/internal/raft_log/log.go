@@ -8,7 +8,7 @@ import (
 
 type LogEntry interface {
 	GetCommittedEntries() []*p.LogEntry
-	GetCommittedEntriesRange(startIndex uint) []*p.LogEntry
+	GetCommittedEntriesRange(startIndex int) []*p.LogEntry
 
 	GetEntries() []*p.LogEntry
     GetEntriAt(index int64) (*p.LogEntry,error)
