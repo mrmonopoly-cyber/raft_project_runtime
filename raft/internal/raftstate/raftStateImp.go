@@ -36,7 +36,7 @@ type raftStateImpl struct {
 }
 
 // GetCommittedEntriesRange implements State.
-func (this *raftStateImpl) GetCommittedEntriesRange(startIndex uint) []*p.LogEntry {
+func (this *raftStateImpl) GetCommittedEntriesRange(startIndex int) []*p.LogEntry {
     return this.log.GetCommittedEntriesRange(startIndex)
 }
 
