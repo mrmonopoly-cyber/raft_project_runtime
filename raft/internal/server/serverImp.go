@@ -253,6 +253,7 @@ func (s *server) updateNewNode(workingNode node.Node){
         log.Panicf("error generata UpdateRequest : %v\n", err)
     }
     
+    log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
     rawMex,err = genericmessage.Encode(&appendEntryRpc)
     if err != nil{
         log.Panicf("error encoding appendEntry: %v with error %v\n", appendEntryRpc.ToString(), err)
