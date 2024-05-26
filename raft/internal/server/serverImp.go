@@ -512,6 +512,7 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
             prevLogTerm = int(prevLogEntry.Term)
         }
         
+        log.Panicln("entryPayload1 :", entryPayload)
         hearthBit = AppendEntryRpc.NewAppendEntryRPC(
             s._state, int64(nodeNextIndex)-1, uint64(prevLogTerm),entryPayload)
 
