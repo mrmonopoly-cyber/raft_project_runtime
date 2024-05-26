@@ -258,7 +258,10 @@ func (s *server) updateNewNode(workingNode node.Node){
     if err != nil{
         log.Panicf("error encoding appendEntry: %v with error %v\n", appendEntryRpc.ToString(), err)
     }
-    workingNode.Send(rawMex)
+    err = workingNode.Send(rawMex)
+    if err != nil {
+        log.Panicln("failed to updated node: " , workingNode.GetIp())
+    }
     log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
     for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
         //WARN: WAIT
