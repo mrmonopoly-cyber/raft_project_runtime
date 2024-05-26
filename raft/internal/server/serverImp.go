@@ -491,7 +491,6 @@ func (s* server) applyOnFollowers(fn func(n node.Node)){
 func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpcs.Rpc{
     var nodeNextIndex = n.GetNextIndex()
     var prevLogTerm uint64 =0
-    prevLogTerm++
     var hearthBit rpcs.Rpc
     var entryPayload []*p.LogEntry = s._state.GetCommittedEntriesRange(int(nodeNextIndex))
     var prevLogEntry *p.LogEntry
@@ -514,7 +513,7 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
         }
         
         hearthBit = AppendEntryRpc.NewAppendEntryRPC(
-            s._state, prevLogIndex, 0,entryPayload)
+            s._state, prevLogIndex, prevLogTerm,entryPayload)
 
     }else {
         hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
