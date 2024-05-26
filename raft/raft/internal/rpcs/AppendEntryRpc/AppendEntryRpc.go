@@ -168,7 +168,7 @@ func (this *AppendEntryRpc) ToString() string {
     ", leaderIdPrivate: " + this.pMex.GetLeaderIdPrivate() +
     ", leaderIdPublic: " + this.pMex.GetLeaderIdPublic() +
     ", prevLogIndex: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) +
-    ", prevLogTerm: " + strconv.Itoa(int(this.pMex.PrevLogIndex)) + 
+    ", prevLogTerm: " + strconv.Itoa(int(this.pMex.PrevLogTerm)) + 
     ", entries: " + entries +
     ", leaderCommit: " + strconv.Itoa(int(this.pMex.LeaderCommit)) + "}"
 }
