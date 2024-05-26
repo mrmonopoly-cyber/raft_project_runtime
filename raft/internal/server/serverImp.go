@@ -492,23 +492,23 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
     var nodeNextIndex = n.GetNextIndex()
     var prevLogTerm =0
     var hearthBit rpcs.Rpc
-    var entryPayload []*p.LogEntry = s._state.GetCommittedEntriesRange(uint(nodeNextIndex))
+    var entryPayload []*p.LogEntry = s._state.GetCommittedEntriesRange(int(nodeNextIndex))
+    var prevLogEntry *p.LogEntry
+    var err error
+
     if toAppend != nil{
         log.Println("entry to append: ", toAppend)
         entryPayload = append(entryPayload, toAppend...)
     }
 
-    if n.GetNextIndex() < s._state.LastLogIndex() {
-        if nodeNextIndex > 0 {
-            var prevLogEntry *p.LogEntry
-            var err error
-            prevLogEntry,err = s._state.GetEntriAt(int64(nodeNextIndex)-1)
-            if err != nil{
-                log.Panicln("error retrieving entry at index :", nodeNextIndex-1)
-            }
-            prevLogTerm = int(prevLogEntry.Term)
-        }
+    if nodeNextIndex < s._state.LastLogIndex() {
 
+        
+        prevLogEntry,err = s._state.GetEntriAt(int64(nodeNextIndex)-1)
+        if err != nil{
+            log.Panicln("error retrieving entry at index :", nodeNextIndex-1)
+        }
+        prevLogTerm = int(prevLogEntry.Term)
         hearthBit = AppendEntryRpc.NewAppendEntryRPC(
             s._state, int64(nodeNextIndex)-1, uint64(prevLogTerm),entryPayload)
     }else {

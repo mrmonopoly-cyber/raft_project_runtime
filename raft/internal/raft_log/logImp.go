@@ -42,7 +42,7 @@ func (this *log) GetCommittedEntries() []*p.LogEntry {
 }
 
 // GetCommittedEntriesRange implements LogEntry.
-func (this *log) GetCommittedEntriesRange(startIndex uint) []*p.LogEntry{
+func (this *log) GetCommittedEntriesRange(startIndex int) []*p.LogEntry{
     return this.getEntries(startIndex)
 }
 
@@ -201,8 +201,12 @@ func (this *log) applyConf(ope protobuf.Operation, entry *p.LogEntry) {
 	this.cConf.UpdateConfiguration(ope, confFiltered)
 }
 
-func (this *log) getEntries(startIndex uint) []*p.LogEntry{
+func (this *log) getEntries(startIndex int) []*p.LogEntry{
 	var committedEntries []*p.LogEntry = make([]*p.LogEntry, 0)
+
+    if startIndex == -1{
+        startIndex = 0
+    }
 
     for i := int(startIndex); i < len(committedEntries); i++ {
         committedEntries = append(committedEntries, this.entries[i])
