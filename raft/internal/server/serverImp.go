@@ -492,7 +492,9 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
     var prevLogTerm =0
     var hearthBit rpcs.Rpc
     var entryPayload []*p.LogEntry = s._state.GetCommittedEntriesRange(uint(nodeNextIndex))
-    entryPayload = append(entryPayload, toAppend...)
+    if toAppend != nil{
+        entryPayload = append(entryPayload, toAppend...)
+    }
 
     if n.GetNextIndex() < s._state.LastLogIndex() {
         if nodeNextIndex > 0 {
