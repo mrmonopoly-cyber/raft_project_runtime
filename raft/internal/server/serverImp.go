@@ -502,7 +502,7 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
         log.Println("entryPayload :",entryPayload)
     }
 
-    if nodeNextIndex < s._state.LastLogIndex() {
+    if nodeNextIndex <= s._state.LastLogIndex() {
 
         if nodeNextIndex > 0 {
             prevLogEntry,err = s._state.GetEntriAt(int64(nodeNextIndex)-1)
