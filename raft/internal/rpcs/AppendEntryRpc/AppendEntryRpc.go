@@ -93,6 +93,7 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
 //Manage implements rpcs.Rpc.
 func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
 
+    log.Println("executing appendEntryRpc: ", this.ToString())
     var role raftstate.Role = state.GetRole()
     var id string = state.GetIdPrivate()
     var myTerm uint64 = state.GetTerm()
