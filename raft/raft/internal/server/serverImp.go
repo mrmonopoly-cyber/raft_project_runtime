@@ -238,7 +238,7 @@ func (s *server) updateNewNode(workingNode node.Node){
 
     log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
     for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
-        //HACK: WAIT
+        //HACK: WAIT POLLING
     }
     s.encodeAndSend(UpdateNode.NewUpdateNodeRPC(true),workingNode)
     workingNode.NodeUpdated()
@@ -487,7 +487,7 @@ func (s *server) encodeAndSend(rpcMex rpcs.Rpc, n node.Node){
     var err error
     var rawMex []byte
 
-    rawMex,err = rpcMex.Encode()
+    rawMex,err = genericmessage.Encode(&rpcMex)
     if err != nil {
         log.Panicln("error encoding rpc: ", rpcMex.ToString())
     }
