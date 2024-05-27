@@ -346,6 +346,9 @@ func (s *server) run() {
             if s._state.Leader() && oldRole != state.LEADER {
                 log.Printf("init commonMatch pool with lastLogIndex: %v\n",s._state.LastLogIndex())
                 s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex()+1)
+                s.applyOnFollowers(func(n node.Node) {
+                    n.NodeUpdated()
+                })
                 go s.leaderHearthBit()
             }
             //         log.Println("rpc processed")
