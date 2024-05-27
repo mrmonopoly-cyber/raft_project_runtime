@@ -231,8 +231,6 @@ func (s *server) joinConf(workingNode node.Node){
     //     Payload: []byte(workingNode.GetIp()),
     // }
 
-    log.Println("debug, joinConf : ,", s._state.GetConfig())
-
 
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
     s.updateNewNode(workingNode)              
@@ -347,7 +345,7 @@ func (s *server) run() {
 
             if s._state.Leader() && oldRole != state.LEADER {
                 log.Printf("init commonMatch pool with lastLogIndex: %v\n",s._state.LastLogIndex())
-                s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
+                s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex()+1)
                 go s.leaderHearthBit()
             }
             //         log.Println("rpc processed")

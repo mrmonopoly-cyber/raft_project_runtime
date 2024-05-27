@@ -76,9 +76,9 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
         log.Printf("logSize - 1: %d, and prevLogIndex: %d", (logSize-1), int(prevLogIndex))
         return C2, (logSize - 1)
     }
-    fmt.Print("case 3")
-  log.Println(entries)
-  log.Printf("prevLogTerm: %d,, getTerm: %d, getDescr: %s,, getType: %o", prevLogTerm, entries[prevLogIndex].GetTerm(), entries[prevLogIndex].GetDescription(), entries[prevLogIndex].GetOpType())
+    fmt.Println("case 3")
+    log.Println(entries)
+    log.Printf("prevLogTerm: %d,, getTerm: %d, getDescr: %s,, getType: %o", prevLogTerm, entries[prevLogIndex].GetTerm(), entries[prevLogIndex].GetDescription(), entries[prevLogIndex].GetOpType())
     
     consistent := entries[prevLogIndex].GetTerm() == prevLogTerm
 
