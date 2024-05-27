@@ -154,7 +154,6 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 
 	var lenEntries = len(this.entries)
 
-	l.Println("Append Entries, before: ", this.entries)
 	for _, v := range newEntries {
 		if int(this.logSize) < lenEntries {
 			this.entries[this.logSize] = v
@@ -164,7 +163,6 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 		}
 		this.logSize++
 	}
-	l.Println("Append Entries, after: ", this.entries)
 }
 
 func (this *log) GetCommitIndex() int64 {
