@@ -157,11 +157,7 @@ func (s* server) handleNewClientConnection(client node.Node){
         resp = clientReq.Execute(s._state,client)
         
         if resp != nil{
-            mex,err = genericmessage.Encode(&resp)
-            if err != nil{
-                log.Panicln("error encoding answer for client: ", resp.ToString())
-            }
-            client.Send(mex)
+            s.encodeAndSend(resp,client)
         }
 
     }else{
@@ -224,65 +220,29 @@ func (s *server) joinConf(workingNode node.Node){
         Payload: []byte(nodeIp),
         Description: "added new node " + nodeIp + " to configuration: ",
     }
-    // var commitConf p.LogEntry = p.LogEntry{
-    //     Term: s._state.GetTerm(),
-    //     Description: "committing configuration for the node updated",
-    //     OpType: p.Operation_COMMIT_CONFIG,
-    //     Payload: []byte(workingNode.GetIp()),
-    // }
-
 
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
     s.updateNewNode(workingNode)              
     //FIX: Commit config only when the follower has applied the commitConf
-
-    // s._state.AppendEntries([]*p.LogEntry{&commitConf})
 }
 
 func (s *server) updateNewNode(workingNode node.Node){
-    var err error
     var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
     var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
-    var rawMex []byte
 
     log.Println("updating node: ",workingNode.GetIp())
-    err = s.generateUpdateRequest(workingNode,false)
-    if err != nil {
-        log.Panicf("error generata UpdateRequest : %v\n", err)
-    }
+    s.encodeAndSend(UpdateNode.NewUpdateNodeRPC(false),workingNode)
     
     log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
-    rawMex,err = genericmessage.Encode(&appendEntryRpc)
-    if err != nil{
-        log.Panicf("error encoding appendEntry: %v with error %v\n", appendEntryRpc.ToString(), err)
-    }
-    err = workingNode.Send(rawMex)
-    if err != nil {
-        log.Panicln("failed to updated node: " , workingNode.GetIp())
-    }
+    s.encodeAndSend(appendEntryRpc,workingNode)
+
     log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
     for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
-        //WARN: WAIT
+        //HACK: WAIT
     }
-    err = s.generateUpdateRequest(workingNode,true)
-    if err != nil {
-        log.Panicf("error generata UpdateRequest : %v\n", err)
-    }
+    s.encodeAndSend(UpdateNode.NewUpdateNodeRPC(true),workingNode)
     workingNode.NodeUpdated()
     log.Println("done updating node: ",workingNode.GetIp())
-}
-
-func (this *server) generateUpdateRequest(workingNode node.Node, voting bool) error{
-    var updateReq rpcs.Rpc 
-    var mex []byte
-    var err error
-    
-    updateReq = UpdateNode.NewUpdateNodeRPC(voting, nil)
-    mex,err = genericmessage.Encode(&updateReq)
-    if err != nil {
-        log.Panic("error encoding UpdateNode rpc")
-    }
-    return workingNode.Send(mex)
 }
 
 func (s *server) run() {
@@ -333,9 +293,6 @@ func (s *server) run() {
             }
 
             if resp != nil {
-                //          log.Println("reponse to send to: ", sender)
-
-                //log.Println("sending mex to: ",sender)
                 byEnc, errEn = genericmessage.Encode(&resp)
                 if errEn != nil{
                     log.Panicln("error encoding this rpc: ", resp.ToString())
@@ -351,7 +308,6 @@ func (s *server) run() {
                 })
                 go s.leaderHearthBit()
             }
-            //         log.Println("rpc processed")
         case <-s._state.ElectionTimeout().C:
             if !s._state.Leader() {
                 s.startNewElection()
@@ -379,7 +335,6 @@ func (s *server) run() {
                     log.Panicln(err)
                 }
 
-                // if n.GetMatchIndex() >= int(leaderCommitEntry) || !n.Updated(){
                 if !n.Updated(){
                     return 
                 }
@@ -526,4 +481,21 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
         log.Printf("sending hearthbit: %v\n", hearthBit.ToString())
     }
     return hearthBit
+}
+
+func (s *server) encodeAndSend(rpcMex rpcs.Rpc, n node.Node){
+    var err error
+    var rawMex []byte
+
+    rawMex,err = rpcMex.Encode()
+    if err != nil {
+        log.Panicln("error encoding rpc: ", rpcMex.ToString())
+    }
+
+    err = n.Send(rawMex)
+
+    if err != nil {
+        log.Panicln("error sending rpcRawMex to node :", n.GetIp())
+    }
+
 }
