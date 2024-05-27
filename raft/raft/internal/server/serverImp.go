@@ -248,7 +248,7 @@ func (s *server) updateNewNode(workingNode node.Node){
     var rawMex []byte
 
     log.Println("updating node: ",workingNode.GetIp())
-    err = s.generateUpdateRequest(workingNode,false,nil)
+    err = s.generateUpdateRequest(workingNode,false)
     if err != nil {
         log.Panicf("error generata UpdateRequest : %v\n", err)
     }
@@ -266,7 +266,7 @@ func (s *server) updateNewNode(workingNode node.Node){
     for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
         //WARN: WAIT
     }
-    err = s.generateUpdateRequest(workingNode,true,nil)
+    err = s.generateUpdateRequest(workingNode,true)
     if err != nil {
         log.Panicf("error generata UpdateRequest : %v\n", err)
     }
@@ -274,12 +274,12 @@ func (s *server) updateNewNode(workingNode node.Node){
     log.Println("done updating node: ",workingNode.GetIp())
 }
 
-func (this *server) generateUpdateRequest(workingNode node.Node, voting bool, entry *p.LogEntry) error{
+func (this *server) generateUpdateRequest(workingNode node.Node, voting bool) error{
     var updateReq rpcs.Rpc 
     var mex []byte
     var err error
     
-    updateReq = UpdateNode.NewUpdateNodeRPC(voting, entry)
+    updateReq = UpdateNode.NewUpdateNodeRPC(voting, nil)
     mex,err = genericmessage.Encode(&updateReq)
     if err != nil {
         log.Panic("error encoding UpdateNode rpc")
