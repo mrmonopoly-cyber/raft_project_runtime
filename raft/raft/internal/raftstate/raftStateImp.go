@@ -128,18 +128,23 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 	return this.log.GetEntries()
 }
 
-func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
-	this.log.AppendEntries(newEntries)
+func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) []chan int {
+	var res = this.log.AppendEntries(newEntries)
 	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1 {
 		log.Println("auto commit entry")
 		this.log.IncreaseCommitIndex()
 		if this.Leader() {
 			this.statePool.IncreaseCommonMathcIndex()
 		}
-		return
+        for _, v := range res {
+            v <- 1
+        }
+		return res
 	}
 	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderEntryToCommit, this.log.GetCommitIndex()+1)
 	this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
+
+    return res
 }
 
 func (this *raftStateImpl) GetLeaderEntryChannel() *chan int64 {

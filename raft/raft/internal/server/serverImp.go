@@ -198,12 +198,14 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
                 s._state.StartElectionTimeout()
             }
             workingNode.CloseConnection()
-            s.unstableNodes.Delete(nodeIp); 
-            s._state.GetStatePool().RemNode(nodeIp) 
-            //FIX: cannot remove the node until it's removed from the conf
+
             if s._state.Leader() || s._state.GetNumberNodesInCurrentConf() == 2{
                 s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
             }
+
+            //FIX: cannot remove the node until it's removed from the conf
+            s.unstableNodes.Delete(nodeIp); 
+            s._state.GetStatePool().RemNode(nodeIp) 
             break
         }
         if message != nil {
