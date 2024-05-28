@@ -6,13 +6,14 @@ import (
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 )
 
+
 type LogEntry interface {
 	GetCommittedEntries() []*p.LogEntry
 	GetCommittedEntriesRange(startIndex int) []*p.LogEntry
 
 	GetEntries() []*p.LogEntry
     GetEntriAt(index int64) (*p.LogEntry,error)
-    AppendEntries(newEntries []*p.LogEntry)
+    AppendEntries(newEntries []*p.LogEntry) []chan int
     DeleteFromEntry(entryIndex uint)
 
     GetCommitIndex() int64
@@ -33,7 +34,7 @@ func NewLogEntry(fsRootDir string, baseConf []string) LogEntry {
 	l.commitIndex = -1
 	l.lastApplied = -1
     l.logSize = 0
-	l.entries = make([]*p.LogEntry, 0)
+	l.entries = make([]logInstance, 0)
     l.cConf = clusterconf.NewConf(baseConf)
     l.newEntryToApply = make(chan int)
     l.localFs = localfs.NewFs(fsRootDir)
