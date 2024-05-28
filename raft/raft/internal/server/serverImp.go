@@ -224,14 +224,11 @@ func (s *server) joinConf(workingNode node.Node){
         Description: "added new node " + nodeIp + " to configuration: ",
     }
 
-    s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
-    s.updateNewNode(workingNode)              
-    //FIX: Commit config only when the follower has applied the commitConf
-}
-
-func (s *server) updateNewNode(workingNode node.Node){
     var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
     var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
+
+    //FIX: Commit config only when the follower has applied the commitConf
+    s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
 
     log.Println("updating node: ",workingNode.GetIp())
     s.encodeAndSend(UpdateNode.NewUpdateNodeRPC(false),workingNode)
@@ -246,6 +243,7 @@ func (s *server) updateNewNode(workingNode node.Node){
     s.encodeAndSend(UpdateNode.NewUpdateNodeRPC(true),workingNode)
     workingNode.NodeUpdated()
     log.Println("done updating node: ",workingNode.GetIp())
+
 }
 
 func (s *server) run() {
@@ -404,21 +402,8 @@ func (s *server) leaderHearthBit(){
 
             log.Println("start broadcast")
             s.applyOnFollowers(func(n node.Node) {
-                var raw_mex []byte
-                var err error
                 var hearthBit rpcs.Rpc = s.nodeAppendEntryPayload(n,nil)
-
-                raw_mex,err = genericmessage.Encode(&hearthBit)
-                if err != nil {
-                    log.Panicln("error in Encoding this rpc: ",hearthBit.ToString())
-                }
-                log.Printf("sending to %v with key %v\n", n.GetIp(),n.GetIp())
-                err = n.Send(raw_mex)
-                if err != nil{
-                    log.Panicln("error sending message to node ",err)
-                }
-
-
+                s.encodeAndSend(hearthBit,n)
             })
             log.Println("end broadcast")
             s._state.StartHearthbeatTimeout()
