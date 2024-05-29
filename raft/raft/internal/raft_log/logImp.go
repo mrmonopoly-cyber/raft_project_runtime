@@ -208,7 +208,7 @@ func (this *log) updateLastApplied() error {
 			switch entry.entry.OpType {
 			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL, p.Operation_COMMIT_CONFIG:
 				this.applyConf(entry.entry.OpType, entry)
-                go func ()  {
+                go func ()  {   //HACK: this goroutine if you are follower reamin stuck forever
                    entry.notifyApplication <- 1 
                 }()
 			default:
