@@ -14,7 +14,7 @@ type UpdateNode struct {
     pMex protobuf.UpdateNode
 }
 
-func NewUpdateNodeRPC(voteAble bool) rpcs.Rpc {
+func ChangeVoteRightNode(voteAble bool) rpcs.Rpc {
     return &UpdateNode{
         pMex: protobuf.UpdateNode{
             Votante: voteAble,
