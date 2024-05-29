@@ -495,7 +495,7 @@ func (s *server) encodeAndSend(rpcMex rpcs.Rpc, n node.Node){
     err = n.Send(rawMex)
 
     if err != nil {
-        log.Panicln("error sending rpcRawMex to node :", n.GetIp())
+        log.Println("error sending rpcRawMex: ", err)
     }
 
 }
