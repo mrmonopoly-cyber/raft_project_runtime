@@ -130,13 +130,20 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 
 func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) []chan int {
 	var res = this.log.AppendEntries(newEntries)
-	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1 {
-		log.Println("auto commit entry")
-		this.log.IncreaseCommitIndex()
-		if this.Leader() {
-			this.statePool.IncreaseCommonMathcIndex()
-		}
-		return res
+    var removingNodeInTwoNodeConf bool = 
+        this.GetNumberNodesInCurrentConf() ==2 && 
+        len(newEntries) == 1 && 
+        newEntries[0].OpType == p.Operation_DELETE
+    //HACK: single case approach to manage the deletion of a node in 2 note conf
+	if !this.Leader() ||
+        this.GetNumberNodesInCurrentConf() == 1 ||
+        removingNodeInTwoNodeConf {
+            log.Println("auto commit entry")
+            this.log.IncreaseCommitIndex()
+            if this.Leader() {
+                this.statePool.IncreaseCommonMathcIndex()
+            }
+            return res
 	}
 	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderEntryToCommit, this.log.GetCommitIndex()+1)
 	this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
