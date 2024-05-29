@@ -208,11 +208,10 @@ func (this *log) updateLastApplied() error {
 			switch entry.entry.OpType {
 			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL, p.Operation_COMMIT_CONFIG:
 				this.applyConf(entry.entry.OpType, entry)
+                entry.notifyApplication <- 1
 			default:
 				(*this).localFs.ApplyLogEntry(entry.entry)
 			}
-
-            // entry.notifyApplication <- 1;
 		}
 
 	}

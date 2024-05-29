@@ -178,6 +178,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
     var nodeIp = workingNode.GetIp()
     var message []byte
     var errMes error
+    var notifyChan chan int
     var newConfDelete p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_DEL,
         Term: s._state.GetTerm(),
@@ -197,13 +198,16 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
             if !s._state.Leader() {
                 s._state.StartElectionTimeout()
             }
-            workingNode.CloseConnection()
 
             if s._state.Leader() || s._state.GetNumberNodesInCurrentConf() == 2{
-                s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
+                var chans =  s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
+                notifyChan = chans[len(chans)-1]
             }
 
+            <- notifyChan
+            log.Println("safe to remove")
             //FIX: cannot remove the node until it's removed from the conf
+            workingNode.CloseConnection()
             s.unstableNodes.Delete(nodeIp); 
             s._state.GetStatePool().RemNode(nodeIp) 
             break
@@ -217,6 +221,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
 
 func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
+    var notifyChan chan int
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_ADD,
         Term: s._state.GetTerm(),
@@ -227,8 +232,8 @@ func (s *server) joinConf(workingNode node.Node){
     var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
     var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
 
-    //FIX: Commit config only when the follower has applied the commitConf
-    s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
+    var chans = s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
+    notifyChan = chans[len(chans)-1]
 
     log.Println("updating node: ",workingNode.GetIp())
     s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
@@ -243,6 +248,12 @@ func (s *server) joinConf(workingNode node.Node){
     s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
     workingNode.NodeUpdated()
     log.Println("done updating node: ",workingNode.GetIp())
+
+    <- notifyChan
+    log.Println("commit config")
+    //FIX: Commit config only when the follower has applied the commitConf
+
+    
 
 }
 
