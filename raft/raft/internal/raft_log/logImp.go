@@ -202,7 +202,7 @@ func (this *log) updateLastApplied() error {
 		select {
 		case <-this.newEntryToApply:
 			this.lastApplied++
-			var entry logInstance = this.entries[this.lastApplied]
+			var entry *logInstance = &this.entries[this.lastApplied]
 
 			l.Printf("updating entry: %v", entry)
 			switch entry.entry.OpType {
@@ -211,12 +211,14 @@ func (this *log) updateLastApplied() error {
 			default:
 				(*this).localFs.ApplyLogEntry(entry.entry)
 			}
+
+            entry.notifyApplication <- 1;
 		}
 
 	}
 }
 
-func (this *log) applyConf(ope protobuf.Operation, entry logInstance) {
+func (this *log) applyConf(ope protobuf.Operation, entry *logInstance) {
 	var confUnfiltered string = string(entry.entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, " ")
 	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)

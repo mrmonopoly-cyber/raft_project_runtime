@@ -231,7 +231,7 @@ func (s *server) joinConf(workingNode node.Node){
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
 
     log.Println("updating node: ",workingNode.GetIp())
-    s.encodeAndSend(UpdateNode.NewUpdateNodeRPC(false),workingNode)
+    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
     
     log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
     s.encodeAndSend(appendEntryRpc,workingNode)
@@ -240,7 +240,7 @@ func (s *server) joinConf(workingNode node.Node){
     for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
         //HACK: WAIT POLLING
     }
-    s.encodeAndSend(UpdateNode.NewUpdateNodeRPC(true),workingNode)
+    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
     workingNode.NodeUpdated()
     log.Println("done updating node: ",workingNode.GetIp())
 
