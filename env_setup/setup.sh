@@ -50,22 +50,4 @@ echo "coping ssh key for remote node access"
 cp ./raft_node_key ~/.ssh
 separation
 
-echo "to open the gui to manage the virtual machine use virt-manager"
-echo "for more infos check:"
-echo $wiki_libvirt
-echo $wiki_virt_manager
-separation
-
-
-answer="p"
-while [ $answer != "y" ] && [ $answer != "n" ]; do
-    echo -n "do you want to open the two links to the wiki?:[y/n]"
-    read answer
-done
-
-if [[ $answer == "y" ]]; then
-    xdg-open $wiki_virt_manager
-    xdg-open $wiki_libvirt
-fi
-
 exit
