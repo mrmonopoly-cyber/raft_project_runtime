@@ -206,11 +206,15 @@ func (this *log) updateLastApplied() error {
 
 			l.Printf("updating entry: %v", entry)
 			switch entry.entry.OpType {
-			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL, p.Operation_COMMIT_CONFIG:
+			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL:
 				this.applyConf(entry.entry.OpType, entry)
-                go func ()  {   //HACK: this goroutine if you are follower reamin stuck forever
+                //HACK: this goroutine if you are follower reamin stuck forever 
+                //creating a zombie process
+                go func ()  {   
                    entry.notifyApplication <- 1 
                 }()
+            case p.Operation_COMMIT_CONFIG:
+				this.applyConf(entry.entry.OpType, entry)
 			default:
 				(*this).localFs.ApplyLogEntry(entry.entry)
 			}

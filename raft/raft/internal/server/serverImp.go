@@ -220,6 +220,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
 
 func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
+    var chans []chan int
     var notifyChan chan int
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_ADD,
@@ -227,11 +228,17 @@ func (s *server) joinConf(workingNode node.Node){
         Payload: []byte(nodeIp),
         Description: "added new node " + nodeIp + " to configuration: ",
     }
+    var commitConf p.LogEntry = p.LogEntry{
+        OpType: p.Operation_COMMIT_CONFIG,
+        Term: s._state.GetTerm(),
+        Payload: []byte(nodeIp),
+        Description: "committing config add of node " + nodeIp,
+    }
 
     var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
     var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
 
-    var chans = s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
+    chans = s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
     notifyChan = chans[len(chans)-1]
 
     log.Println("updating node: ",workingNode.GetIp())
@@ -250,10 +257,7 @@ func (s *server) joinConf(workingNode node.Node){
 
     <- notifyChan
     log.Println("commit config")
-    //FIX: Commit config only when the follower has applied the commitConf
-
-    
-
+    s._state.AppendEntries([]*p.LogEntry{&commitConf})
 }
 
 func (s *server) run() {
