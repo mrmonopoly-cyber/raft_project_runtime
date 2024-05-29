@@ -212,7 +212,7 @@ func (this *log) updateLastApplied() error {
 				(*this).localFs.ApplyLogEntry(entry.entry)
 			}
 
-            entry.notifyApplication <- 1;
+            // entry.notifyApplication <- 1;
 		}
 
 	}
