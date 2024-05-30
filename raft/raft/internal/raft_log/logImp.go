@@ -94,7 +94,7 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 
 	for _, v := range newEntries {
 		var fullEntry = logInstance{
-			entry:             v,
+			entry: v,
 			notifyApplication: make(chan int),
 		}
 

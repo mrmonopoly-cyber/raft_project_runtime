@@ -141,6 +141,7 @@ func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
 		if this.Leader() {
 			this.statePool.IncreaseCommonMathcIndex()
 		}
+        return
 	}
 	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderEntryToCommit, this.log.GetCommitIndex()+1)
 	this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
