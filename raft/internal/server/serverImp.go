@@ -351,6 +351,7 @@ func (s *server) run() {
                 }
 
                 if !n.Updated(){
+                    log.Println("node not updated: ", n.GetIp())
                     return 
                 }
 
