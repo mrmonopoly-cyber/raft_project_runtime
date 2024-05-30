@@ -468,8 +468,9 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []raft_log.LogInst
     }
 
     log.Println("ok: ", logDataInstance)
-    for i, v := range logDataInstance {
-        logEntryPayload[i] = v.Entry
+    for i := 0; i < len(logDataInstance); i++ {
+        logEntryPayload[i] = logDataInstance[i].Entry
+        
     }
     log.Println("ok1")
 
