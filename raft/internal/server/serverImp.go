@@ -467,10 +467,11 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []raft_log.LogInst
         logDataInstance = append(logDataInstance, toAppend...)
     }
 
-    log.Println("ok")
+    log.Println("ok: ", logDataInstance)
     for i, v := range logDataInstance {
         logEntryPayload[i] = v.Entry
     }
+    log.Println("ok1")
 
     if nodeNextIndex <= s._state.LastLogIndex() || toAppend != nil {
 
