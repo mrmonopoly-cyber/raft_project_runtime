@@ -75,20 +75,20 @@ func (this *log) GetEntriAt(index int64) (*p.LogEntry, error) {
 	return nil, errors.New("invalid index: " + string(rune(index)))
 }
 
-func (this *log) AppendEntries(newEntries []*p.LogEntry) []chan int {
+func (this *log) AppendEntries(newEntries []*p.LogEntry) []*chan int {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
 	var lenEntries = len(this.entries)
-    var notifyChann []chan int = make([]chan int, len(newEntries))
+    var notifyChann []*chan int = make([]*chan int, len(newEntries))
 
     //FIX: Wrong chan creation?? what you return is different from what is inside the fullEntry
 	for i, v := range newEntries{
-        notifyChann[i] = make(chan int)
         var fullEntry = logInstance{
             entry: v,
-            notifyApplication: notifyChann[i],
+            notifyApplication: make(chan int),
         }
+        notifyChann[i] = &fullEntry.notifyApplication
 
 		if int(this.logSize) < lenEntries {
 			this.entries[this.logSize] = fullEntry
