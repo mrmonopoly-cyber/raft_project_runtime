@@ -431,6 +431,7 @@ func (s *server) startNewElection(){
                 log.Printf("sending election request %v to %v\n", voteRequest.ToString(),n.GetIp())
                 n.Send(raw_mex)
             })
+    s._state.StartElectionTimeout()
 }
 
 func (s *server) leaderHearthBit(){
