@@ -134,8 +134,6 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 		    // log.Panicf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
       //   }
         log.Printf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
-        //HACK: i don't know why this if else works in this way but it's working
-        // at least seems like it, probably it's right but i don't know why
 		if matchIdx >= c.futureCommonIdx {
             c.futureCommonIdx++
 			return nil
