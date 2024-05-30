@@ -41,7 +41,7 @@ func (this *raftStateImpl) NewLogInstance(entry *protobuf.LogEntry) *l.LogInstan
 }
 
 // NewLogInstanceBatch implements State.
-func (this *raftStateImpl) NewLogInstanceBatch(entry []*protobuf.LogEntry) []l.LogInstance {
+func (this *raftStateImpl) NewLogInstanceBatch(entry []*protobuf.LogEntry) []*l.LogInstance {
     return this.log.NewLogInstanceBatch(entry)
 }
 
@@ -138,7 +138,7 @@ func (this *raftStateImpl) GetEntries() []l.LogInstance {
 	return this.log.GetEntries()
 }
 
-func (this *raftStateImpl) AppendEntries(newEntries []l.LogInstance) {
+func (this *raftStateImpl) AppendEntries(newEntries []*l.LogInstance) {
 	this.log.AppendEntries(newEntries)
 	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1 {
 		log.Println("auto commit entry")

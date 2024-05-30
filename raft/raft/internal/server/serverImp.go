@@ -204,7 +204,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
             if  s._state.Leader() || 
                 s._state.GetNumberNodesInCurrentConf() == 2 ||
                 s._state.GetLeaderIpPrivate() == workingNode.GetIp(){
-                    s._state.AppendEntries([]raft_log.LogInstance{wrapperEntry})
+                    s._state.AppendEntries([]*raft_log.LogInstance{&wrapperEntry})
             }
 
             log.Println("waiting on channel to remove: ", wrapperEntry.NotifyApplication)
@@ -241,7 +241,7 @@ func (s *server) joinConf(workingNode node.Node){
     var commitedEntries []raft_log.LogInstance = s._state.GetCommittedEntries()
     var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
 
-    s._state.AppendEntries([]raft_log.LogInstance{addEntryWrapper})
+    s._state.AppendEntries([]*raft_log.LogInstance{&addEntryWrapper})
 
     log.Println("updating node: ",workingNode.GetIp())
     s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)

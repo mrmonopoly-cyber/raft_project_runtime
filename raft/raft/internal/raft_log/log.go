@@ -17,7 +17,7 @@ type LogEntry interface {
 
 	GetEntries() []LogInstance
     GetEntriAt(index int64) (*LogInstance,error)
-    AppendEntries(newEntries []LogInstance)
+    AppendEntries(newEntries []*LogInstance)
     DeleteFromEntry(entryIndex uint)
 
     GetCommitIndex() int64
@@ -27,7 +27,7 @@ type LogEntry interface {
 	LastLogIndex() int
 	LastLogTerm() uint
 
-    NewLogInstanceBatch(entry []*p.LogEntry) []LogInstance
+    NewLogInstanceBatch(entry []*p.LogEntry) []*LogInstance
     NewLogInstance(entry *p.LogEntry) *LogInstance
 
     //conf info
@@ -58,11 +58,11 @@ func (this *log) NewLogInstance(entry *p.LogEntry) *LogInstance{
     }
 }
 
-func (this *log) NewLogInstanceBatch(entry []*p.LogEntry) []LogInstance{
-    var res []LogInstance = make([]LogInstance, len(entry))
+func (this *log) NewLogInstanceBatch(entry []*p.LogEntry) []*LogInstance{
+    var res []*LogInstance = make([]*LogInstance, len(entry))
 
     for i, v := range entry {
-        res[i] = LogInstance{
+        res[i] = &LogInstance{
             Entry: v,
             NotifyApplication: make(chan int),
         }
