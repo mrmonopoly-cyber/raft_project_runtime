@@ -1,8 +1,8 @@
 package nodeState
 
 type VolatileNodeState interface{
-    SetNextIndex(index int)
-    SetMatchIndex(index int)
+    SetNextIndex(index int) error
+    SetMatchIndex(index int) error
     GetMatchIndex() int
     GetNextIndex() int
     InitVolatileState(lastLogIndex int)

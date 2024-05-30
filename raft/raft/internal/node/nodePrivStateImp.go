@@ -35,13 +35,13 @@ func (this *node) NodeUpdated() {
 }
 
 // SetMatchIndex implements Node.
-func (this *node) SetMatchIndex(index int) {
-    this.statepool.UpdateNodeState(this.GetIp(),nodematchidx.MATCH,index)
+func (this *node) SetMatchIndex(index int) error{
+    return this.statepool.UpdateNodeState(this.GetIp(),nodematchidx.MATCH,index)
 }
 
 // SetNextIndex implements Node.
-func (this *node) SetNextIndex(index int) {
-    this.statepool.UpdateNodeState(this.GetIp(),nodematchidx.NEXT,index)
+func (this *node) SetNextIndex(index int) error{
+    return this.statepool.UpdateNodeState(this.GetIp(),nodematchidx.NEXT,index)
 }
 
 // Updated implements Node.
