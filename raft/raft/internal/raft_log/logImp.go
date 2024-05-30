@@ -36,13 +36,13 @@ type log struct {
 }
 
 // GetNotificationChanEntry implements LogEntry.
-func (this *log) GetNotificationChanEntry(entry *p.LogEntry) (*chan int,error){
+func (this *log) GetNotificationChanEntry(entry *p.LogEntry) (chan int,error){
     var entr logInstance
     
     for i := this.lastApplied+1; i < len(this.entries); i++ {
         entr = this.entries[i]
         if entr.entry == entry {
-            return &entr.notifyApplication,nil
+            return entr.notifyApplication,nil
         }
     }
     return nil,errors.New("entry not found")
@@ -98,6 +98,7 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 			notifyApplication: make(chan int),
 		}
 
+        l.Println("adding new logEntry: ", fullEntry)
 		if int(this.logSize) < lenEntries {
 			this.entries[this.logSize] = fullEntry
 		} else {
