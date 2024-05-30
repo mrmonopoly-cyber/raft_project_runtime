@@ -80,15 +80,13 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) []chan int {
 	defer this.lock.Unlock()
 
 	var lenEntries = len(this.entries)
-    var notifyChann []chan int = nil
+    var notifyChann []chan int = make([]chan int, len(newEntries))
 
-	for _, v := range newEntries{
+	for i, v := range newEntries{
         var fullEntry = logInstance{
             entry: v,
-            notifyApplication: make(chan int),
+            notifyApplication: notifyChann[i],
         }
-
-        notifyChann = append(notifyChann, fullEntry.notifyApplication)
 
 		if int(this.logSize) < lenEntries {
 			this.entries[this.logSize] = fullEntry
