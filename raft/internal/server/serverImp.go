@@ -32,6 +32,7 @@ type server struct {
 	_state         state.State
 	messageChannel chan pairMex
 	unstableNodes   *sync.Map
+    numNodes uint
     clientNodes    *sync.Map
 	listener       net.Listener
 }
@@ -71,6 +72,7 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
         new_node = node.NewNode(serversIp[i], port, nodeConn,this._state.GetStatePool())
         log.Printf("connected to new node, storing it: %v\n", new_node.GetIp())
         (*this).unstableNodes.Store(new_node.GetIp(), new_node)
+        (*this).numNodes++
         go (*this).handleResponseSingleNode(new_node)
 	}
 
@@ -104,6 +106,7 @@ func (s *server) acceptIncomingConn() {
         log.Printf("node with ip %v not found", newConncetionIp)
         var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn, s._state.GetStatePool())
         s.unstableNodes.Store(new_node.GetIp(),new_node)
+        s.numNodes++
         go func ()  {
             s.wg.Add(1)
             defer s.wg.Done()
@@ -212,6 +215,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
             log.Println("safe to remove")
             workingNode.CloseConnection()
             s.unstableNodes.Delete(nodeIp); 
+            s.numNodes--
             s._state.GetStatePool().RemNode(nodeIp) 
             break
         }
@@ -380,12 +384,14 @@ func (s *server) startNewElection(){
     s._state.IncreaseSupporters()
 
     if s._state.GetNumberNodesInCurrentConf() == 1 {
-        log.Println("became leader: ",s._state.GetRole())
-        s._state.SetRole(raftstate.LEADER)
-        s._state.SetLeaderIpPrivate(s._state.GetIdPrivate())
-        s._state.SetLeaderIpPublic(s._state.GetIdPublic())
-        s._state.ResetElection()
-        go s.leaderHearthBit()
+        if s.numNodes == 0 {
+            log.Println("became leader: ",s._state.GetRole())
+            s._state.SetRole(raftstate.LEADER)
+            s._state.SetLeaderIpPrivate(s._state.GetIdPrivate())
+            s._state.SetLeaderIpPublic(s._state.GetIdPublic())
+            s._state.ResetElection()
+            go s.leaderHearthBit()
+        }
         return
     }
     s.applyOnFollowers(func(n node.Node) {
