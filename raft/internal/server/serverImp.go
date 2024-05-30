@@ -219,8 +219,6 @@ func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
     var chans []chan int
     var notifyChan chan int
-    var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
-    var appendEntryRpc rpcs.Rpc
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_ADD,
         Term: s._state.GetTerm(),
@@ -234,14 +232,14 @@ func (s *server) joinConf(workingNode node.Node){
         Description: "committing config add of node " + nodeIp,
     }
 
+    var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
+    var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
     chans = s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
     notifyChan = chans[len(chans)-1]
 
     log.Println("updating node: ",workingNode.GetIp())
 
-    if commitedEntries != nil {
-        appendEntryRpc = s.nodeAppendEntryPayload(workingNode,nil)
-
+    if len(commitedEntries) > 0 {
         s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
 
         log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
