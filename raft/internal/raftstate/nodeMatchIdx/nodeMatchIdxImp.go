@@ -130,9 +130,9 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 		*/
 		matchIdx = nodeStatePriv.GetMatchIndex()
 		nodeStatePriv.SetMatchIndex(value)
-        if matchIdx == c.futureCommonIdx {
-		    log.Panicf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
-        }
+      //   if matchIdx == c.futureCommonIdx {
+		    // log.Panicf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
+      //   }
         log.Printf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
 		if matchIdx >= c.futureCommonIdx || value < c.futureCommonIdx {
 			return nil
