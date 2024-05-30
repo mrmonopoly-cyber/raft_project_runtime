@@ -97,7 +97,7 @@ func (s *server) acceptIncomingConn() {
         log.Printf("new connec: %v\n", newConncetionIp)
 
         if found {
-            log.Println("reconnecting to an already known node: ",newConncetionIp)
+            log.Panicln("reconnecting to an already known node: ",newConncetionIp)
         }
 
         log.Printf("node with ip %v not found", newConncetionIp)
@@ -199,9 +199,11 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
                 s._state.StartElectionTimeout()
             }
 
-            if s._state.Leader() || s._state.GetNumberNodesInCurrentConf() == 2{
-                var chans =  s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
-                notifyChan = chans[len(chans)-1]
+            if  s._state.Leader() || 
+                s._state.GetNumberNodesInCurrentConf() == 2 ||
+                s._state.GetLeaderIpPrivate() == workingNode.GetIp(){
+                    var chans =  s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
+                    notifyChan = chans[len(chans)-1]
             }
 
             <- notifyChan
