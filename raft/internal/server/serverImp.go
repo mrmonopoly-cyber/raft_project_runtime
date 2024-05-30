@@ -102,7 +102,12 @@ func (s *server) acceptIncomingConn() {
 
         log.Printf("node with ip %v not found", newConncetionIp)
         var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn, s._state.GetStatePool())
-        go s.handleConnection(new_node)
+        s.unstableNodes.Store(new_node.GetIp(),new_node)
+        go func ()  {
+            s.wg.Add(1)
+            defer s.wg.Done()
+            s.handleConnection(new_node)
+        }()
 	}
 }
 
