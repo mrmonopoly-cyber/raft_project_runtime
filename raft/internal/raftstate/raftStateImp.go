@@ -37,12 +37,12 @@ type raftStateImpl struct {
 
 // NewLogInstance implements State.
 func (this *raftStateImpl) NewLogInstance(entry *protobuf.LogEntry) *l.LogInstance {
-	panic("unimplemented")
+    return this.log.NewLogInstance(entry)	
 }
 
 // NewLogInstanceBatch implements State.
 func (this *raftStateImpl) NewLogInstanceBatch(entry []*protobuf.LogEntry) []l.LogInstance {
-	panic("unimplemented")
+    return this.log.NewLogInstanceBatch(entry)
 }
 
 // GetCommittedEntriesRange implements State.
