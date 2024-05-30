@@ -36,7 +36,7 @@ type raftStateImpl struct {
 }
 
 // GetNotificationChanEntry implements State.
-func (this *raftStateImpl) GetNotificationChanEntry(entry *p.LogEntry) (chan int, error) {
+func (this *raftStateImpl) GetNotificationChanEntry(entry *p.LogEntry) (*chan int, error) {
     return this.log.GetNotificationChanEntry(entry)
 }
 
