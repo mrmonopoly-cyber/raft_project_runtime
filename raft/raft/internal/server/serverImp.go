@@ -209,7 +209,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
                     }
             }
 
-            log.Println("waiting on channel to remove: ", notifyChan)
+            log.Println("waiting on channel to remove: ", *notifyChan)
             <- *notifyChan
             log.Println("safe to remove")
             workingNode.CloseConnection()
