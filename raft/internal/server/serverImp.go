@@ -234,7 +234,6 @@ func (s *server) joinConf(workingNode node.Node){
         Description: "committing config add of node " + nodeIp,
     }
 
-    s.unstableNodes.Store(workingNode.GetIp(),workingNode)
     chans = s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
     notifyChan = chans[len(chans)-1]
 
@@ -254,9 +253,9 @@ func (s *server) joinConf(workingNode node.Node){
         }
         s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
         workingNode.NodeUpdated()
+        log.Println("done updating node: ",workingNode.GetIp())
     }
 
-    log.Println("done updating node: ",workingNode.GetIp())
     <- notifyChan
     log.Println("commit config")
     s._state.AppendEntries([]*p.LogEntry{&commitConf})
