@@ -391,9 +391,16 @@ func (s *server) startNewElection(){
             s._state.SetLeaderIpPublic(s._state.GetIdPublic())
             s._state.ResetElection()
             go s.leaderHearthBit()
+            return
         }
-        return
     }
+
+    s.unstableNodes.Range(func(key, value any) bool {
+        var unregisterNode node.Node = value.(node.Node)
+        go s.joinConf(unregisterNode)
+        return true
+    })
+
     s.applyOnFollowers(func(n node.Node) {
             var voteRequest rpcs.Rpc 
             var raw_mex []byte
