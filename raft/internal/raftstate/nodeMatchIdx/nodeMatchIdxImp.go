@@ -13,14 +13,14 @@ type commonMatchNode struct {
 	allNodeStates       sync.Map
 	behindNode          sync.Map
 	numNode             uint
-	commonIdx           int
+	futureCommonIdx           int
 	numStable           int
 }
 
 
 // InitCommonMatch implements NodeCommonMatch.
 func (c *commonMatchNode) InitCommonMatch(commonMatchIndex int) {
-	c.commonIdx = commonMatchIndex
+	c.futureCommonIdx = commonMatchIndex
 	c.allNodeStates.Range(func(key, value any) bool {
 		var nodeState = value.(nodeState.VolatileNodeState)
 		nodeState.InitVolatileState(commonMatchIndex)
@@ -30,7 +30,7 @@ func (c *commonMatchNode) InitCommonMatch(commonMatchIndex int) {
 
 // IncreaseCommonMathcIndex implements NodeCommonMatch.
 func (c *commonMatchNode) IncreaseCommonMathcIndex() {
-	c.commonIdx++
+	c.futureCommonIdx++
 }
 
 // DoneUpdating implements NodeCommonMatch.
@@ -112,39 +112,39 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 		log.Printf("updating match index with value %v, numNodes %v, stable %v\n", value, c.numNode, c.numStable)
 		/*
 		   TODO: when you want to update the match index of a node:
-		   1- check if, before updating, the node has at least the commonIdx as match index
+		   1- check if, before updating, the node has at least the futureCommonIdx as match index
 		       1.1- if true: update the match index of node and return
 		       1.2- if false:
 		           1.2.1- update the match index of node
-		           1.2.2- check if the new match index is < the commonIdx:
+		           1.2.2- check if the new match index is < the futureCommonIdx:
 		               1.2.2.1- if true: return
 		               1.2.2.2- if false:
 		                   numStable++
 		                   for numStable > numNode/2:
-		                       notifyChannNewEntry <- commonIdx
-		                       commonIdx++
+		                       notifyChannNewEntry <- futureCommonIdx
+		                       futureCommonIdx++
 		                       numStable=1
 		                       foreach nodestate ns:
-		                           if ns.matchIndex > commonIdx:
+		                           if ns.matchIndex > futureCommonIdx:
 		                               numStable++
 		*/
 		matchIdx = nodeStatePriv.GetMatchIndex()
 		nodeStatePriv.SetMatchIndex(value)
-      //   if matchIdx == c.commonIdx {
-		    // log.Panicf("check mathc index, current: %v, common %v\n", matchIdx, c.commonIdx)
-      //   }
-        log.Printf("check mathc index, current: %v, common %v\n", matchIdx, c.commonIdx)
-		if matchIdx >= c.commonIdx || value < c.commonIdx {
-			return nil
-		}
+        if matchIdx == c.futureCommonIdx {
+		    log.Panicf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
+        }
+        log.Printf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
+		// if matchIdx >= c.futureCommonIdx || value < c.futureCommonIdx {
+		// 	return nil
+		// }
 		c.numStable++
 		for c.numStable > int(numNodeHalf) {
-			c.notifyChannNewEntry <- c.commonIdx
-			c.commonIdx++
+			c.notifyChannNewEntry <- c.futureCommonIdx
+			c.futureCommonIdx++
 			c.numStable = 1
 			c.allNodeStates.Range(func(key, value any) bool {
 				var nodeStateP = value.(nodeState.VolatileNodeState)
-				if nodeStateP.GetMatchIndex() > c.commonIdx {
+				if nodeStateP.GetMatchIndex() > c.futureCommonIdx {
 					c.numStable++
 				}
 				return true
