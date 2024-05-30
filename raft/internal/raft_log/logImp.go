@@ -69,7 +69,7 @@ func (this *log) GetEntriAt(index int64) (*LogInstance, error) {
 	return nil, errors.New("invalid index: " + string(rune(index)))
 }
 
-func (this *log) AppendEntries(newEntries []LogInstance) {
+func (this *log) AppendEntries(newEntries []*LogInstance) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -78,9 +78,9 @@ func (this *log) AppendEntries(newEntries []LogInstance) {
 	for _, v := range newEntries {
         l.Println("adding new logEntry: ", v)
 		if int(this.logSize) < lenEntries {
-			this.entries[this.logSize] = v 
+			this.entries[this.logSize] = *v 
 		} else {
-			this.entries = append(this.entries, v)
+			this.entries = append(this.entries, *v)
 			lenEntries++
 		}
 		this.logSize++

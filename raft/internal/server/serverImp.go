@@ -204,7 +204,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
             if  s._state.Leader() || 
                 s._state.GetNumberNodesInCurrentConf() == 2 ||
                 s._state.GetLeaderIpPrivate() == workingNode.GetIp(){
-                    s._state.AppendEntries([]raft_log.LogInstance{wrapperEntry})
+                    s._state.AppendEntries([]*raft_log.LogInstance{&wrapperEntry})
             }
 
             log.Println("waiting on channel to remove: ", wrapperEntry.NotifyApplication)

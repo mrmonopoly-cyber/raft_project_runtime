@@ -138,7 +138,7 @@ func (this *raftStateImpl) GetEntries() []l.LogInstance {
 	return this.log.GetEntries()
 }
 
-func (this *raftStateImpl) AppendEntries(newEntries []l.LogInstance) {
+func (this *raftStateImpl) AppendEntries(newEntries []*l.LogInstance) {
 	this.log.AppendEntries(newEntries)
 	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1 {
 		log.Println("auto commit entry")
