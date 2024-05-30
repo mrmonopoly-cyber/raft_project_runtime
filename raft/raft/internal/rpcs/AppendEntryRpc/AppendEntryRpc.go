@@ -63,11 +63,12 @@ func NewAppendEntryRPC(state raftstate.State, prevLogIndex int64, prevLogTerm ui
 
 func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []raft_log.LogInstance) (ERRORS, int) {
     var logSize = len(entries)
-    var entryState = entries[prevLogIndex].Entry
+    var entryState *protobuf.LogEntry =  nil
 
     if prevLogIndex < 0 {
         return C0, 0
     }
+    entryState = entries[prevLogIndex].Entry
 
     if logSize == 0  && prevLogIndex > 0{
         log.Println("case 2: logSize = 0")
