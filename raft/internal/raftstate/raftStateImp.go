@@ -141,7 +141,7 @@ func (this *raftStateImpl) GetEntries() []l.LogInstance {
 func (this *raftStateImpl) AppendEntries(newEntries []*l.LogInstance) {
 	this.log.AppendEntries(newEntries)
 	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1 {
-		log.Println("auto commit entry")
+        log.Println("auto commit entry: ", newEntries)
 		this.log.IncreaseCommitIndex()
 		if this.Leader() {
 			this.statePool.IncreaseCommonMathcIndex()
