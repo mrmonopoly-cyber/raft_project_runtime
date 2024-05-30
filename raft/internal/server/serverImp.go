@@ -415,10 +415,12 @@ func (s *server) leaderHearthBit(){
     for s._state.Leader(){
         <- s._state.HeartbeatTimeout().C
 
+        log.Println("start broadcast")
         s.applyOnFollowers(func(n node.Node) {
             var hearthBit rpcs.Rpc = s.nodeAppendEntryPayload(n,nil)
             s.encodeAndSend(hearthBit,n)
         })
+        log.Println("end broadcast")
         s._state.StartHearthbeatTimeout()
     }
     s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
