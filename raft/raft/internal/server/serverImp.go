@@ -219,6 +219,8 @@ func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
     var chans []chan int
     var notifyChan chan int
+    var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
+    var appendEntryRpc rpcs.Rpc
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_ADD,
         Term: s._state.GetTerm(),
@@ -232,25 +234,27 @@ func (s *server) joinConf(workingNode node.Node){
         Description: "committing config add of node " + nodeIp,
     }
 
-    var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
-    var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
-
     chans = s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
     notifyChan = chans[len(chans)-1]
 
     log.Println("updating node: ",workingNode.GetIp())
-    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
-    
-    log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
-    s.encodeAndSend(appendEntryRpc,workingNode)
 
-    log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
-    for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
-        //HACK: WAIT POLLING
+    if commitedEntries != nil {
+        appendEntryRpc = s.nodeAppendEntryPayload(workingNode,nil)
+
+        s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
+
+        log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
+        s.encodeAndSend(appendEntryRpc,workingNode)
+
+        log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
+        for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
+            //HACK: WAIT POLLING
+        }
+        s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
+        workingNode.NodeUpdated()
+        log.Println("done updating node: ",workingNode.GetIp())
     }
-    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
-    workingNode.NodeUpdated()
-    log.Println("done updating node: ",workingNode.GetIp())
 
     <- notifyChan
     log.Println("commit config")
