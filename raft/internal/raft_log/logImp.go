@@ -81,12 +81,13 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) []chan int {
 
     var lenNewEntries = len(newEntries)
 	var lenEntries = len(this.entries)
-    var notifyChann []chan int = make([]chan int, lenNewEntries)
+    var notifyChann []chan int = nil
     var fullEntry []logInstance = make([]logInstance, lenNewEntries)
 
 	for i, v := range fullEntry{
         v.entry = newEntries[i]
-        v.notifyApplication = notifyChann[i]
+        v.notifyApplication = make(chan int)
+        notifyChann = append(notifyChann, v.notifyApplication)
 
 		if int(this.logSize) < lenEntries {
 			this.entries[this.logSize] = v
