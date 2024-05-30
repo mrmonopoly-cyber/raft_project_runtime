@@ -194,9 +194,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
                 s._state.StartElectionTimeout()
             }
 
-            if  s._state.Leader() || 
-                s._state.GetNumberNodesInCurrentConf() == 2 || 
-                s._state.GetLeaderIpPrivate() == nodeIp{
+            if s._state.Leader() || s._state.GetNumberNodesInCurrentConf() == 2{
                 var chans =  s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
                 notifyChan = chans[len(chans)-1]
             }
