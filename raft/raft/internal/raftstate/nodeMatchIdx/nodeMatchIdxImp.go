@@ -134,9 +134,9 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 		    log.Panicf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
         }
         log.Printf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
-		// if matchIdx >= c.futureCommonIdx || value < c.futureCommonIdx {
-		// 	return nil
-		// }
+		if matchIdx >= c.futureCommonIdx || value < c.futureCommonIdx {
+			return nil
+		}
 		c.numStable++
 		for c.numStable > int(numNodeHalf) {
 			c.notifyChannNewEntry <- c.futureCommonIdx
