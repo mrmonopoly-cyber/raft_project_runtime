@@ -34,7 +34,7 @@ func NewLogEntry(fsRootDir string, baseConf []string) LogEntry {
 	l.commitIndex = -1
 	l.lastApplied = -1
     l.logSize = 0
-	l.entries = make([]logInstance, 0)
+	l.entries = nil
     l.cConf = clusterconf.NewConf(baseConf)
     l.newEntryToApply = make(chan int)
     l.localFs = localfs.NewFs(fsRootDir)
