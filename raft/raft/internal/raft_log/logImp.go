@@ -206,14 +206,7 @@ func (this *log) updateLastApplied() error {
 
 			l.Printf("updating entry: %v", entry)
 			switch entry.entry.OpType {
-			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL:
-				this.applyConf(entry.entry.OpType, entry)
-                //HACK: this goroutine if you are follower reamin stuck forever 
-                //creating a zombie process
-                go func ()  {   
-                   entry.notifyApplication <- 1 
-                }()
-            case p.Operation_COMMIT_CONFIG:
+			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL, p.Operation_COMMIT_CONFIG:
 				this.applyConf(entry.entry.OpType, entry)
 			default:
 				(*this).localFs.ApplyLogEntry(entry.entry)
@@ -228,6 +221,11 @@ func (this *log) applyConf(ope protobuf.Operation, entry *logInstance) {
 	var confFiltered []string = strings.Split(confUnfiltered, " ")
 	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
 	this.cConf.UpdateConfiguration(ope, confFiltered)
+    //HACK: if you are follower this goroutine remain stuck forever 
+    //creating a zombie process
+    go func ()  {   
+        entry.notifyApplication <- 1 
+    }()
 }
 
 func (this *log) getEntries(startIndex int) []*p.LogEntry{

@@ -202,8 +202,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
             if  s._state.Leader() || 
                 s._state.GetNumberNodesInCurrentConf() == 2 ||
                 s._state.GetLeaderIpPrivate() == workingNode.GetIp(){
-                    var chans =  s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
-                    notifyChan = chans[len(chans)-1]
+                    notifyChan =  s._state.AppendEntries([]*p.LogEntry{&newConfDelete})[0]
             }
 
             <- notifyChan
