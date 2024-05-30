@@ -41,7 +41,7 @@ func (this *raftStateImpl) NewLogInstance(entry *protobuf.LogEntry) *l.LogInstan
 }
 
 // NewLogInstanceBatch implements State.
-func (this *raftStateImpl) NewLogInstanceBatch(entry []*protobuf.LogEntry) []l.LogInstance {
+func (this *raftStateImpl) NewLogInstanceBatch(entry []*protobuf.LogEntry) []*l.LogInstance {
     return this.log.NewLogInstanceBatch(entry)
 }
 

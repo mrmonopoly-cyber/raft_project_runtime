@@ -241,7 +241,7 @@ func (s *server) joinConf(workingNode node.Node){
     var commitedEntries []raft_log.LogInstance = s._state.GetCommittedEntries()
     var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
 
-    s._state.AppendEntries([]raft_log.LogInstance{addEntryWrapper})
+    s._state.AppendEntries([]*raft_log.LogInstance{&addEntryWrapper})
 
     log.Println("updating node: ",workingNode.GetIp())
     s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
