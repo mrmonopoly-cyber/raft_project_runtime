@@ -395,11 +395,18 @@ func (s *server) startNewElection(){
         }
     }
 
+    var waitAdd = sync.WaitGroup{}
     s.unstableNodes.Range(func(key, value any) bool {
         var unregisterNode node.Node = value.(node.Node)
-        go s.joinConf(unregisterNode)
+        go func ()  {
+            waitAdd.Add(1)
+            s.joinConf(unregisterNode) 
+            waitAdd.Done()
+        }()
         return true
     })
+
+    waitAdd.Wait()
 
     s.applyOnFollowers(func(n node.Node) {
             var voteRequest rpcs.Rpc 
