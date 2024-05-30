@@ -82,6 +82,7 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) []chan int {
 	var lenEntries = len(this.entries)
     var notifyChann []chan int = make([]chan int, len(newEntries))
 
+    //FIX: Wrong chan creation?? what you return is different from what is inside the fullEntry
 	for i, v := range newEntries{
         notifyChann[i] = make(chan int)
         var fullEntry = logInstance{
@@ -98,6 +99,7 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) []chan int {
 		this.logSize++
 	}
 
+    l.Println("chan array (logImp): ",notifyChann)
     return notifyChann
 }
 
