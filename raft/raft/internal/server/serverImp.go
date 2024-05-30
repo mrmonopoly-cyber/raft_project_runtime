@@ -102,7 +102,12 @@ func (s *server) acceptIncomingConn() {
 
         log.Printf("node with ip %v not found", newConncetionIp)
         var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn, s._state.GetStatePool())
-        go s.handleConnection(new_node)
+        s.unstableNodes.Store(new_node.GetIp(),new_node)
+        go func ()  {
+            s.wg.Add(1)
+            defer s.wg.Done()
+            s.handleConnection(new_node)
+        }()
 	}
 }
 
@@ -194,9 +199,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
                 s._state.StartElectionTimeout()
             }
 
-            if  s._state.Leader() || 
-                s._state.GetNumberNodesInCurrentConf() == 2 || 
-                s._state.GetLeaderIpPrivate() == nodeIp{
+            if s._state.Leader() || s._state.GetNumberNodesInCurrentConf() == 2{
                 var chans =  s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
                 notifyChan = chans[len(chans)-1]
             }
@@ -219,8 +222,6 @@ func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
     var chans []chan int
     var notifyChan chan int
-    var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
-    var appendEntryRpc rpcs.Rpc
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_ADD,
         Term: s._state.GetTerm(),
@@ -234,29 +235,26 @@ func (s *server) joinConf(workingNode node.Node){
         Description: "committing config add of node " + nodeIp,
     }
 
-    s.unstableNodes.Store(workingNode.GetIp(),workingNode)
+    var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
+    var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
+
     chans = s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
     notifyChan = chans[len(chans)-1]
 
     log.Println("updating node: ",workingNode.GetIp())
+    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
+    
+    log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
+    s.encodeAndSend(appendEntryRpc,workingNode)
 
-    if commitedEntries != nil {
-        appendEntryRpc = s.nodeAppendEntryPayload(workingNode,nil)
-
-        s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
-
-        log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
-        s.encodeAndSend(appendEntryRpc,workingNode)
-
-        log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
-        for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
-            //HACK: WAIT POLLING
-        }
-        s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
-        workingNode.NodeUpdated()
+    log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
+    for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
+        //HACK: WAIT POLLING
     }
-
+    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
+    workingNode.NodeUpdated()
     log.Println("done updating node: ",workingNode.GetIp())
+
     <- notifyChan
     log.Println("commit config")
     s._state.AppendEntries([]*p.LogEntry{&commitConf})
@@ -353,6 +351,7 @@ func (s *server) run() {
                 }
 
                 if !n.Updated(){
+                    log.Println("node not updated: ", n.GetIp())
                     return 
                 }
 
@@ -415,10 +414,12 @@ func (s *server) leaderHearthBit(){
     for s._state.Leader(){
         <- s._state.HeartbeatTimeout().C
 
+        log.Println("start broadcast")
         s.applyOnFollowers(func(n node.Node) {
             var hearthBit rpcs.Rpc = s.nodeAppendEntryPayload(n,nil)
             s.encodeAndSend(hearthBit,n)
         })
+        log.Println("end broadcast")
         s._state.StartHearthbeatTimeout()
     }
     s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
