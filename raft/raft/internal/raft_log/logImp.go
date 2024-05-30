@@ -209,10 +209,14 @@ func (this *log) applyConf(ope protobuf.Operation, entry *LogInstance) {
 	this.cConf.UpdateConfiguration(ope, confFiltered)
 	//HACK: if you are follower this goroutine remain stuck forever
 	//creating a zombie process
-	go func() {
-		l.Printf("notify change conf %v on channel: %v\n", entry, entry.NotifyApplication)
-		entry.NotifyApplication <- 1
-	}()
+    switch ope {
+    case p.Operation_JOIN_CONF_DEL, p.Operation_JOIN_CONF_ADD:
+        go func() {
+            l.Printf("notify change conf %v on channel: %v\n", entry, entry.NotifyApplication)
+            entry.NotifyApplication <- 1
+        }()
+    default:
+    }
 }
 
 func (this *log) getEntries(startIndex int) []LogInstance{
