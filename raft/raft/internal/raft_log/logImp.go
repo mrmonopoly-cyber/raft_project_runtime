@@ -75,19 +75,18 @@ func (this *log) GetEntriAt(index int64) (*p.LogEntry, error) {
 	return nil, errors.New("invalid index: " + string(rune(index)))
 }
 
-func (this *log) AppendEntries(newEntries []*p.LogEntry) []*chan int {
+func (this *log) AppendEntries(newEntries []*p.LogEntry) []chan int {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
     var lenNewEntries = len(newEntries)
 	var lenEntries = len(this.entries)
-    var notifyChann []*chan int = make([]*chan int, lenNewEntries) 
+    var notifyChann []chan int = make([]chan int, lenNewEntries)
     var fullEntry []logInstance = make([]logInstance, lenNewEntries)
 
 	for i, v := range fullEntry{
         v.entry = newEntries[i]
-        v.notifyApplication = make(chan int)
-        notifyChann[i] = &v.notifyApplication
+        notifyChann[i] = v.notifyApplication
 
 		if int(this.logSize) < lenEntries {
 			this.entries[this.logSize] = v
