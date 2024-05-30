@@ -99,6 +99,7 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) []chan int {
 		this.logSize++
 	}
 
+    l.Println("chan array (logImp): ",notifyChann)
     return notifyChann
 }
 
