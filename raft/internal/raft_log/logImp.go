@@ -108,7 +108,7 @@ func (this *log) GetCommitIndex() int64 {
 func (this *log) IncreaseCommitIndex() {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	if this.commitIndex < int64(this.logSize)-1 {
+	if this.commitIndex < int64(this.logSize) {
 		this.commitIndex++
 		this.newEntryToApply <- 1
 	}
