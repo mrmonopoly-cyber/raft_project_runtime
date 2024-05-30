@@ -33,6 +33,8 @@ func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError in
 func (this *AppendResponse) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     var resp rpcs.Rpc = nil
     var term uint64 = this.pMex.GetTerm()
+    var err error 
+
     if !this.pMex.GetSuccess() {
         if term > state.GetTerm() {
             state.SetTerm(term)
@@ -45,8 +47,14 @@ func (this *AppendResponse) Execute(state raftstate.State, sender node.Node) rpc
         }
     } else {
         log.Printf("response ok setting match index of node %v : %v\n", this.pMex.GetId(), this.pMex.GetLogIndexError())
-        sender.SetNextIndex(int(this.pMex.GetLogIndexError())+1)
+        err = sender.SetNextIndex(int(this.pMex.GetLogIndexError())+1)
+        if err != nil {
+            log.Panicln("error updating nextIndex: ", err)
+        }
         sender.SetMatchIndex(int(this.pMex.GetLogIndexError()))
+        if err != nil {
+            log.Panicln("error updating matchIndex: ", err)
+        }
     }
 
     return resp

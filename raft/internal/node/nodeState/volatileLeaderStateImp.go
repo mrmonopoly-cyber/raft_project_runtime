@@ -16,12 +16,14 @@ func (this *volatileNodeState) Updated() bool {
 	return this.updated
 }
 
-func (this *volatileNodeState) SetNextIndex(index int) {
+func (this *volatileNodeState) SetNextIndex(index int) error{
 	this.nextIndex = index
+    return nil
 }
 
-func (this *volatileNodeState) SetMatchIndex(index int) {
+func (this *volatileNodeState) SetMatchIndex(index int) error{
 	this.matchIndex = index
+    return nil
 }
 
 func (this *volatileNodeState) GetMatchIndex() int {
