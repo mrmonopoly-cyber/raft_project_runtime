@@ -142,10 +142,12 @@ func (this *raftStateImpl) AppendEntries(newEntries []*l.LogInstance) {
 	this.log.AppendEntries(newEntries)
 	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1 {
         log.Println("auto commit entry: ", newEntries[0].Entry)
-		this.log.IncreaseCommitIndex()
-		if this.Leader() {
-			this.statePool.IncreaseCommonMathcIndex()
-		}
+        for range newEntries {
+            this.log.IncreaseCommitIndex()
+            if this.Leader() {
+                this.statePool.IncreaseCommonMathcIndex()
+            }
+        }
 		return
 	}
 	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderEntryToCommit, this.log.GetCommitIndex()+1)
