@@ -224,6 +224,7 @@ func (this *log) applyConf(ope protobuf.Operation, entry *logInstance) {
     //HACK: if you are follower this goroutine remain stuck forever 
     //creating a zombie process
     go func ()  {   
+        l.Println("notify change conf: ", entry)
         entry.notifyApplication <- 1 
     }()
 }
