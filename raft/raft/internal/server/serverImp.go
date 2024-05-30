@@ -224,7 +224,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
 
 func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
-    // var notifyChan chan int
+    var notifyChan chan int
     var err error
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_ADD,
@@ -232,39 +232,41 @@ func (s *server) joinConf(workingNode node.Node){
         Payload: []byte(nodeIp),
         Description: "added new node " + nodeIp + " to configuration: ",
     }
-    // var commitConf p.LogEntry = p.LogEntry{
-    //     OpType: p.Operation_COMMIT_CONFIG,
-    //     Term: s._state.GetTerm(),
-    //     Payload: []byte(nodeIp),
-    //     Description: "committing config add of node " + nodeIp,
-    // }
+    var commitConf p.LogEntry = p.LogEntry{
+        OpType: p.Operation_COMMIT_CONFIG,
+        Term: s._state.GetTerm(),
+        Payload: []byte(nodeIp),
+        Description: "committing config add of node " + nodeIp,
+    }
 
     var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
     var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
 
     s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
-    // notifyChan, err = s._state.GetNotificationChanEntry(&newConfEntry)
+    notifyChan, err = s._state.GetNotificationChanEntry(&newConfEntry)
     if err != nil {
         log.Panicln(err)
     }
 
     log.Println("updating node: ",workingNode.GetIp())
-    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
-    
-    log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
-    s.encodeAndSend(appendEntryRpc,workingNode)
+    if commitedEntries != nil {
+        s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
 
-    log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
-    for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
-        //HACK: WAIT POLLING
+        log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
+        s.encodeAndSend(appendEntryRpc,workingNode)
+
+        log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
+        for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
+            //HACK: WAIT POLLING
+        }
+        s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
+        workingNode.NodeUpdated()
     }
-    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
-    workingNode.NodeUpdated()
     log.Println("done updating node: ",workingNode.GetIp())
 
-    // <- notifyChan
-    // log.Println("commit config")
-    // s._state.AppendEntries([]*p.LogEntry{&commitConf})
+    <- notifyChan
+    log.Println("commit config")
+    s._state.AppendEntries([]*p.LogEntry{&commitConf})
 }
 
 func (s *server) run() {
