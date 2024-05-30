@@ -83,6 +83,7 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) []chan int {
     var notifyChann []chan int = make([]chan int, len(newEntries))
 
 	for i, v := range newEntries{
+        notifyChann[i] = make(chan int)
         var fullEntry = logInstance{
             entry: v,
             notifyApplication: notifyChann[i],
