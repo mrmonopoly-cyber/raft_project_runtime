@@ -237,7 +237,7 @@ func (this *log) applyConf(ope protobuf.Operation, entry *logInstance) {
 }
 
 func (this *log) getEntries(startIndex int) []*p.LogEntry {
-	var committedEntries []*p.LogEntry = make([]*p.LogEntry, 0)
+	var committedEntries []*p.LogEntry = nil
 
 	if startIndex == -1 {
 		startIndex = 0
