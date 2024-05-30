@@ -6,16 +6,19 @@ import (
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 )
 
+type LogInstance struct {
+	Entry             *p.LogEntry
+	NotifyApplication chan int
+}
 
 type LogEntry interface {
-	GetCommittedEntries() []*p.LogEntry
-	GetCommittedEntriesRange(startIndex int) []*p.LogEntry
+	GetCommittedEntries() []LogInstance
+	GetCommittedEntriesRange(startIndex int) []LogInstance
 
-	GetEntries() []*p.LogEntry
-    GetEntriAt(index int64) (*p.LogEntry,error)
-    AppendEntries(newEntries []*p.LogEntry)
+	GetEntries() []LogInstance
+    GetEntriAt(index int64) (*LogInstance,error)
+    AppendEntries(newEntries []LogInstance)
     DeleteFromEntry(entryIndex uint)
-    GetNotificationChanEntry(entry *p.LogEntry) (chan int,error)
 
     GetCommitIndex() int64
     IncreaseCommitIndex()
@@ -23,6 +26,9 @@ type LogEntry interface {
 
 	LastLogIndex() int
 	LastLogTerm() uint
+
+    NewLogInstanceBatch(entry []*p.LogEntry) []LogInstance
+    NewLogInstance(entry *p.LogEntry) *LogInstance
 
     //conf info
     cConf
@@ -43,4 +49,24 @@ func NewLogEntry(fsRootDir string, baseConf []string) LogEntry {
     go l.updateLastApplied()
 
 	return l
+}
+
+func (this *log) NewLogInstance(entry *p.LogEntry) *LogInstance{
+    return &LogInstance{
+        Entry: entry,
+        NotifyApplication: make(chan int),
+    }
+}
+
+func (this *log) NewLogInstanceBatch(entry []*p.LogEntry) []LogInstance{
+    var res []LogInstance = make([]LogInstance, len(entry))
+
+    for i, v := range entry {
+        res[i] = LogInstance{
+            Entry: v,
+            NotifyApplication: make(chan int),
+        }
+    }
+
+    return res
 }

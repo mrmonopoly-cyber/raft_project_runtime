@@ -17,6 +17,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+    "raft/internal/raft_log"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -178,13 +179,14 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
     var nodeIp = workingNode.GetIp()
     var message []byte
     var errMes error
-    var notifyChan chan int = nil
     var newConfDelete p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_DEL,
         Term: s._state.GetTerm(),
         Payload: []byte(nodeIp),
         Description: "removed node " + nodeIp + " to configuration: ",
     }
+
+    var wrapperEntry raft_log.LogInstance = *s._state.NewLogInstance(&newConfDelete)
 
     if s._state.Leader() {
         log.Println("i'm leader, joining conf")
@@ -202,15 +204,11 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
             if  s._state.Leader() || 
                 s._state.GetNumberNodesInCurrentConf() == 2 ||
                 s._state.GetLeaderIpPrivate() == workingNode.GetIp(){
-                    s._state.AppendEntries([]*p.LogEntry{&newConfDelete})
-                    notifyChan,errMes = s._state.GetNotificationChanEntry(&newConfDelete)
-                    if errMes != nil {
-                        log.Panicln(errMes)
-                    }
+                    s._state.AppendEntries([]raft_log.LogInstance{wrapperEntry})
             }
 
-            log.Println("waiting on channel to remove: ", notifyChan)
-            <- notifyChan
+            log.Println("waiting on channel to remove: ", wrapperEntry.NotifyApplication)
+            <- wrapperEntry.NotifyApplication
             log.Println("safe to remove")
             workingNode.CloseConnection()
             s.unstableNodes.Delete(nodeIp); 
@@ -225,8 +223,6 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
 
 func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
-    var notifyChan chan int
-    var err error
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_ADD,
         Term: s._state.GetTerm(),
@@ -240,14 +236,12 @@ func (s *server) joinConf(workingNode node.Node){
         Description: "committing config add of node " + nodeIp,
     }
 
-    var commitedEntries []*p.LogEntry = s._state.GetCommittedEntries()
+    var addEntryWrapper raft_log.LogInstance = *s._state.NewLogInstance(&newConfEntry)
+
+    var commitedEntries []raft_log.LogInstance = s._state.GetCommittedEntries()
     var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
 
-    s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
-    notifyChan, err = s._state.GetNotificationChanEntry(&newConfEntry)
-    if err != nil {
-        log.Panicln(err)
-    }
+    s._state.AppendEntries([]raft_log.LogInstance{addEntryWrapper})
 
     log.Println("updating node: ",workingNode.GetIp())
     s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
@@ -262,10 +256,11 @@ func (s *server) joinConf(workingNode node.Node){
     s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
     workingNode.NodeUpdated()
     log.Println("done updating node: ",workingNode.GetIp())
+    
+    <- addEntryWrapper.NotifyApplication
 
-    <- notifyChan
     log.Println("commit config")
-    s._state.AppendEntries([]*p.LogEntry{&commitConf})
+    s._state.AppendEntries(s._state.NewLogInstanceBatch([]*p.LogEntry{&commitConf}))
 }
 
 func (s *server) run() {
@@ -341,7 +336,7 @@ func (s *server) run() {
             //Search only through stable nodes because may be possible that a new node is still 
             //updating while you check his commitIndex
             var err error
-            var entryToCommit *p.LogEntry 
+            var entryToCommit *raft_log.LogInstance
 
             entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
             log.Println("new log entry to propagate: ", entryToCommit)
@@ -363,7 +358,7 @@ func (s *server) run() {
                     return 
                 }
 
-                AppendEntry = s.nodeAppendEntryPayload(n,[]*p.LogEntry{entryToCommit})
+                AppendEntry = s.nodeAppendEntryPayload(n,[]raft_log.LogInstance{*entryToCommit})
 
                 rawMex,err = genericmessage.Encode(&AppendEntry)
                 if err != nil {
@@ -458,17 +453,22 @@ func (s* server) applyOnFollowers(fn func(n node.Node)){
     }
 }
 
-func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpcs.Rpc{
+func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []raft_log.LogInstance) rpcs.Rpc{
     var nodeNextIndex = n.GetNextIndex()
     var prevLogTerm uint64 =0
     var hearthBit rpcs.Rpc
-    var entryPayload []*p.LogEntry = s._state.GetCommittedEntriesRange(int(nodeNextIndex))
-    var prevLogEntry *p.LogEntry
+    var logDataInstance []raft_log.LogInstance= s._state.GetCommittedEntriesRange(int(nodeNextIndex))
+    var logEntryPayload []*p.LogEntry = make([]*p.LogEntry, len(logDataInstance))
+    var prevLogEntry *raft_log.LogInstance
     var err error
     var prevLogIndex int64 = -1
 
     if toAppend != nil{
-        entryPayload = append(entryPayload, toAppend...)
+        logDataInstance = append(logDataInstance, toAppend...)
+    }
+
+    for i, v := range logDataInstance {
+        logEntryPayload[i] = v.Entry
     }
 
     if nodeNextIndex <= s._state.LastLogIndex() || toAppend != nil {
@@ -478,12 +478,12 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []*p.LogEntry) rpc
             if err != nil{
                 log.Panicln("error retrieving entry at index :", nodeNextIndex-1)
             }
-            prevLogTerm = prevLogEntry.Term
+            prevLogTerm = prevLogEntry.Entry.Term
             prevLogIndex = int64(nodeNextIndex) -1
         }
         
         hearthBit = AppendEntryRpc.NewAppendEntryRPC(
-            s._state, prevLogIndex, prevLogTerm,entryPayload)
+            s._state, prevLogIndex, prevLogTerm,logEntryPayload)
 
     }else {
         hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  

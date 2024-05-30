@@ -18,34 +18,17 @@ type cConf interface {
 	GetConfig() []string
 }
 
-type logInstance struct {
-	entry             *p.LogEntry
-	notifyApplication chan int
-}
 
 type log struct {
 	lock            sync.RWMutex
 	newEntryToApply chan int
 
-	entries     []logInstance
+	entries     []LogInstance
 	logSize     uint
 	commitIndex int64
 	lastApplied int
 
 	realClusterState
-}
-
-// GetNotificationChanEntry implements LogEntry.
-func (this *log) GetNotificationChanEntry(entry *p.LogEntry) (chan int,error){
-    var entr logInstance
-    
-    for i := this.lastApplied+1; i < len(this.entries); i++ {
-        entr = this.entries[i]
-        if entr.entry == entry {
-            return entr.notifyApplication,nil
-        }
-    }
-    return nil,errors.New("entry not found")
 }
 
 type realClusterState struct {
@@ -55,54 +38,49 @@ type realClusterState struct {
 
 // log
 // GetCommittedEntries implements LogEntry.
-func (this *log) GetCommittedEntries() []*p.LogEntry {
+func (this *log) GetCommittedEntries() []LogInstance{
 	return this.getEntries(0)
 }
 
 // GetCommittedEntriesRange implements LogEntry.
-func (this *log) GetCommittedEntriesRange(startIndex int) []*p.LogEntry {
+func (this *log) GetCommittedEntriesRange(startIndex int) []LogInstance{
 	return this.getEntries(startIndex)
 }
 
-func (this *log) GetEntries() []*p.LogEntry {
+func (this *log) GetEntries() []LogInstance{
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
 	var lenEntries = len(this.entries)
-	var res []*p.LogEntry = make([]*p.LogEntry, lenEntries)
+	var res []LogInstance= make([]LogInstance, lenEntries)
 
 	for i, v := range this.entries {
-		res[i] = v.entry
+		res[i] = v
 	}
 
 	return res
 }
 
 // GetEntriAt implements LogEntry.
-func (this *log) GetEntriAt(index int64) (*p.LogEntry, error) {
+func (this *log) GetEntriAt(index int64) (*LogInstance, error) {
 	if (this.logSize == 1 && index == 0) || (index < int64(this.logSize)) {
-		return this.entries[index].entry, nil
+		return &this.entries[index], nil
 	}
 	return nil, errors.New("invalid index: " + string(rune(index)))
 }
 
-func (this *log) AppendEntries(newEntries []*p.LogEntry) {
+func (this *log) AppendEntries(newEntries []LogInstance) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
 	var lenEntries = len(this.entries)
 
 	for _, v := range newEntries {
-		var fullEntry = logInstance{
-			entry: v,
-			notifyApplication: make(chan int),
-		}
-
-        l.Println("adding new logEntry: ", fullEntry)
+        l.Println("adding new logEntry: ", v)
 		if int(this.logSize) < lenEntries {
-			this.entries[this.logSize] = fullEntry
+			this.entries[this.logSize] = v 
 		} else {
-			this.entries = append(this.entries, fullEntry)
+			this.entries = append(this.entries, v)
 			lenEntries++
 		}
 		this.logSize++
@@ -112,9 +90,9 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 // DeleteFromEntry implements LogEntry.
 func (this *log) DeleteFromEntry(entryIndex uint) {
 	for i := int(entryIndex); i < len(this.entries); i++ {
-		this.entries[i] = logInstance{
-			entry:             nil,
-			notifyApplication: make(chan int),
+		this.entries[i] = LogInstance{
+			Entry:             nil,
+			NotifyApplication: make(chan int),
 		}
 		this.logSize--
 	}
@@ -165,7 +143,7 @@ func (this *log) LastLogTerm() uint {
 	var lasLogIdx = this.LastLogIndex()
 
 	if lasLogIdx >= 0 {
-		return uint(committedEntr[lasLogIdx].Term)
+		return uint(committedEntr[lasLogIdx].Entry.Term)
 	}
 	return 0
 
@@ -210,42 +188,42 @@ func (this *log) updateLastApplied() error {
 		select {
 		case <-this.newEntryToApply:
 			this.lastApplied++
-			var entry *logInstance = &this.entries[this.lastApplied]
+			var entry *LogInstance = &this.entries[this.lastApplied]
 
 			l.Printf("updating entry: %v", entry)
-			switch entry.entry.OpType {
+			switch entry.Entry.OpType {
 			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL, p.Operation_COMMIT_CONFIG:
-				this.applyConf(entry.entry.OpType, entry)
+				this.applyConf(entry.Entry.OpType, entry)
 			default:
-				(*this).localFs.ApplyLogEntry(entry.entry)
+				(*this).localFs.ApplyLogEntry(entry.Entry)
 			}
 		}
 
 	}
 }
 
-func (this *log) applyConf(ope protobuf.Operation, entry *logInstance) {
-	var confUnfiltered string = string(entry.entry.Payload)
+func (this *log) applyConf(ope protobuf.Operation, entry *LogInstance) {
+	var confUnfiltered string = string(entry.Entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, " ")
 	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
 	this.cConf.UpdateConfiguration(ope, confFiltered)
 	//HACK: if you are follower this goroutine remain stuck forever
 	//creating a zombie process
 	go func() {
-		l.Printf("notify change conf %v on channel: %v\n", entry, entry.notifyApplication)
-		entry.notifyApplication <- 1
+		l.Printf("notify change conf %v on channel: %v\n", entry, entry.NotifyApplication)
+		entry.NotifyApplication <- 1
 	}()
 }
 
-func (this *log) getEntries(startIndex int) []*p.LogEntry {
-	var committedEntries []*p.LogEntry = nil
+func (this *log) getEntries(startIndex int) []LogInstance{
+	var committedEntries []LogInstance= nil
 
 	if startIndex == -1 {
 		startIndex = 0
 	}
 
 	for i := int(startIndex); i <= int(this.commitIndex); i++ {
-		committedEntries = append(committedEntries, this.entries[i].entry)
+		committedEntries = append(committedEntries, this.entries[i])
 	}
 	return committedEntries
 }

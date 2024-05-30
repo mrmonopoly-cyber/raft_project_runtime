@@ -6,6 +6,7 @@ import (
 	"raft/internal/node"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
+	"raft/internal/raft_log"
 	app_resp "raft/internal/rpcs/AppendResponse"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strconv"
@@ -60,8 +61,10 @@ func NewAppendEntryRPC(state raftstate.State, prevLogIndex int64, prevLogTerm ui
     }
 }
 
-func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobuf.LogEntry) (ERRORS, int) {
+func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []raft_log.LogInstance) (ERRORS, int) {
     var logSize = len(entries)
+    var entryState = entries[prevLogIndex].Entry
+
     if prevLogIndex < 0 {
         return C0, 0
     }
@@ -78,9 +81,9 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
     }
     fmt.Println("case 3")
     log.Println(entries)
-    log.Printf("prevLogTerm: %d,, getTerm: %d, getDescr: %s,, getType: %o", prevLogTerm, entries[prevLogIndex].GetTerm(), entries[prevLogIndex].GetDescription(), entries[prevLogIndex].GetOpType())
+    log.Printf("prevLogTerm: %d,, getTerm: %d, getDescr: %s,, getType: %o", prevLogTerm, entryState.GetTerm(), entryState.GetDescription(), entryState.GetOpType())
     
-    consistent := entries[prevLogIndex].GetTerm() == prevLogTerm
+    consistent := entryState.GetTerm() == prevLogTerm
 
     if consistent {
         return C0, (int(prevLogIndex) + 1)
@@ -101,8 +104,9 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
     var consistent ERRORS
     var prevLogIndex int64 = this.pMex.GetPrevLogIndex()
     var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
-    var entries []*protobuf.LogEntry = state.GetEntries()
+    var entries []raft_log.LogInstance = state.GetEntries()
     var newEntries []*protobuf.LogEntry = this.pMex.GetEntries()
+    var newEntriesWrapper []raft_log.LogInstance = state.NewLogInstanceBatch(newEntries)
 
     var resp rpcs.Rpc = nil
     var leaderCommit int64
@@ -130,7 +134,7 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
                 state.DeleteFromEntry(uint(nextIdx))
                 resp = respondeAppend(id, false, myTerm, nextIdx)
             default:
-                state.AppendEntries(newEntries)
+                state.AppendEntries(newEntriesWrapper)
                 leaderCommit = this.pMex.GetLeaderCommit()
 
                 if leaderCommit > state.GetCommitIndex() {
