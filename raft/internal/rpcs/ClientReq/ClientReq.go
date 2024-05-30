@@ -3,6 +3,7 @@ package ClientReq
 import (
 	"log"
 	"raft/internal/node"
+	"raft/internal/raft_log"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -20,6 +21,7 @@ func (this *ClientReq) Execute(state raftstate.State, sender node.Node) rpcs.Rpc
     var operation protobuf.Operation = (*this).pMex.Op
     var newEntries []*protobuf.LogEntry =make([]*protobuf.LogEntry, 1)
     var newLogEntry protobuf.LogEntry = protobuf.LogEntry{}
+    var newLogEntryWrp []raft_log.LogInstance = state.NewLogInstanceBatch(newEntries)
 
     newLogEntry.Term = state.GetTerm()
     newEntries[0] = &newLogEntry
@@ -28,7 +30,7 @@ func (this *ClientReq) Execute(state raftstate.State, sender node.Node) rpcs.Rpc
 
     newLogEntry.Description = "new " + string(operation) + " operation on file" + string((*this).pMex.Others)
 
-    state.AppendEntries(newEntries)
+    state.AppendEntries(newLogEntryWrp)
 
     return nil
 }

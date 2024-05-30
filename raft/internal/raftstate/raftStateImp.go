@@ -4,7 +4,7 @@ import (
 	"log"
 	l "raft/internal/raft_log"
 	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
-	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"time"
 )
 
@@ -35,13 +35,18 @@ type raftStateImpl struct {
 	leader
 }
 
-// GetNotificationChanEntry implements State.
-func (this *raftStateImpl) GetNotificationChanEntry(entry *p.LogEntry) (chan int, error) {
-    return this.log.GetNotificationChanEntry(entry)
+// NewLogInstance implements State.
+func (this *raftStateImpl) NewLogInstance(entry *protobuf.LogEntry) *l.LogInstance {
+	panic("unimplemented")
+}
+
+// NewLogInstanceBatch implements State.
+func (this *raftStateImpl) NewLogInstanceBatch(entry []*protobuf.LogEntry) []l.LogInstance {
+	panic("unimplemented")
 }
 
 // GetCommittedEntriesRange implements State.
-func (this *raftStateImpl) GetCommittedEntriesRange(startIndex int) []*p.LogEntry {
+func (this *raftStateImpl) GetCommittedEntriesRange(startIndex int) []l.LogInstance {
 	return this.log.GetCommittedEntriesRange(startIndex)
 }
 
@@ -56,7 +61,7 @@ type leader struct {
 }
 
 // GetCommittedEntries implements State.
-func (this *raftStateImpl) GetCommittedEntries() []*p.LogEntry {
+func (this *raftStateImpl) GetCommittedEntries() []l.LogInstance {
 	return this.log.GetCommittedEntries()
 }
 
@@ -66,7 +71,7 @@ func (this *raftStateImpl) GetStatePool() nodematchidx.NodeCommonMatch {
 }
 
 // GetEntriAt implements State.
-func (this *raftStateImpl) GetEntriAt(index int64) (*p.LogEntry, error) {
+func (this *raftStateImpl) GetEntriAt(index int64) (*l.LogInstance, error) {
 	return this.log.GetEntriAt(index)
 }
 
@@ -129,11 +134,11 @@ func (this *raftStateImpl) SetRole(newRole Role) {
 	this.role = newRole
 }
 
-func (this *raftStateImpl) GetEntries() []*p.LogEntry {
+func (this *raftStateImpl) GetEntries() []l.LogInstance {
 	return this.log.GetEntries()
 }
 
-func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
+func (this *raftStateImpl) AppendEntries(newEntries []l.LogInstance) {
 	this.log.AppendEntries(newEntries)
 	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1 {
 		log.Println("auto commit entry")
@@ -141,7 +146,7 @@ func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
 		if this.Leader() {
 			this.statePool.IncreaseCommonMathcIndex()
 		}
-        return
+		return
 	}
 	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderEntryToCommit, this.log.GetCommitIndex()+1)
 	this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
