@@ -249,19 +249,17 @@ func (s *server) joinConf(workingNode node.Node){
     }
 
     log.Println("updating node: ",workingNode.GetIp())
-    if commitedEntries != nil {
-        s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
+    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
 
-        log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
-        s.encodeAndSend(appendEntryRpc,workingNode)
+    log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
+    s.encodeAndSend(appendEntryRpc,workingNode)
 
-        log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
-        for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
-            //HACK: WAIT POLLING
-        }
-        s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
-        workingNode.NodeUpdated()
+    log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
+    for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
+        //HACK: WAIT POLLING
     }
+    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
+    workingNode.NodeUpdated()
     log.Println("done updating node: ",workingNode.GetIp())
 
     <- notifyChan
