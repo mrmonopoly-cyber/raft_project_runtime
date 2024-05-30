@@ -13,7 +13,7 @@ type LogEntry interface {
 
 	GetEntries() []*p.LogEntry
     GetEntriAt(index int64) (*p.LogEntry,error)
-    AppendEntries(newEntries []*p.LogEntry) []*chan int
+    AppendEntries(newEntries []*p.LogEntry) []chan int
     DeleteFromEntry(entryIndex uint)
 
     GetCommitIndex() int64
