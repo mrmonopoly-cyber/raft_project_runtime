@@ -196,7 +196,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
     for{
         message, errMes = workingNode.Recv()
         if errMes != nil {
-            fmt.Printf("error in reading from node %v with error %v",nodeIp, errMes)
+            fmt.Printf("error in reading from node %v with error %v\n",nodeIp, errMes)
             if !s._state.Leader() {
                 s._state.StartElectionTimeout()
             }
