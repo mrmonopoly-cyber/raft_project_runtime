@@ -178,7 +178,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
     var nodeIp = workingNode.GetIp()
     var message []byte
     var errMes error
-    var notifyChan chan int
+    var notifyChan *chan int
     var newConfDelete p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_DEL,
         Term: s._state.GetTerm(),
@@ -205,7 +205,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
                     notifyChan =  s._state.AppendEntries([]*p.LogEntry{&newConfDelete})[0]
             }
 
-            <- notifyChan
+            <- *notifyChan
             log.Println("safe to remove")
             workingNode.CloseConnection()
             s.unstableNodes.Delete(nodeIp); 
@@ -221,7 +221,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
 
 func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
-    var chans []chan int
+    var chans []*chan int
     var notifyChan chan int
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_ADD,
@@ -240,7 +240,7 @@ func (s *server) joinConf(workingNode node.Node){
     var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
 
     chans = s._state.AppendEntries([]*p.LogEntry{&newConfEntry})
-    notifyChan = chans[len(chans)-1]
+    notifyChan = *chans[len(chans)-1]
 
     log.Println("updating node: ",workingNode.GetIp())
     s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
