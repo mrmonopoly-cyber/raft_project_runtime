@@ -19,15 +19,15 @@ type cConf interface {
 }
 
 type logInstance struct {
-    entry *p.LogEntry
-    notifyApplication chan int
+	entry             *p.LogEntry
+	notifyApplication chan int
 }
 
 type log struct {
 	lock            sync.RWMutex
 	newEntryToApply chan int
 
-    entries     []logInstance
+	entries     []logInstance
 	logSize     uint
 	commitIndex int64
 	lastApplied int
@@ -35,34 +35,45 @@ type log struct {
 	realClusterState
 }
 
+// GetNotificationChanEntry implements LogEntry.
+func (this *log) GetNotificationChanEntry(entry *p.LogEntry) (chan int,error){
+    var entr logInstance
+    
+    for i := this.lastApplied+1; i < len(this.entries); i++ {
+        entr = this.entries[i]
+        if entr.entry == entry {
+            return entr.notifyApplication,nil
+        }
+    }
+    return nil,errors.New("entry not found")
+}
 
 type realClusterState struct {
 	cConf   clusterconf.Configuration
 	localFs localfs.LocalFs
 }
 
-//log
+// log
 // GetCommittedEntries implements LogEntry.
-func (this *log) GetCommittedEntries() []*p.LogEntry{
-    return this.getEntries(0)
+func (this *log) GetCommittedEntries() []*p.LogEntry {
+	return this.getEntries(0)
 }
 
 // GetCommittedEntriesRange implements LogEntry.
-func (this *log) GetCommittedEntriesRange(startIndex int) []*p.LogEntry{
-    return this.getEntries(startIndex)
+func (this *log) GetCommittedEntriesRange(startIndex int) []*p.LogEntry {
+	return this.getEntries(startIndex)
 }
 
-func (this *log) GetEntries() []*p.LogEntry{
-    this.lock.RLock()
-    defer this.lock.RUnlock()
+func (this *log) GetEntries() []*p.LogEntry {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 
-    var lenEntries = len(this.entries)
-    var res []*p.LogEntry = make([]*p.LogEntry, lenEntries)
+	var lenEntries = len(this.entries)
+	var res []*p.LogEntry = make([]*p.LogEntry, lenEntries)
 
-    for i, v := range this.entries {
-        res[i] = v.entry
-    }
-
+	for i, v := range this.entries {
+		res[i] = v.entry
+	}
 
 	return res
 }
@@ -75,20 +86,17 @@ func (this *log) GetEntriAt(index int64) (*p.LogEntry, error) {
 	return nil, errors.New("invalid index: " + string(rune(index)))
 }
 
-func (this *log) AppendEntries(newEntries []*p.LogEntry) []*chan int {
+func (this *log) AppendEntries(newEntries []*p.LogEntry) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
 	var lenEntries = len(this.entries)
-    var notifyChann []*chan int = make([]*chan int, len(newEntries))
 
-    //FIX: Wrong chan creation?? what you return is different from what is inside the fullEntry
-	for i, v := range newEntries{
-        var fullEntry = logInstance{
-            entry: v,
-            notifyApplication: make(chan int),
-        }
-        notifyChann[i] = &fullEntry.notifyApplication
+	for _, v := range newEntries {
+		var fullEntry = logInstance{
+			entry:             v,
+			notifyApplication: make(chan int),
+		}
 
 		if int(this.logSize) < lenEntries {
 			this.entries[this.logSize] = fullEntry
@@ -98,20 +106,17 @@ func (this *log) AppendEntries(newEntries []*p.LogEntry) []*chan int {
 		}
 		this.logSize++
 	}
-
-    l.Println("chan array (logImp): ",notifyChann)
-    return notifyChann
 }
 
 // DeleteFromEntry implements LogEntry.
 func (this *log) DeleteFromEntry(entryIndex uint) {
-    for i := int(entryIndex); i < len(this.entries); i++ {
-        this.entries[i] = logInstance{
-            entry: nil,
-            notifyApplication: make(chan int),
-        }
-        this.logSize--
-    }
+	for i := int(entryIndex); i < len(this.entries); i++ {
+		this.entries[i] = logInstance{
+			entry:             nil,
+			notifyApplication: make(chan int),
+		}
+		this.logSize--
+	}
 }
 
 func (this *log) GetCommitIndex() int64 {
@@ -132,36 +137,36 @@ func (this *log) IncreaseCommitIndex() {
 
 // MinimumCommitIndex implements LogEntry.
 func (this *log) MinimumCommitIndex(val uint) {
-    this.lock.Lock()
-    defer this.lock.Unlock()
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
-    if val < this.logSize {
-        this.commitIndex = int64(val)
-        return
-    }
-    this.commitIndex = int64(this.logSize) - 1
-    if this.commitIndex > int64(this.lastApplied) {
-        this.newEntryToApply <- 1
-    }
+	if val < this.logSize {
+		this.commitIndex = int64(val)
+		return
+	}
+	this.commitIndex = int64(this.logSize) - 1
+	if this.commitIndex > int64(this.lastApplied) {
+		this.newEntryToApply <- 1
+	}
 }
 
 func (this *log) LastLogIndex() int {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
-    var committedEntr = this.GetCommittedEntries()
-    return len(committedEntr)-1
+	var committedEntr = this.GetCommittedEntries()
+	return len(committedEntr) - 1
 }
 
 // LastLogTerm implements LogEntry.
 func (this *log) LastLogTerm() uint {
-    var committedEntr = this.GetCommittedEntries()
-    var lasLogIdx = this.LastLogIndex()
+	var committedEntr = this.GetCommittedEntries()
+	var lasLogIdx = this.LastLogIndex()
 
-    if lasLogIdx >= 0{
-        return uint(committedEntr[lasLogIdx].Term)
-    }
-    return 0
+	if lasLogIdx >= 0 {
+		return uint(committedEntr[lasLogIdx].Term)
+	}
+	return 0
 
 }
 
@@ -223,23 +228,23 @@ func (this *log) applyConf(ope protobuf.Operation, entry *logInstance) {
 	var confFiltered []string = strings.Split(confUnfiltered, " ")
 	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
 	this.cConf.UpdateConfiguration(ope, confFiltered)
-    //HACK: if you are follower this goroutine remain stuck forever 
-    //creating a zombie process
-    go func ()  {   
-        l.Println("notify change conf: ", entry)
-        entry.notifyApplication <- 1 
-    }()
+	//HACK: if you are follower this goroutine remain stuck forever
+	//creating a zombie process
+	go func() {
+		l.Println("notify change conf: ", entry)
+		entry.notifyApplication <- 1
+	}()
 }
 
-func (this *log) getEntries(startIndex int) []*p.LogEntry{
-	var committedEntries []*p.LogEntry = make([]*p.LogEntry , 0)
+func (this *log) getEntries(startIndex int) []*p.LogEntry {
+	var committedEntries []*p.LogEntry = make([]*p.LogEntry, 0)
 
-    if startIndex == -1{
-        startIndex = 0
-    }
+	if startIndex == -1 {
+		startIndex = 0
+	}
 
-    for i := int(startIndex); i <= int(this.commitIndex); i++ {
-        committedEntries = append(committedEntries, this.entries[i].entry)
-    }
+	for i := int(startIndex); i <= int(this.commitIndex); i++ {
+		committedEntries = append(committedEntries, this.entries[i].entry)
+	}
 	return committedEntries
 }

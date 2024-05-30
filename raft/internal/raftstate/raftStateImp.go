@@ -35,9 +35,14 @@ type raftStateImpl struct {
 	leader
 }
 
+// GetNotificationChanEntry implements State.
+func (this *raftStateImpl) GetNotificationChanEntry(entry *p.LogEntry) (chan int, error) {
+    return this.log.GetNotificationChanEntry(entry)
+}
+
 // GetCommittedEntriesRange implements State.
 func (this *raftStateImpl) GetCommittedEntriesRange(startIndex int) []*p.LogEntry {
-    return this.log.GetCommittedEntriesRange(startIndex)
+	return this.log.GetCommittedEntriesRange(startIndex)
 }
 
 // LastLogTerm implements State.
@@ -128,20 +133,17 @@ func (this *raftStateImpl) GetEntries() []*p.LogEntry {
 	return this.log.GetEntries()
 }
 
-func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) []*chan int {
-	var res = this.log.AppendEntries(newEntries)
-	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1{
-        log.Println("auto commit entry")
-        this.log.IncreaseCommitIndex()
-        if this.Leader() {
-            this.statePool.IncreaseCommonMathcIndex()
-        }
-        log.Println("notify chann array: ",res)
-        return res
+func (this *raftStateImpl) AppendEntries(newEntries []*p.LogEntry) {
+	this.log.AppendEntries(newEntries)
+	if !this.Leader() || this.GetNumberNodesInCurrentConf() == 1 {
+		log.Println("auto commit entry")
+		this.log.IncreaseCommitIndex()
+		if this.Leader() {
+			this.statePool.IncreaseCommonMathcIndex()
+		}
 	}
 	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderEntryToCommit, this.log.GetCommitIndex()+1)
 	this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
-    return res
 }
 
 func (this *raftStateImpl) GetLeaderEntryChannel() *chan int64 {
