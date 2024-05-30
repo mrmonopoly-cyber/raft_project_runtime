@@ -178,7 +178,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
     var nodeIp = workingNode.GetIp()
     var message []byte
     var errMes error
-    var notifyChan chan int
+    var notifyChan chan int = nil
     var newConfDelete p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_DEL,
         Term: s._state.GetTerm(),
