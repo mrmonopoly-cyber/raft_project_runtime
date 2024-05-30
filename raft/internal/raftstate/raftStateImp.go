@@ -151,7 +151,7 @@ func (this *raftStateImpl) AppendEntries(newEntries []*l.LogInstance) {
 		return
 	}
 	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderEntryToCommit, this.log.GetCommitIndex()+1)
-	this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
+	this.leaderEntryToCommit <- this.log.GetCommitIndex() + int64(len(newEntries))
 }
 
 func (this *raftStateImpl) GetLeaderEntryChannel() *chan int64 {
