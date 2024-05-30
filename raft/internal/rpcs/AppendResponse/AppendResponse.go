@@ -44,7 +44,7 @@ func (this *AppendResponse) Execute(state raftstate.State, sender node.Node) rpc
             //log.Println((*senderState).GetNextIndex())
         }
     } else {
-        log.Printf("response ok increasing match and next index of node: %v\n", *this.pMex.Id)
+        log.Printf("response ok setting match index of node %v : %v\n", this.pMex.GetId(), this.pMex.GetLogIndexError())
         sender.SetNextIndex(int(this.pMex.GetLogIndexError())+1)
         sender.SetMatchIndex(int(this.pMex.GetLogIndexError()))
     }
