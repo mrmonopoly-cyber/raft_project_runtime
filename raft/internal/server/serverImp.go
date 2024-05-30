@@ -178,7 +178,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
     var nodeIp = workingNode.GetIp()
     var message []byte
     var errMes error
-    var notifyChan *chan int = nil
+    var notifyChan chan int = nil
     var newConfDelete p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_DEL,
         Term: s._state.GetTerm(),
@@ -209,8 +209,8 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
                     }
             }
 
-            log.Println("waiting on channel to remove: ", *notifyChan)
-            <- *notifyChan
+            log.Println("waiting on channel to remove: ", notifyChan)
+            <- notifyChan
             log.Println("safe to remove")
             workingNode.CloseConnection()
             s.unstableNodes.Delete(nodeIp); 
@@ -225,7 +225,7 @@ func (s *server) handleResponseSingleNode(workingNode node.Node) {
 
 func (s *server) joinConf(workingNode node.Node){
     var nodeIp = workingNode.GetIp()
-    var notifyChan *chan int
+    var notifyChan chan int
     var err error
     var newConfEntry p.LogEntry = p.LogEntry{
         OpType: p.Operation_JOIN_CONF_ADD,
@@ -263,7 +263,7 @@ func (s *server) joinConf(workingNode node.Node){
     workingNode.NodeUpdated()
     log.Println("done updating node: ",workingNode.GetIp())
 
-    <- *notifyChan
+    <- notifyChan
     log.Println("commit config")
     s._state.AppendEntries([]*p.LogEntry{&commitConf})
 }
