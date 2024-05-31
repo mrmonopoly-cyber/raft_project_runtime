@@ -43,11 +43,8 @@ func (s *server) Start() {
 
     s.wg.Add(1)
     go s.acceptIncomingConn()
-    go func(){
-        s.wg.Add(1)
-        defer s.wg.Done()
-        s.run()
-    }()
+    s.wg.Add(1)
+    s.run()
 
     s.wg.Wait()
 }
@@ -107,11 +104,7 @@ func (s *server) acceptIncomingConn() {
         var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn, s._state.GetStatePool())
         s.unstableNodes.Store(new_node.GetIp(),new_node)
         s.numNodes++
-        go func ()  {
-            s.wg.Add(1)
-            defer s.wg.Done()
-            s.handleConnection(new_node)
-        }()
+        go s.handleConnection(new_node)
 	}
 }
 
@@ -393,10 +386,6 @@ func (s *server) startNewElection(){
             go s.leaderHearthBit()
             return
         }
-        s.wg.Done()
-        s.wg.Done()
-        s.wg.Done()
-        s.wg.Done()
         s.wg.Done()
         s.wg.Done()
     }
