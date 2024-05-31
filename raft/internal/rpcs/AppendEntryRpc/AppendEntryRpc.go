@@ -68,7 +68,6 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []raft_log
     if prevLogIndex < 0 {
         return C0, 0
     }
-    entryState = entries[prevLogIndex].Entry
 
     if logSize == 0  && prevLogIndex > 0{
         log.Println("case 2: logSize = 0")
@@ -80,6 +79,7 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []raft_log
         log.Printf("logSize - 1: %d, and prevLogIndex: %d", (logSize-1), int(prevLogIndex))
         return C2, (logSize - 1)
     }
+    entryState = entries[prevLogIndex].Entry
     fmt.Println("case 3")
     log.Println(entries)
     log.Printf("prevLogTerm: %d,, getTerm: %d, getDescr: %s,, getType: %o", prevLogTerm, entryState.GetTerm(), entryState.GetDescription(), entryState.GetOpType())
