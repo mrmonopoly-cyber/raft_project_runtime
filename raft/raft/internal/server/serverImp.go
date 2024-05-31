@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"log"
-	"math/rand/v2"
 	"net"
 	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
@@ -19,7 +18,6 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-	"time"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -389,9 +387,6 @@ func (s *server) startNewElection(){
             go s.leaderHearthBit()
             return
         }
-        var timeout = rand.IntN(20)
-        time.Sleep(time.Duration(timeout * 1e9))
-        panic("emergency restart")
     }
 
     s.applyOnFollowers(func(n node.Node) {
