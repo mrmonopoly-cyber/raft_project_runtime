@@ -389,7 +389,7 @@ func (s *server) startNewElection(){
         }
         s.wg.Done()
         s.wg.Done()
-        s.wg.Done()
+        close(s.messageChannel)
     }
 
     s.applyOnFollowers(func(n node.Node) {
