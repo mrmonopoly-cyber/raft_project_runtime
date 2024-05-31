@@ -391,9 +391,7 @@ func (s *server) startNewElection(){
         }
         var timeout = rand.IntN(20)
         time.Sleep(time.Duration(timeout * 1e9))
-        s.wg.Done()
-        s.wg.Done()
-        s.wg.Done()
+        panic("emergency restart")
     }
 
     s.applyOnFollowers(func(n node.Node) {
