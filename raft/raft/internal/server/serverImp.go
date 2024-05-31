@@ -389,6 +389,7 @@ func (s *server) startNewElection(){
         }
         s.wg.Done()
         s.wg.Done()
+        s.wg.Done()
     }
 
     s.applyOnFollowers(func(n node.Node) {
