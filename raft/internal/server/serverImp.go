@@ -393,20 +393,20 @@ func (s *server) startNewElection(){
             go s.leaderHearthBit()
             return
         }
-        var waitAdd = sync.WaitGroup{}
-        s.unstableNodes.Range(func(key, value any) bool {
-            var unregisterNode node.Node = value.(node.Node)
-            go func ()  {
-                waitAdd.Add(1)
-                s.joinConf(unregisterNode) 
-                waitAdd.Done()
-            }()
-            return true
-        })
-
-        waitAdd.Wait()
-        s._state.StartElectionTimeout()
-        return
+        // var waitAdd = sync.WaitGroup{}
+        // s.unstableNodes.Range(func(key, value any) bool {
+        //     var unregisterNode node.Node = value.(node.Node)
+        //     go func ()  {
+        //         waitAdd.Add(1)
+        //         s.joinConf(unregisterNode) 
+        //         waitAdd.Done()
+        //     }()
+        //     return true
+        // })
+        //
+        // waitAdd.Wait()
+        // s._state.StartElectionTimeout()
+        // return
     }
 
     s.applyOnFollowers(func(n node.Node) {
