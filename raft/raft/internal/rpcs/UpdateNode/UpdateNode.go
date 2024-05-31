@@ -30,7 +30,10 @@ func (this *UpdateNode) Execute(state raftstate.State, sender node.Node) rpcs.Rp
 
 // ToString implements rpcs.Rpc.
 func (this *UpdateNode) ToString() string {
-    panic("dummy implementation")
+    if this.pMex.Votante {
+        return "votante: TRUE"
+    }
+    return "votante: FALSE"
 }
 
 func (this *UpdateNode) Encode() ([]byte, error) {
