@@ -198,7 +198,6 @@ func (c *commonMatchNode) findNode(ip string) (nodeState.VolatileNodeState, erro
 
 	v, found = c.allNodeStates.Load(ip)
 	if !found {
-		log.Panicln("state not found for node ", ip)
 		return nil, errors.New("state not found for node " + ip)
 	}
 
