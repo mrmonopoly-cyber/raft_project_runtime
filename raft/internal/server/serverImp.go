@@ -3,9 +3,11 @@ package server
 import (
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"net"
 	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
+	"raft/internal/raft_log"
 	"raft/internal/raftstate"
 	state "raft/internal/raftstate"
 	"raft/internal/rpcs"
@@ -17,7 +19,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-    "raft/internal/raft_log"
+	"time"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -387,9 +389,11 @@ func (s *server) startNewElection(){
             go s.leaderHearthBit()
             return
         }
+        var timeout = rand.IntN(20)
+        time.Sleep(time.Duration(timeout * 1e9))
         s.wg.Done()
         s.wg.Done()
-        close(s.messageChannel)
+        s.wg.Done()
     }
 
     s.applyOnFollowers(func(n node.Node) {
