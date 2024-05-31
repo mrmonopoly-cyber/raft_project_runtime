@@ -136,3 +136,20 @@ This functionality is usable only if it does ***already exist*** a cluster in th
 3. Send info request to the leader
 
 4. wait response
+
+### listing the nodes in the cluster with relative ips (private and public)
+
+Use libvirt utility to obtain info about the nodes: 
+With this command you obtain the list of the nodes
+virsh --connect=qemu:///system list | grep VM_RAFT | cut -d ' ' -f 6
+With this command you obtain the info about a node ips included
+virsh --connect=qemu:///system domifaddr --source arp --domain <NODE_NUM>
+
+### delete the entire cluster with all the vms
+
+Use libvirt utility to obtain info about the nodes: 
+With this command you obtain the list of the nodes
+virsh --connect=qemu:///system list | grep VM_RAFT | cut -d ' ' -f 6
+With this command you obtain the list of the volumes  
+volumes=$(virsh --connect=qemu:///system vol-list --pool default| grep disk_raft_node)
+
