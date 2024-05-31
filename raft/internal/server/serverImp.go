@@ -47,6 +47,7 @@ func (s *server) Start() {
     s.run()
 
     s.wg.Wait()
+    log.Println("run finished")
 }
 
 //utility

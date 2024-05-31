@@ -30,16 +30,7 @@ func main() {
 
   var server1 ser.Server = ser.NewServer(stringMyIp[0], stringMyIp[1], "8080", addresses, fsRootDir)
 
-  var wg sync.WaitGroup
-
-
-  wg.Add(1)
-  go func() {
-    defer wg.Done()
-    server1.Start()
-  } ()
-  
-  wg.Wait()
+  server1.Start()
   
   log.Println("All servers have terminated")
 }
