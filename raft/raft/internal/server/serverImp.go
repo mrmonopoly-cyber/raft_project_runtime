@@ -130,12 +130,69 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
 }
 
 func (s *server) run() {
+    var timeoutElection,err = s._state.GetTimeoutNotifycationChan(raftstate.TIMER_ELECTION)
+    if err != nil{
+        log.Panicln(err)
+    }
+
     for {
         var mess pairMex
         var leaderCommitEntry int64
 
         select {
         case mess = <-s.messageChannel:
+            s.newMessageReceived(mess)
+        case <- timeoutElection:
+            if s._state.GetRole() == raftstate.LEADER {
+                s.startNewElection()
+            }
+        case leaderCommitEntry = <-(*s._state.GetLeaderEntryChannel()):
+            s.newEntryToCommit(leaderCommitEntry)
+        }
+    }
+}
+
+func (s *server) newEntryToCommit(leaderCommitEntry int64){
+    //TODO: check that at least the majority of the followers has a commit index
+    // >= than this, if not send him an AppendEntryRpc with the entry,
+    //Search only through stable nodes because may be possible that a new node is still 
+    //updating while you check his commitIndex
+    var err error
+    var entryToCommit *raft_log.LogInstance
+
+    entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
+    log.Println("new log entry to propagate: ", entryToCommit)
+    if err != nil {
+        log.Panic("invalid index entry: ", leaderCommitEntry)
+    }
+
+    s.applyOnFollowers(func(n node.Node) {
+        log.Println("propagate log entry to: ",n.GetIp())
+        var AppendEntry rpcs.Rpc
+        var rawMex []byte
+
+        if err!=nil {
+            log.Panicln(err)
+        }
+
+        if !n.Updated(){
+            log.Println("node not updated: ", n.GetIp())
+            return 
+        }
+
+        AppendEntry = s.nodeAppendEntryPayload(n,[]raft_log.LogInstance{*entryToCommit})
+
+        rawMex,err = genericmessage.Encode(&AppendEntry)
+        if err != nil {
+            log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
+        }
+
+        log.Printf("sending appendEntry to: %v, %v",n.GetIp(), AppendEntry.ToString())
+        n.Send(rawMex)
+    })
+}
+
+func (s *server) newMessageReceived(mess pairMex){
             var rpcCall rpcs.Rpc
             var sender string = mess.sender
             var oldRole raftstate.Role
@@ -149,7 +206,7 @@ func (s *server) run() {
             f, ok = s.unstableNodes.Load(sender)
             if !ok {
                 log.Printf("Node %s not found for mex:%v\n", sender, (*mess.payload).ToString())
-                continue
+                return
             }
 
             senderNode = f.(node.Node)
@@ -165,7 +222,7 @@ func (s *server) run() {
                 senderNode.Send(byEnc)
             }
 
-            if s._state.Leader() && oldRole != state.LEADER {
+            if s._state.GetRole() == raftstate.LEADER && oldRole != state.LEADER {
                 log.Printf("init commonMatch pool with lastLogIndex: %v\n",s._state.LastLogIndex())
                 s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex()+1)
                 s.applyOnFollowers(func(n node.Node) {
@@ -173,50 +230,6 @@ func (s *server) run() {
                 })
                 go s.leaderHearthBit()
             }
-        case <-s._state.ElectionTimeout().C:
-            if !s._state.Leader() {
-                s.startNewElection()
-            }
-        case leaderCommitEntry = <-(*s._state.GetLeaderEntryChannel()):
-            //TODO: check that at least the majority of the followers has a commit index
-            // >= than this, if not send him an AppendEntryRpc with the entry,
-            //Search only through stable nodes because may be possible that a new node is still 
-            //updating while you check his commitIndex
-            var err error
-            var entryToCommit *raft_log.LogInstance
-
-            entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
-            log.Println("new log entry to propagate: ", entryToCommit)
-            if err != nil {
-                log.Panic("invalid index entry: ", leaderCommitEntry)
-            }
-
-            s.applyOnFollowers(func(n node.Node) {
-                log.Println("propagate log entry to: ",n.GetIp())
-                var AppendEntry rpcs.Rpc
-                var rawMex []byte
-
-                if err!=nil {
-                    log.Panicln(err)
-                }
-
-                if !n.Updated(){
-                    log.Println("node not updated: ", n.GetIp())
-                    return 
-                }
-
-                AppendEntry = s.nodeAppendEntryPayload(n,[]raft_log.LogInstance{*entryToCommit})
-
-                rawMex,err = genericmessage.Encode(&AppendEntry)
-                if err != nil {
-                    log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
-                }
-
-                log.Printf("sending appendEntry to: %v, %v",n.GetIp(), AppendEntry.ToString())
-                n.Send(rawMex)
-            })
-        }
-    }
 }
 
 //utility
@@ -230,8 +243,9 @@ func (s *server) startNewElection(){
         if s.numNodes == 0 {
             log.Println("became leader: ",s._state.GetRole())
             s._state.SetRole(raftstate.LEADER)
-            s._state.SetLeaderIpPrivate(s._state.GetIdPrivate())
-            s._state.SetLeaderIpPublic(s._state.GetIdPublic())
+            s._state.SetLeaderIp(raftstate.PRI, s._state.GetIdPrivate())
+            s._state.SetLeaderIp(raftstate.PUB, s._state.GetIdPublic())
+
             s._state.ResetElection()
             go s.leaderHearthBit()
             return
@@ -260,13 +274,18 @@ func (s *server) startNewElection(){
                 log.Printf("sending election request %v to %v\n", voteRequest.ToString(),n.GetIp())
                 n.Send(raw_mex)
             })
-    s._state.StartElectionTimeout()
+    s._state.RestartTimeout(raftstate.TIMER_ELECTION)
 }
 
 func (s *server) leaderHearthBit(){
     //log.Println("start sending hearthbit")
-    for s._state.Leader(){
-        <- s._state.HeartbeatTimeout().C
+    var timerHearthbit,err = s._state.GetTimeoutNotifycationChan(raftstate.TIMER_HEARTHBIT)
+    if err != nil {
+        log.Panicln(err)
+    }
+
+    for s._state.GetRole() == raftstate.LEADER{
+        <- timerHearthbit
 
         log.Println("start broadcast")
         s.applyOnFollowers(func(n node.Node) {
@@ -274,7 +293,6 @@ func (s *server) leaderHearthBit(){
             s.encodeAndSend(hearthBit,n)
         })
         log.Println("end broadcast")
-        s._state.StartHearthbeatTimeout()
     }
     s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
     log.Println("no longer LEADER, stop sending hearthbit")

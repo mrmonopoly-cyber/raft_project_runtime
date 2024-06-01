@@ -2,19 +2,19 @@ package raftstate
 
 import (
 	"log"
+	"math/rand"
 	l "raft/internal/raft_log"
 	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
-	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"raft/internal/raftstate/timeout"
 	"time"
+
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 )
 
 type Role int
 
 type raftStateImpl struct {
-	idPrivate       string
-	idPublic        string
-	leaderIdPrivate string
-	leaderIdPublic  string
+	myIp ipMetadata
 
 	term uint64
 	role Role
@@ -22,27 +22,60 @@ type raftStateImpl struct {
 	voteFor string
 	voting  bool
 
-	electionTimeout    *time.Timer
-	heartbeatTimeout   *time.Timer
-	electionTimeoutRaw int
-
 	log l.LogEntry
 
 	nSupporting    uint64
 	nNotSupporting uint64
 	nNodeInCluster uint64
 
-	leader
+	leaderMetadata leader
+
+	timeout.TimeoutPool
+}
+
+// GetLeaderIp implements State.
+func (this *raftStateImpl) GetLeaderIp(vis VISIBILITY) string {
+    switch vis{
+    case PUB:
+        return this.leaderMetadata.leaderIp.public
+    case PRI:      
+        return this.leaderMetadata.leaderIp.private
+    default:
+        log.Println("invalid case ", vis)
+        return ""
+    }
+}
+
+// GetTimeoutNotifycationChan implements State.
+// Subtle: this method shadows the method (TimeoutPool).GetTimeoutNotifycationChan of raftStateImpl.TimeoutPool.
+func (this *raftStateImpl) GetTimeoutNotifycationChan(name string) (chan time.Time, error) {
+	panic("unimplemented")
+}
+
+// SetLeaderIp implements State.
+func (this *raftStateImpl) SetLeaderIp(vis VISIBILITY, ip string) {
+	panic("unimplemented")
+}
+
+type leader struct {
+	leaderEntryToCommit chan int64
+	statePool           nodematchidx.NodeCommonMatch
+	leaderIp            ipMetadata
+}
+
+type ipMetadata struct {
+	public  string
+	private string
 }
 
 // NewLogInstance implements State.
 func (this *raftStateImpl) NewLogInstance(entry *protobuf.LogEntry) *l.LogInstance {
-    return this.log.NewLogInstance(entry)	
+	return this.log.NewLogInstance(entry)
 }
 
 // NewLogInstanceBatch implements State.
 func (this *raftStateImpl) NewLogInstanceBatch(entry []*protobuf.LogEntry) []*l.LogInstance {
-    return this.log.NewLogInstanceBatch(entry)
+	return this.log.NewLogInstanceBatch(entry)
 }
 
 // GetCommittedEntriesRange implements State.
@@ -55,11 +88,6 @@ func (this *raftStateImpl) LastLogTerm() uint {
 	return this.log.LastLogTerm()
 }
 
-type leader struct {
-	leaderEntryToCommit chan int64
-	statePool           nodematchidx.NodeCommonMatch
-}
-
 // GetCommittedEntries implements State.
 func (this *raftStateImpl) GetCommittedEntries() []l.LogInstance {
 	return this.log.GetCommittedEntries()
@@ -67,7 +95,7 @@ func (this *raftStateImpl) GetCommittedEntries() []l.LogInstance {
 
 // GetStatePool implements State.
 func (this *raftStateImpl) GetStatePool() nodematchidx.NodeCommonMatch {
-	return this.statePool
+	return this.leaderMetadata.statePool
 }
 
 // GetEntriAt implements State.
@@ -111,11 +139,11 @@ func (this *raftStateImpl) GetConfig() []string {
 }
 
 func (this *raftStateImpl) GetIdPrivate() string {
-	return this.idPrivate
+	return this.myIp.private
 }
 
 func (this *raftStateImpl) GetIdPublic() string {
-	return this.idPublic
+	return this.myIp.private
 }
 
 func (this *raftStateImpl) GetTerm() uint64 {
@@ -139,32 +167,32 @@ func (this *raftStateImpl) GetEntries() []l.LogInstance {
 }
 
 func (this *raftStateImpl) AppendEntries(newEntries []*l.LogInstance) {
-    var numNodeInConf = this.GetNumberNodesInCurrentConf()
+	var numNodeInConf = this.GetNumberNodesInCurrentConf()
 
 	this.log.AppendEntries(newEntries)
-    //INFO: thir case of OR happens if there are two nodes in the cluster, the follower drops
-    // and so the leader does not have to ask the dropped follower the ack the deletion of that 
-    // node
-	if  !this.Leader() || 
-        numNodeInConf == 1 ||
-        (this.Leader() && numNodeInConf == 2){
-        log.Println("auto commit entry: ", newEntries[0].Entry)
-        for range newEntries {
-            if this.Leader() {
-                this.statePool.IncreaseCommonMathcIndex()
-            }
-            this.log.IncreaseCommitIndex()
-        }
+	//INFO: thir case of OR happens if there are two nodes in the cluster, the follower drops
+	// and so the leader does not have to ask the dropped follower the ack the deletion of that
+	// node
+	if this.role == LEADER ||
+		numNodeInConf == 1 ||
+		(this.role == LEADER && numNodeInConf == 2) {
+		log.Println("auto commit entry: ", newEntries[0].Entry)
+		for range newEntries {
+			if this.role == LEADER {
+				this.leaderMetadata.statePool.IncreaseCommonMathcIndex()
+			}
+			this.log.IncreaseCommitIndex()
+		}
 		return
 	}
-	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderEntryToCommit, this.log.GetCommitIndex()+1)
-    for range newEntries {
-        this.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
-    }
+	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderMetadata.leaderEntryToCommit, this.log.GetCommitIndex()+1)
+	for range newEntries {
+		this.leaderMetadata.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
+	}
 }
 
 func (this *raftStateImpl) GetLeaderEntryChannel() *chan int64 {
-	return &this.leaderEntryToCommit
+	return &this.leaderMetadata.leaderEntryToCommit
 }
 
 func (this *raftStateImpl) GetCommitIndex() int64 {
@@ -176,44 +204,12 @@ func (this *raftStateImpl) LastLogIndex() int {
 	return this.log.LastLogIndex()
 }
 
-func (this *raftStateImpl) StartElectionTimeout() {
-    if this.electionTimeout == nil{
-        this.electionTimeout = time.NewTimer(MAX_ELECTION_TIMEOUT)
-        return
-    }
-	this.electionTimeout.Reset(time.Duration((*this).electionTimeoutRaw))
-}
-
-func (this *raftStateImpl) StopElectionTimeout() {
-	this.electionTimeout.Stop()
-}
-
-func (this *raftStateImpl) StartHearthbeatTimeout() {
-	this.heartbeatTimeout.Reset(H_TIMEOUT)
-}
-
-func (this *raftStateImpl) StopHearthbeatTimeout() {
-	this.heartbeatTimeout.Stop()
-}
-
-func (this *raftStateImpl) Leader() bool {
-	return this.role == LEADER
-}
-
 func (this *raftStateImpl) CanVote() bool {
 	return this.voting
 }
 
 func (this *raftStateImpl) VoteRight(vote bool) {
 	(*this).voting = vote
-}
-
-func (this *raftStateImpl) HeartbeatTimeout() *time.Timer {
-	return this.heartbeatTimeout
-}
-
-func (this *raftStateImpl) ElectionTimeout() *time.Timer {
-	return this.electionTimeout
 }
 
 func (this *raftStateImpl) GetVoteFor() string {
@@ -253,31 +249,39 @@ func (this *raftStateImpl) ResetElection() {
 	this.nNotSupporting = 0
 }
 
-// GetLeaderIpPrivate implements State.
-func (this *raftStateImpl) GetLeaderIpPrivate() string {
-	return (*this).leaderIdPrivate
-}
-
-// GetLeaderIpPublic implements State.
-func (this *raftStateImpl) GetLeaderIpPublic() string {
-	return (*this).leaderIdPublic
-}
-
-// SetLeaderIpPublic implements State.
-func (this *raftStateImpl) SetLeaderIpPublic(ip string) {
-	(*this).leaderIdPublic = ip
-}
-
-// SetLeaderIpPrivate implements State.
-func (this *raftStateImpl) SetLeaderIpPrivate(ip string) {
-	(*this).leaderIdPrivate = ip
-}
-
 func (this *raftStateImpl) leaaderUpdateCommitIndex() {
 	for {
 		select {
-		case <-this.statePool.GetNotifyChannel():
+		case <-this.leaderMetadata.statePool.GetNotifyChannel():
 			this.IncreaseCommitIndex()
 		}
 	}
+}
+
+func newStateImplementation(idPrivate string, idPublic string, fsRootDir string) *raftStateImpl {
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	var randelection = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
+	var s = new(raftStateImpl)
+
+	s.role = FOLLOWER
+	s.term = 0
+	s.myIp.private = idPrivate
+	s.myIp.public = idPublic
+	s.nNotSupporting = 0
+	s.nSupporting = 0
+	s.nNodeInCluster = 1
+	s.voting = true
+	s.log = l.NewLogEntry(fsRootDir)
+	s.leaderMetadata.statePool = nodematchidx.NewNodeCommonMatch()
+	s.leaderMetadata.leaderEntryToCommit = make(chan int64)
+	s.voteFor = ""
+	s.TimeoutPool = timeout.NewTimeoutPool()
+
+	s.TimeoutPool.AddTimeout(TIMER_ELECTION, time.Duration(randelection))
+	s.TimeoutPool.AddTimeout(TIMER_HEARTHBIT, time.Duration(H_TIMEOUT))
+    s.TimeoutPool.RestartTimeout(TIMER_HEARTHBIT)
+
+	go s.leaaderUpdateCommitIndex()
+
+	return s
 }
