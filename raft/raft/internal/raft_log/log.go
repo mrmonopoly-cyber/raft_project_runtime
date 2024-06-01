@@ -36,13 +36,13 @@ type LogEntry interface {
 
 
 
-func NewLogEntry(fsRootDir string, baseConf []string) LogEntry {
+func NewLogEntry(fsRootDir string) LogEntry {
 	var l = new(log)
 	l.commitIndex = -1
 	l.lastApplied = -1
     l.logSize = 0
 	l.entries = nil
-    l.cConf = clusterconf.NewConf(baseConf)
+    l.cConf = clusterconf.NewConf()
     l.newEntryToApply = make(chan int)
     l.localFs = localfs.NewFs(fsRootDir)
 
