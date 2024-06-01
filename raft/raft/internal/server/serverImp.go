@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+    "reflect"
+    "strings"
+    "sync"
 	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
 	"raft/internal/raft_log"
@@ -11,15 +14,8 @@ import (
 	state "raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
-	"raft/internal/rpcs/ClientReq"
 	"raft/internal/rpcs/RequestVoteRPC"
-	"raft/internal/rpcs/UpdateNode"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
-	"reflect"
-	"strings"
-	"sync"
-
-	"google.golang.org/protobuf/proto"
 )
 
 type pairMex struct{
@@ -41,9 +37,10 @@ func (s *server) Start() {
     log.Println("Start accepting connections")
 
     s.wg.Add(1)
-    // go s.acceptIncomingConn()
+
+    go s.acceptIncomingConn()
     s.wg.Add(1)
-    // s.run()
+    go s.run()
 
     s.wg.Wait()
     log.Println("run finished")
@@ -70,7 +67,7 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
         log.Printf("connected to new node, storing it: %v\n", new_node.GetIp())
         (*this).unstableNodes.Store(new_node.GetIp(), new_node)
         (*this).numNodes++
-        go (*this).handleResponseSingleNode(new_node)
+        go (*this).internalNodeConnection(new_node)
 	}
 
     return failedConn,err
@@ -112,152 +109,24 @@ func (s* server) handleConnection(workingNode node.Node){
     var nodeIp string = workingNode.GetIp()
 
     if strings.Contains(nodeIp, "10.0.0") {
-        s.handleResponseSingleNode(workingNode)
+        s.internalNodeConnection(workingNode)
         return
     }
-    s.handleNewClientConnection(workingNode)
 }
 
-func (s* server) handleNewClientConnection(client node.Node){
-    log.Println("new client request to cluster")
-    if s._state.Leader(){
-        var clientReq rpcs.Rpc = &ClientReq.ClientReq{}
-        var ok = "ok"
-        var leaderIp p.PublicIp = p.PublicIp{IP: ok,}
-        var mex,err = proto.Marshal(&leaderIp)
-        var resp rpcs.Rpc = nil
-
-        if err != nil {
-            log.Panicln("error encoding confirmation leader public ip for client:",err)
-        }
-    
-        if err != nil {
-            log.Panicln(err)
-        }
-
-        client.Send(mex)
-
-        mex,err = client.Recv()
-        if err != nil {
-            fmt.Printf("error in reading from node %v with error %v\n",client.GetIp(), err)
-            client.CloseConnection()
-            return
-        }
-
-        err = clientReq.Decode(mex)
-        if err != nil {
-            fmt.Printf("error in decoding client request from node %v with error %v\n",client.GetIp(), err)
-            client.CloseConnection()
-            return
-        }
-        log.Println("managing client Request: ", clientReq.ToString())
-        resp = clientReq.Execute(s._state,client)
-        
-        if resp != nil{
-            s.encodeAndSend(resp,client)
-        }
-
-    }else{
-        var leaderIp p.PublicIp = p.PublicIp{IP: s._state.GetLeaderIpPublic(),}
-        var mex,err = proto.Marshal(&leaderIp)
-        log.Printf("sending public ip of leader: %v\n", s._state.GetLeaderIpPublic())
-
-        if err != nil {
-            log.Panicln("error encoding leader public ip for client:",err)
-        }
-
-        client.Send(mex)
-    }
-    client.CloseConnection()
-}
-
-func (s *server) handleResponseSingleNode(workingNode node.Node) {
+func (s *server) internalNodeConnection(workingNode node.Node) {
     var nodeIp = workingNode.GetIp()
     var message []byte
     var errMes error
-    var newConfDelete p.LogEntry = p.LogEntry{
-        OpType: p.Operation_JOIN_CONF_DEL,
-        Term: s._state.GetTerm(),
-        Payload: []byte(nodeIp),
-        Description: "removed node " + nodeIp + " to configuration: ",
-    }
-
-    var wrapperEntry raft_log.LogInstance = *s._state.NewLogInstance(&newConfDelete)
-
-    if s._state.Leader() {
-        log.Println("i'm leader, joining conf")
-        go s.joinConf(workingNode)
-    }
 
     for{
         message, errMes = workingNode.Recv()
         if errMes != nil {
             fmt.Printf("error in reading from node %v with error %v\n",nodeIp, errMes)
-            if !s._state.Leader() {
-                s._state.StartElectionTimeout()
-            }
-
-            if  s._state.Leader() || 
-                s._state.GetNumberNodesInCurrentConf() == 2 ||
-                s._state.GetLeaderIpPrivate() == workingNode.GetIp(){
-                    s._state.AppendEntries([]*raft_log.LogInstance{&wrapperEntry})
-            }
-
-            log.Println("waiting on channel to remove: ", wrapperEntry.NotifyApplication)
-            <- wrapperEntry.NotifyApplication
-            log.Println("safe to remove")
-            workingNode.CloseConnection()
-            s.unstableNodes.Delete(nodeIp); 
-            s.numNodes--
-            s._state.GetStatePool().RemNode(nodeIp) 
-            break
-        }
-        if message != nil {
+        }else if message != nil {
             s.messageChannel <- pairMex{genericmessage.Decode(message),workingNode.GetIp()}
         }
     }
-}
-
-func (s *server) joinConf(workingNode node.Node){
-    var nodeIp = workingNode.GetIp()
-    var newConfEntry p.LogEntry = p.LogEntry{
-        OpType: p.Operation_JOIN_CONF_ADD,
-        Term: s._state.GetTerm(),
-        Payload: []byte(nodeIp),
-        Description: "added new node " + nodeIp + " to configuration: ",
-    }
-    var commitConf p.LogEntry = p.LogEntry{
-        OpType: p.Operation_COMMIT_CONFIG,
-        Term: s._state.GetTerm(),
-        Payload: []byte(nodeIp),
-        Description: "committing config add of node " + nodeIp,
-    }
-
-    var addEntryWrapper raft_log.LogInstance = *s._state.NewLogInstance(&newConfEntry)
-
-    var commitedEntries []raft_log.LogInstance = s._state.GetCommittedEntries()
-    var appendEntryRpc rpcs.Rpc = s.nodeAppendEntryPayload(workingNode,nil)
-
-    s._state.AppendEntries([]*raft_log.LogInstance{&addEntryWrapper})
-
-    log.Println("updating node: ",workingNode.GetIp())
-    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),workingNode)
-
-    log.Println("sending appendEntry mex udpated: ", appendEntryRpc.ToString())
-    s.encodeAndSend(appendEntryRpc,workingNode)
-
-    log.Println("waiting that matchIndex is: ", len(commitedEntries)-1)
-    for  workingNode.GetMatchIndex() < len(commitedEntries)-1 {
-        //HACK: WAIT POLLING
-    }
-    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),workingNode)
-    workingNode.NodeUpdated()
-    log.Println("done updating node: ",workingNode.GetIp())
-    
-    <- addEntryWrapper.NotifyApplication
-
-    log.Println("commit config")
-    s._state.AppendEntries(s._state.NewLogInstanceBatch([]*p.LogEntry{&commitConf}))
 }
 
 func (s *server) run() {
@@ -276,8 +145,6 @@ func (s *server) run() {
             var f any
             var ok bool
             var senderNode node.Node
-            var newConf []string
-            var failedConn []string
 
             f, ok = s.unstableNodes.Load(sender)
             if !ok {
@@ -289,23 +156,6 @@ func (s *server) run() {
             oldRole = s._state.GetRole()
             rpcCall = *mess.payload
             resp = rpcCall.Execute(s._state, senderNode)
-
-            if s._state.ConfChanged() {
-                log.Printf("configuration changed, adding the new nodes\n")
-                newConf = s._state.GetConfig()
-                for _, v := range newConf {
-                    var _,found = s.unstableNodes.Load(v)
-                    if !found {
-                        failedConn,errEn = s.connectToNodes([]string{v},"8080") //WARN: hard encoding port
-                        if errEn != nil {
-                            for _, v := range failedConn {
-                                log.Println("failed connecting to this node: " + v)
-                            }
-                            log.Panic("devel debug") //WARN: to remove in the future
-                        }
-                    }
-                }
-            }
 
             if resp != nil {
                 byEnc, errEn = genericmessage.Encode(&resp)
