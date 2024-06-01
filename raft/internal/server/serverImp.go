@@ -136,6 +136,58 @@ func (s *server) run() {
 
         select {
         case mess = <-s.messageChannel:
+            s.newMessageReceived(mess)
+        case <-s._state.ElectionTimeout().C:
+            if !s._state.Leader() {
+                s.startNewElection()
+            }
+        case leaderCommitEntry = <-(*s._state.GetLeaderEntryChannel()):
+            s.newEntryToCommit(leaderCommitEntry)
+        }
+    }
+}
+
+func (s *server) newEntryToCommit(leaderCommitEntry int64){
+    //TODO: check that at least the majority of the followers has a commit index
+    // >= than this, if not send him an AppendEntryRpc with the entry,
+    //Search only through stable nodes because may be possible that a new node is still 
+    //updating while you check his commitIndex
+    var err error
+    var entryToCommit *raft_log.LogInstance
+
+    entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
+    log.Println("new log entry to propagate: ", entryToCommit)
+    if err != nil {
+        log.Panic("invalid index entry: ", leaderCommitEntry)
+    }
+
+    s.applyOnFollowers(func(n node.Node) {
+        log.Println("propagate log entry to: ",n.GetIp())
+        var AppendEntry rpcs.Rpc
+        var rawMex []byte
+
+        if err!=nil {
+            log.Panicln(err)
+        }
+
+        if !n.Updated(){
+            log.Println("node not updated: ", n.GetIp())
+            return 
+        }
+
+        AppendEntry = s.nodeAppendEntryPayload(n,[]raft_log.LogInstance{*entryToCommit})
+
+        rawMex,err = genericmessage.Encode(&AppendEntry)
+        if err != nil {
+            log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
+        }
+
+        log.Printf("sending appendEntry to: %v, %v",n.GetIp(), AppendEntry.ToString())
+        n.Send(rawMex)
+    })
+}
+
+func (s *server) newMessageReceived(mess pairMex){
             var rpcCall rpcs.Rpc
             var sender string = mess.sender
             var oldRole raftstate.Role
@@ -149,7 +201,7 @@ func (s *server) run() {
             f, ok = s.unstableNodes.Load(sender)
             if !ok {
                 log.Printf("Node %s not found for mex:%v\n", sender, (*mess.payload).ToString())
-                continue
+                return
             }
 
             senderNode = f.(node.Node)
@@ -173,50 +225,6 @@ func (s *server) run() {
                 })
                 go s.leaderHearthBit()
             }
-        case <-s._state.ElectionTimeout().C:
-            if !s._state.Leader() {
-                s.startNewElection()
-            }
-        case leaderCommitEntry = <-(*s._state.GetLeaderEntryChannel()):
-            //TODO: check that at least the majority of the followers has a commit index
-            // >= than this, if not send him an AppendEntryRpc with the entry,
-            //Search only through stable nodes because may be possible that a new node is still 
-            //updating while you check his commitIndex
-            var err error
-            var entryToCommit *raft_log.LogInstance
-
-            entryToCommit,err = s._state.GetEntriAt(leaderCommitEntry)
-            log.Println("new log entry to propagate: ", entryToCommit)
-            if err != nil {
-                log.Panic("invalid index entry: ", leaderCommitEntry)
-            }
-
-            s.applyOnFollowers(func(n node.Node) {
-                log.Println("propagate log entry to: ",n.GetIp())
-                var AppendEntry rpcs.Rpc
-                var rawMex []byte
-
-                if err!=nil {
-                    log.Panicln(err)
-                }
-
-                if !n.Updated(){
-                    log.Println("node not updated: ", n.GetIp())
-                    return 
-                }
-
-                AppendEntry = s.nodeAppendEntryPayload(n,[]raft_log.LogInstance{*entryToCommit})
-
-                rawMex,err = genericmessage.Encode(&AppendEntry)
-                if err != nil {
-                    log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
-                }
-
-                log.Printf("sending appendEntry to: %v, %v",n.GetIp(), AppendEntry.ToString())
-                n.Send(rawMex)
-            })
-        }
-    }
 }
 
 //utility
