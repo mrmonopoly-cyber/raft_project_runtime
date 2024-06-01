@@ -49,12 +49,19 @@ func (this *raftStateImpl) GetLeaderIp(vis VISIBILITY) string {
 // GetTimeoutNotifycationChan implements State.
 // Subtle: this method shadows the method (TimeoutPool).GetTimeoutNotifycationChan of raftStateImpl.TimeoutPool.
 func (this *raftStateImpl) GetTimeoutNotifycationChan(name string) (chan time.Time, error) {
-	panic("unimplemented")
+    return this.TimeoutPool.GetTimeoutNotifycationChan(name)
 }
 
 // SetLeaderIp implements State.
 func (this *raftStateImpl) SetLeaderIp(vis VISIBILITY, ip string) {
-	panic("unimplemented")
+    switch vis{
+    case PUB:
+        this.myIp.public = ip
+    case PRI:
+        this.myIp.private = ip
+    default:
+        log.Panicln("unamanage case in setLeaderIp")
+    }
 }
 
 type leader struct {
