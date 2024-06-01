@@ -177,6 +177,10 @@ func (this *raftStateImpl) LastLogIndex() int {
 }
 
 func (this *raftStateImpl) StartElectionTimeout() {
+    if this.electionTimeout == nil{
+        this.electionTimeout = time.NewTimer(MAX_ELECTION_TIMEOUT)
+        return
+    }
 	this.electionTimeout.Reset(time.Duration((*this).electionTimeoutRaw))
 }
 

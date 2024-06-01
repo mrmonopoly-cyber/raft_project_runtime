@@ -174,7 +174,6 @@ func (s *server) run() {
                 go s.leaderHearthBit()
             }
         case <-s._state.ElectionTimeout().C:
-            log.Println("test")
             if !s._state.Leader() {
                 s.startNewElection()
             }

@@ -65,8 +65,9 @@ func NewState(idPrivate string, idPublic string, fsRootDir string) State {
 	s.term = 0
 	s.idPrivate = idPrivate
 	s.idPublic = idPublic
-	s.electionTimeout = time.NewTimer(MAX_ELECTION_TIMEOUT)
-	s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)
+	// s.electionTimeout = time.NewTimer(MAX_ELECTION_TIMEOUT)
+	s.electionTimeout = nil
+	// s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)
 	s.nNotSupporting = 0
 	s.nSupporting = 0
 	s.nNodeInCluster = 1
