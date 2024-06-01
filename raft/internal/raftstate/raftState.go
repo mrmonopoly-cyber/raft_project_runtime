@@ -77,6 +77,7 @@ func NewState(idPrivate string, idPublic string, fsRootDir string) State {
     s.leaderEntryToCommit = make(chan int64)
     s.voteFor = ""
 
+    s.StopElectionTimeout()
     go s.leaaderUpdateCommitIndex()
 	return s
 }
