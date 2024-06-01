@@ -14,15 +14,10 @@ type Configuration interface{
     GetNumberNodesInCurrentConf() int
 }
 
-func NewConf(baseConf []string) Configuration{
-    var baseConfMap map[string]string = map[string]string{}
-    for _, v := range baseConf {
-        baseConfMap[v]=v
-    }
-
+func NewConf() Configuration{
     return &conf{
         lock: sync.RWMutex{},
-        oldConf: baseConfMap,
+        oldConf: map[string]string{},
         newConf: map[string]string{},
         changed: false,
         joinConf: false,
