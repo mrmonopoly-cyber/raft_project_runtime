@@ -43,7 +43,7 @@ func (t *timeoutPool) RestartTimeout(name string) error {
     if err != nil{
         return err
     }
-	switch timerInstance.timer.C{
+	switch timerInstance.timer{
 	case nil:
 		timerInstance.timer = time.NewTimer(timerInstance.duration)
 	default:
