@@ -116,14 +116,14 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
         return respondeAppend(id, false, myTerm, -1)
     }
 
-    state.StopElectionTimeout()
+    state.StopTimeout(raftstate.TIMER_ELECTION)
 
     if role != raftstate.FOLLOWER {
         state.SetRole(raftstate.FOLLOWER)
     }
 
-    state.SetLeaderIpPrivate(this.pMex.LeaderIdPrivate)
-    state.SetLeaderIpPublic(this.pMex.LeaderIdPublic)
+    state.SetLeaderIp(raftstate.PRI, this.pMex.LeaderIdPrivate)
+    state.SetLeaderIp(raftstate.PUB, this.pMex.LeaderIdPublic)
 
     if  len(newEntries) > 0{
         //log.Println("received Append Entry", newEntries)
@@ -151,7 +151,7 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
         log.Println("hearthbit resp: ", resp.ToString())
     }
 
-    state.StartElectionTimeout()
+    state.RestartTimeout(raftstate.TIMER_ELECTION)
     return resp
 }
 

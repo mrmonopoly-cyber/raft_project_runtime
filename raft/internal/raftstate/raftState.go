@@ -1,9 +1,9 @@
 package raftstate
 
 import (
-	"math/rand"
 	l "raft/internal/raft_log"
 	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
+    "raft/internal/raftstate/timeout"
 	"time"
 )
 
@@ -19,65 +19,69 @@ const (
 	H_TIMEOUT            time.Duration = 3000000000
 )
 
+type VISIBILITY int
+const (
+    PUB VISIBILITY = iota
+    PRI VISIBILITY = iota
+)
+
+const (
+    TIMER_ELECTION = "election"
+    TIMER_HEARTHBIT = "hearthbit"
+)
+
 type State interface {
-	GetIdPrivate() string
-	GetIdPublic() string
-	GetTerm() uint64
-	GetRole() Role
-	StartElectionTimeout()
-	StartHearthbeatTimeout()
-	StopElectionTimeout()
-	StopHearthbeatTimeout()
-	Leader() bool
-	HeartbeatTimeout() *time.Timer
-	ElectionTimeout() *time.Timer
-	GetVoteFor() string
-	IncrementTerm()
-	VoteFor(id string)
-	CanVote() bool
-    VoteRight(vote bool)
-	SetRole(newRole Role)
-	SetTerm(newTerm uint64)
-	IncreaseSupporters()
-	IncreaseNotSupporters()
-	GetNumSupporters() uint64
-	GetNumNotSupporters() uint64
-	ResetElection()
-
+    currentNodeIp
+    termMetadata
+    voteMetadata
+    roleMetadata
     l.LogEntry
+    timeout.TimeoutPool
 
-	GetLeaderIpPrivate() string
-	GetLeaderIpPublic() string
-	SetLeaderIpPublic(ip string)
-	SetLeaderIpPrivate(ip string)
-
-    //LEADER
-    GetLeaderEntryChannel() *chan int64
-    GetStatePool() nodematchidx.NodeCommonMatch
+    leaderRoleExtra
 }
 
+type leaderIpMetadata interface{
+    SetLeaderIp(vis VISIBILITY, ip string)
+    GetLeaderIp(vis VISIBILITY) string
+}
 
+type roleMetadata interface{
+    GetRole() Role
+    SetRole(newRole Role)
+}
+
+type voteMetadata interface{
+    GetVoteFor() string
+    VoteFor(id string)
+    CanVote() bool
+    VoteRight(vote bool)
+    ResetElection()
+}
+
+type termMetadata interface{
+    GetTerm() uint64
+    IncrementTerm()
+    SetTerm(newTerm uint64)
+}
+
+type currentNodeIp interface{
+    GetIdPrivate() string
+    GetIdPublic() string
+}
+
+type leaderRoleExtra interface{
+    leaderIpMetadata
+
+    GetLeaderEntryChannel() *chan int64
+    GetStatePool() nodematchidx.NodeCommonMatch
+
+    IncreaseSupporters()
+    IncreaseNotSupporters()
+    GetNumSupporters() uint64
+    GetNumNotSupporters() uint64
+}
 
 func NewState(idPrivate string, idPublic string, fsRootDir string) State {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
-	var s = new(raftStateImpl)
-	s.role = FOLLOWER
-	s.term = 0
-	s.idPrivate = idPrivate
-	s.idPublic = idPublic
-	// s.electionTimeout = time.NewTimer(MAX_ELECTION_TIMEOUT)
-	s.electionTimeout = nil
-	// s.heartbeatTimeout = time.NewTimer(H_TIMEOUT)
-	s.nNotSupporting = 0
-	s.nSupporting = 0
-	s.nNodeInCluster = 1
-	s.voting = true
-	s.log = l.NewLogEntry(fsRootDir)
-	s.electionTimeoutRaw = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
-    s.statePool = nodematchidx.NewNodeCommonMatch()
-    s.leaderEntryToCommit = make(chan int64)
-    s.voteFor = ""
-
-    go s.leaaderUpdateCommitIndex()
-	return s
+	return newStateImplementation(idPrivate, idPublic, fsRootDir)
 }
