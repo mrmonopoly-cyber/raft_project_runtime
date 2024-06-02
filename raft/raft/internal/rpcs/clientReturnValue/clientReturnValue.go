@@ -30,7 +30,7 @@ func (this *clientReturnValue) Execute(state raftstate.State, sender node.Node) 
 
 // ToString implements rpcs.Rpc.
 func (this *clientReturnValue) ToString() string {
-    panic("dummy implementation")
+    return this.pMex.String()
 }
 
 func (this *clientReturnValue) Encode() ([]byte, error) {
