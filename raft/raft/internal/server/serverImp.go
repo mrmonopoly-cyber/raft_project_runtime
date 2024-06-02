@@ -365,7 +365,8 @@ func (s* server) applyOnFollowers(fn func(n node.Node)){
 
         value, found= s.unstableNodes.Load(v)
         if !found {
-            log.Panicln("node in conf not saved in unstablequeue ", v)
+            log.Println("node in conf not saved in unstablequeue ", v)
+            continue
         }
         nNode = value.(node.Node)
         if !found {
