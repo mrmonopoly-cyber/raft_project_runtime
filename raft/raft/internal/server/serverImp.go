@@ -161,8 +161,9 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
     for{
         message, errMes = workingNode.Recv()
         if errMes != nil {
-            fmt.Printf("error in reading from node %v with error %v\n",nodeIp, errMes)
-            if workingNode.GetIp() == s._state.GetLeaderIp(raftstate.PRI){
+            log.Printf("error in reading from node %v with error %v\n",nodeIp, errMes)
+            log.Println("debug: current leader: ", s._state.GetLeaderIp(raftstate.PRI))
+            if nodeIp == s._state.GetLeaderIp(raftstate.PRI){
                 s._state.RestartTimeout(raftstate.TIMER_ELECTION)
             }
             break
