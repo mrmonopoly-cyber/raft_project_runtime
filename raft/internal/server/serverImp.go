@@ -379,13 +379,13 @@ func (s *server) startNewElection(){
 }
 
 func (s *server) leaderHearthBit(){
-    log.Println("sending hearthbit")
     var timerHearthbit,err = s._state.GetTimeoutNotifycationChan(raftstate.TIMER_HEARTHBIT)
     if err != nil {
         log.Panicln(err)
     }
 
     for {
+        log.Println("sending hearthbit")
         <- timerHearthbit
 
         s.applyOnFollowers(func(n node.Node) {
