@@ -34,6 +34,8 @@ if it's not specified a specific return value type
 
          nodes : []string
 
+         leaderIp : string //optionally
+
     }
 
 - **change cluster configuration request** : an ADT with the following structure:
