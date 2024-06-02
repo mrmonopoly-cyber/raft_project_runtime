@@ -3,7 +3,7 @@ package newConf
 import (
 	"log"
 	"raft/internal/node"
-	"raft/internal/raft_log"
+	// "raft/internal/raft_log"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	ClientReturnValue "raft/internal/rpcs/clientReturnValue"
