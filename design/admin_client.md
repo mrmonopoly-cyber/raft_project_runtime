@@ -15,6 +15,16 @@ It's mainly responsible for:
 
 - delete the entire cluster with all the vms
 
+After every operation the client will receive a return value of this form
+
+    {
+
+        STATUS: [SUCCESS, FAILURE]
+
+        description: string
+
+    }
+
 ## Useful definition 
 
 - **cluster configuration** : an ADT with the following structure:
