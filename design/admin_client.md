@@ -37,6 +37,7 @@ if it's not specified a specific return value type
          leaderIp : string //optional
 
     }
+    > Be sure that your list of nodes is of the form ["ip1","ip2",...]
 
 - **change cluster configuration request** : an ADT with the following structure:
 
