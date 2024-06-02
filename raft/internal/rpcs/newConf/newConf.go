@@ -34,19 +34,18 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
         if state.GetConfig() == nil{
-            var newConfAppEntry raft_log.LogInstance = raft_log.LogInstance{
-                Entry: &protobuf.LogEntry{
+            var newConfEntry = protobuf.LogEntry{
                     Term: state.GetTerm(),
                     OpType: protobuf.Operation_JOIN_CONF_ADD,
                     Description: "New configuration of the new cluster",
-                },
-            }
+                }
+            var newConfAppEntry = state.NewLogInstance(&newConfEntry)
 
             for _, v := range this.pMex.Conf.Conf {
                 newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload, []byte(v)...)
             }
 
-            state.AppendEntries([]*raft_log.LogInstance{&newConfAppEntry})
+            state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             state.SetRole(raftstate.LEADER)
             return exitSucess
         }
