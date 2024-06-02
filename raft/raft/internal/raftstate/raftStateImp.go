@@ -291,7 +291,6 @@ func newStateImplementation(idPrivate string, idPublic string, fsRootDir string)
 	s.TimeoutPool = timeout.NewTimeoutPool()
 	s.TimeoutPool.AddTimeout(TIMER_ELECTION, time.Duration(randelection))
 	s.TimeoutPool.AddTimeout(TIMER_HEARTHBIT, time.Duration(H_TIMEOUT))
-    s.TimeoutPool.StopTimeout(TIMER_ELECTION)
     s.TimeoutPool.RestartTimeout(TIMER_HEARTHBIT)
 
 	go s.leaaderUpdateCommitIndex()
