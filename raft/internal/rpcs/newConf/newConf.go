@@ -12,12 +12,12 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type newConf struct {
+type NewConf struct {
     pMex protobuf.ChangeConfReq
 }
 
 func NewnewConfRPC(op protobuf.AdminOp, conf []string) rpcs.Rpc {
-    return &newConf{
+    return &NewConf{
         pMex: protobuf.ChangeConfReq{
             Op: op,
             Conf: &protobuf.ClusterConf{
@@ -28,7 +28,7 @@ func NewnewConfRPC(op protobuf.AdminOp, conf []string) rpcs.Rpc {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *newConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
+func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     var exitSucess = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,"")
 
     switch this.pMex.Op{
@@ -67,11 +67,11 @@ func (this *newConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
 }
 
 // ToString implements rpcs.Rpc.
-func (this *newConf) ToString() string {
+func (this *NewConf) ToString() string {
     return this.pMex.String()
 }
 
-func (this *newConf) Encode() ([]byte, error) {
+func (this *NewConf) Encode() ([]byte, error) {
     var mess []byte
     var err error
 
@@ -82,7 +82,7 @@ func (this *newConf) Encode() ([]byte, error) {
 
 	return mess, err
 }
-func (this *newConf) Decode(b []byte) error {
+func (this *NewConf) Decode(b []byte) error {
 	err := proto.Unmarshal(b,&this.pMex)
     if err != nil {
         log.Panicln("error in Encoding Request Vote: ", err)
