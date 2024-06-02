@@ -347,6 +347,8 @@ func newStateImplementation(idPrivate string, idPublic string, fsRootDir string)
 	s.TimeoutPool.AddTimeout(TIMER_HEARTHBIT, time.Duration(H_TIMEOUT))
 	s.TimeoutPool.RestartTimeout(TIMER_HEARTHBIT)
 
+    s.nodeToUpdateChan = make(chan NewNodeToUpdateInfo)
+
 	go s.leaaderUpdateCommitIndex()
 
 	return s
