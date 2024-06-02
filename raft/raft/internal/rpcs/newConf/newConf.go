@@ -43,8 +43,9 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
                 }
             var newConfAppEntry = state.NewLogInstance(&newConfEntry)
 
-            for _, v := range this.pMex.Conf.Conf {
-                newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload, []byte(v)...)
+            for _, v := range this.pMex.Conf.GetConf(){
+                var ele string = v + " "
+                newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload,ele...)
             }
 
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
