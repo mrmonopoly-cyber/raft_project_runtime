@@ -162,6 +162,7 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
         message, errMes = workingNode.Recv()
         if errMes != nil {
             fmt.Printf("error in reading from node %v with error %v\n",nodeIp, errMes)
+            break
         }else if message != nil {
             rpcMex,errMes = genericmessage.Decode(message)
             if errMes != nil {
@@ -175,6 +176,8 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
             <- nodeReq.workdone
         }
     }
+    workingNode.CloseConnection()
+    s.unstableNodes.Delete(nodeIp)
 }
 
 func (s *server) run() {
