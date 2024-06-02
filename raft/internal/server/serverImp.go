@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-    "reflect"
-    "strings"
-    "sync"
 	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
 	"raft/internal/raft_log"
@@ -15,11 +12,15 @@ import (
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/RequestVoteRPC"
+	"raft/internal/rpcs/redirection"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"reflect"
+	"strings"
+	"sync"
 )
 
 type pairMex struct{
-    payload *rpcs.Rpc
+    payload rpcs.Rpc
     sender string
 }
 
@@ -106,11 +107,36 @@ func (s *server) acceptIncomingConn() {
 }
 
 func (s* server) handleConnection(workingNode node.Node){
-    var nodeIp string = workingNode.GetIp()
-
-    if strings.Contains(nodeIp, "10.0.0") {
+    if strings.Contains(workingNode.GetIp(), "10.0.0") {
         s.internalNodeConnection(workingNode)
         return
+    }
+    s.externalAgentConnection(workingNode)
+}
+
+func (s *server) externalAgentConnection(agent node.Node){
+    var leaderIp = s._state.GetLeaderIp(raftstate.PUB)
+    var rawMex []byte
+    var err error
+    var resp rpcs.Rpc 
+    var inputMex rpcs.Rpc 
+
+    //INFO: if leader is assigned and i'm not leader redirect client
+    if  leaderIp != "" && leaderIp != s._state.GetIdPublic(){
+        resp = Redirection.NewredirectionRPC(leaderIp)
+        s.encodeAndSend(resp,agent)
+        agent.CloseConnection()
+        return
+    }
+
+    for{
+        rawMex,err = agent.Recv()
+        if err != nil || rawMex == nil {
+            fmt.Printf("error in reading from node %v with error %v\n",agent.GetIp(), rawMex)
+            continue
+        }
+        inputMex = genericmessage.Decode(rawMex)
+        s.messageChannel <- pairMex{inputMex,agent.GetIp()}
     }
 }
 
@@ -182,7 +208,7 @@ func (s *server) newEntryToCommit(leaderCommitEntry int64){
 
         AppendEntry = s.nodeAppendEntryPayload(n,[]raft_log.LogInstance{*entryToCommit})
 
-        rawMex,err = genericmessage.Encode(&AppendEntry)
+        rawMex,err = genericmessage.Encode(AppendEntry)
         if err != nil {
             log.Panicln("error encoding AppendEntry: ",AppendEntry.ToString())
         }
@@ -205,17 +231,17 @@ func (s *server) newMessageReceived(mess pairMex){
 
             f, ok = s.unstableNodes.Load(sender)
             if !ok {
-                log.Printf("Node %s not found for mex:%v\n", sender, (*mess.payload).ToString())
+                log.Printf("Node %s not found for mex:%v\n", sender, mess.payload.ToString())
                 return
             }
 
             senderNode = f.(node.Node)
             oldRole = s._state.GetRole()
-            rpcCall = *mess.payload
+            rpcCall = mess.payload
             resp = rpcCall.Execute(s._state, senderNode)
 
             if resp != nil {
-                byEnc, errEn = genericmessage.Encode(&resp)
+                byEnc, errEn = genericmessage.Encode(resp)
                 if errEn != nil{
                     log.Panicln("error encoding this rpc: ", resp.ToString())
                 }
@@ -267,7 +293,7 @@ func (s *server) startNewElection(){
                 int64(lastLogIndex),
                 uint64(lastLogTerm))
 
-                raw_mex,err = genericmessage.Encode(&voteRequest)
+                raw_mex,err = genericmessage.Encode(voteRequest)
                 if err != nil {
                     log.Panicln("error in Encoding this voteRequest: ",(voteRequest).ToString())
                 }
@@ -365,7 +391,7 @@ func (s *server) encodeAndSend(rpcMex rpcs.Rpc, n node.Node){
     var err error
     var rawMex []byte
 
-    rawMex,err = genericmessage.Encode(&rpcMex)
+    rawMex,err = genericmessage.Encode(rpcMex)
     if err != nil {
         log.Panicln("error encoding rpc: ", rpcMex.ToString())
     }

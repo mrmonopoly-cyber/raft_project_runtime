@@ -26,7 +26,6 @@ type raftStateImpl struct {
 
 	nSupporting    uint64
 	nNotSupporting uint64
-	nNodeInCluster uint64
 
 	leaderMetadata leader
 
@@ -272,18 +271,24 @@ func newStateImplementation(idPrivate string, idPublic string, fsRootDir string)
 
 	s.role = FOLLOWER
 	s.term = 0
+
 	s.myIp.private = idPrivate
 	s.myIp.public = idPublic
+
 	s.nNotSupporting = 0
 	s.nSupporting = 0
-	s.nNodeInCluster = 1
+
 	s.voting = true
-	s.log = l.NewLogEntry(fsRootDir)
+    s.voteFor = ""
+
+    s.leaderMetadata.leaderIp.public = ""
+    s.leaderMetadata.leaderIp.private= ""
 	s.leaderMetadata.statePool = nodematchidx.NewNodeCommonMatch()
 	s.leaderMetadata.leaderEntryToCommit = make(chan int64)
-	s.voteFor = ""
-	s.TimeoutPool = timeout.NewTimeoutPool()
 
+    s.log = l.NewLogEntry(fsRootDir)
+
+	s.TimeoutPool = timeout.NewTimeoutPool()
 	s.TimeoutPool.AddTimeout(TIMER_ELECTION, time.Duration(randelection))
 	s.TimeoutPool.AddTimeout(TIMER_HEARTHBIT, time.Duration(H_TIMEOUT))
     s.TimeoutPool.RestartTimeout(TIMER_HEARTHBIT)
