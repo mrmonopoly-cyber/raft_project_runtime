@@ -8,7 +8,7 @@ import (
 )
 
 type timeout struct {
-	timer             *time.Timer
+	timer             *time.Ticker
 	duration          time.Duration
 	timerNotification chan time.Time
 }
@@ -21,14 +21,14 @@ type timeoutPool struct {
 // AddTimeout implements TimeoutPool.
 func (t *timeoutPool) AddTimeout(name string, duration time.Duration) {
 	var newTimer = timeout{
-		timer:             nil,
+		timer:             time.NewTicker(duration),
 		duration:          duration,
 		timerNotification: make(chan time.Time),
 	}
 
-	t.timerMap.Store(name, newTimer)
-    newTimer.timer = time.NewTimer(newTimer.duration)
     newTimer.timer.Stop()
+    go newTimer.notifyTimers()
+	t.timerMap.Store(name, newTimer)
 }
 
 // GetTimeoutNotifycationChan implements TimeoutPool.
@@ -46,9 +46,9 @@ func (t *timeoutPool) RestartTimeout(name string) error {
     if err != nil{
         return err
     }
+
 	timerInstance.timer.Reset(timerInstance.duration)
 
-	go timerInstance.notifyTimers()
 	return nil
 }
 
