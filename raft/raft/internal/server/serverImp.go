@@ -278,6 +278,7 @@ func (s *server) newMessageReceived(mess pairMex){
                 go s.leaderHearthBit()
             }
             mess.workdone <- 1
+            log.Panicln("notify completion of RPC on channel: ", mess.workdone)
 }
 
 //utility
