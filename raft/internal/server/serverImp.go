@@ -346,7 +346,7 @@ func (s *server) leaderHearthBit(){
             s.encodeAndSend(hearthBit,n)
         })
         log.Println("end broadcast")
-        s._state.RestartTimeout(raftstate.TIMER_HEARTHBIT)
+        s._state.RestartTimeout(raftstate.TIMER_ELECTION)
     }
     s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
     log.Println("no longer LEADER, stop sending hearthbit")
