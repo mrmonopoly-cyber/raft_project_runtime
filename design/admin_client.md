@@ -15,7 +15,8 @@ It's mainly responsible for:
 
 - delete the entire cluster with all the vms
 
-After every operation the client will receive a return value of this form
+After every operation the client will receive a return value of this form 
+if it's not specified a specific return value type
 
     {
 
