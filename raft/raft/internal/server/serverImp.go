@@ -123,14 +123,9 @@ func (s *server) externalAgentConnection(agent node.Node){
     var inputMex rpcs.Rpc 
     var clientReq pairMex = pairMex{}
 
-    //INFO: if leader is assigned and i'm not leader redirect client
-    if  leaderIp != "" && leaderIp != s._state.GetIdPublic(){
-        resp = Redirection.NewredirectionRPC(leaderIp)
-        s.encodeAndSend(resp,agent)
-        agent.CloseConnection()
-        s.unstableNodes.Delete(agent.GetIp())
-        return
-    }
+    //INFO: send to the client who you think is the leader, (blank means you are not in the conf)
+    resp = Redirection.NewredirectionRPC(leaderIp)
+    s.encodeAndSend(resp,agent)
 
     for{
         rawMex,err = agent.Recv()

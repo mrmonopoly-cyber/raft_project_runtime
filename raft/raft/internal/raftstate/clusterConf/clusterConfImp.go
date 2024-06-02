@@ -38,7 +38,7 @@ func (this *conf) GetConfig() []string {
 	defer this.lock.RUnlock()
 
     var resMap map[string]string = map[string]string{}
-    var res []string = make([]string,0)
+    var res []string = nil
 
     for _,v  := range this.oldConf {
         resMap[v] = v

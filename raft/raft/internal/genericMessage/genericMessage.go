@@ -9,6 +9,7 @@ import (
 	"raft/internal/rpcs/RequestVoteResponse"
 	"raft/internal/rpcs/UpdateNode"
 	"raft/internal/rpcs/UpdateNodeResp"
+	"raft/internal/rpcs/newConf"
 	"raft/internal/rpcs/redirection"
 
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -44,6 +45,8 @@ func Decode(raw_mex []byte) (rpcs.Rpc,error){
         outRpc = &UpdateNodeResp.UpdateNodeResp{}
     case protobuf.MexType_REDIRECTION:
         outRpc = &Redirection.Redirection{}
+    case protobuf.MexType_NEW_CONF:
+        outRpc = &newConf.NewConf{}
     default:
         return nil, errors.New("rpc not recognized")
     }
@@ -81,6 +84,8 @@ func Encode(mex rpcs.Rpc) ([]byte,error){
         genericMessage.OpType = protobuf.MexType_UPDATE_NODE_RESP
     case *Redirection.Redirection:
         genericMessage.OpType = protobuf.MexType_REDIRECTION
+    case *newConf.NewConf:
+        genericMessage.OpType = protobuf.MexType_NEW_CONF
     default:
         return nil, errors.New("rpc not recognized")
     }

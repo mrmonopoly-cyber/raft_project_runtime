@@ -25,7 +25,7 @@ func (this *NEW_RPC) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
 
 // ToString implements rpcs.Rpc.
 func (this *NEW_RPC) ToString() string {
-    panic("dummy implementation")
+    return this.pMex.String()
 }
 
 func (this *NEW_RPC) Encode() ([]byte, error) {
