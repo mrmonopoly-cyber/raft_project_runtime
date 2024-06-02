@@ -117,10 +117,6 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
         return respondeAppend(id, false, myTerm, -1)
     }
 
-    err = state.RestartTimeout(raftstate.TIMER_ELECTION)
-    if err != nil {
-        log.Panicln("failed restarting election timer")
-    }
 
     if role != raftstate.FOLLOWER {
         state.SetRole(raftstate.FOLLOWER)
@@ -155,7 +151,10 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
         log.Println("hearthbit resp: ", resp.ToString())
     }
 
-    state.RestartTimeout(raftstate.TIMER_ELECTION)
+    err = state.RestartTimeout(raftstate.TIMER_ELECTION)
+    if err != nil {
+        log.Panicln("failed restarting election timer")
+    }
     return resp
 }
 

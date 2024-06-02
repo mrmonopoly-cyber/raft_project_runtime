@@ -47,7 +47,7 @@ func (this *raftStateImpl) GetLeaderIp(vis VISIBILITY) string {
 
 // GetTimeoutNotifycationChan implements State.
 // Subtle: this method shadows the method (TimeoutPool).GetTimeoutNotifycationChan of raftStateImpl.TimeoutPool.
-func (this *raftStateImpl) GetTimeoutNotifycationChan(name string) (chan time.Time, error) {
+func (this *raftStateImpl) GetTimeoutNotifycationChan(name string) (<- chan time.Time, error) {
     return this.TimeoutPool.GetTimeoutNotifycationChan(name)
 }
 
