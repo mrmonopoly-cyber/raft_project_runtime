@@ -61,6 +61,22 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
         if state.GetRole() == raftstate.LEADER{
             var newConfAppEntry = this.encodeSendConf(state, protobuf.Operation_JOIN_CONF_DEL)
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+            go func(){
+                <- newConfAppEntry.NotifyApplication
+                //TODO: when join conf remove is applied you can commit conf
+                var commitConf = protobuf.LogEntry{
+                    Term: state.GetTerm(),
+                    OpType: protobuf.Operation_COMMIT_CONFIG,
+                }
+                for _, v := range this.pMex.Conf.GetConf(){
+                    //HACK: the space is for spacing the elements when converting to []byte
+                    var ele string = v + " "
+                    commitConf.Payload = append(newConfAppEntry.Entry.Payload,ele...)
+                }
+
+                newConfAppEntry = state.NewLogInstance(&commitConf)
+                state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+            }()
             return exitSucess
         }
         var failureMex = "i'm not leader, i cannot change conf"
