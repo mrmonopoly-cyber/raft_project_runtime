@@ -30,14 +30,28 @@ type raftStateImpl struct {
 	leaderMetadata leader
 
 	timeout.TimeoutPool
+
+	nodeToUpdateChan chan NewNodeToUpdateInfo
+}
+
+// NotifyNodeToUpdate implements State.
+func (this *raftStateImpl) NotifyNodeToUpdate(nodeIps []string) {
+    this.nodeToUpdateChan <- NewNodeToUpdateInfo{
+        NodeList: nodeIps,
+        MatchToArrive: uint64(this.LastLogIndex()),
+    }
+}
+
+// GetNewNodeToUpdate implements State.
+func (this *raftStateImpl) GetNewNodeToUpdate() <-chan NewNodeToUpdateInfo {
+	return this.nodeToUpdateChan
 }
 
 // AddTimeout implements State.
 // Subtle: this method shadows the method (TimeoutPool).AddTimeout of raftStateImpl.TimeoutPool.
 func (this *raftStateImpl) AddTimeout(name string, duration time.Duration) {
-	this.TimeoutPool.AddTimeout(name,duration)
+	this.TimeoutPool.AddTimeout(name, duration)
 }
-
 
 // RestartTimeout implements State.
 // Subtle: this method shadows the method (TimeoutPool).RestartTimeout of raftStateImpl.TimeoutPool.
@@ -48,7 +62,7 @@ func (this *raftStateImpl) RestartTimeout(name string) error {
 // StopTimeout implements State.
 // Subtle: this method shadows the method (TimeoutPool).StopTimeout of raftStateImpl.TimeoutPool.
 func (this *raftStateImpl) StopTimeout(name string) error {
-    return this.TimeoutPool.StopTimeout(name)
+	return this.TimeoutPool.StopTimeout(name)
 }
 
 // GetLeaderIp implements State.
@@ -165,15 +179,15 @@ func (this *raftStateImpl) GetConfig() []string {
 
 // GetMyIp implements State.
 func (this *raftStateImpl) GetMyIp(vis VISIBILITY) string {
-	switch vis{
-    case PUB:
-        return this.myIp.public
-    case PRI:
-        return this.myIp.private
-    default:
-        log.Panicln("invalid case ip: ",vis)
-        return ""
-    }
+	switch vis {
+	case PUB:
+		return this.myIp.public
+	case PRI:
+		return this.myIp.private
+	default:
+		log.Panicln("invalid case ip: ", vis)
+		return ""
+	}
 }
 
 func (this *raftStateImpl) GetTerm() uint64 {

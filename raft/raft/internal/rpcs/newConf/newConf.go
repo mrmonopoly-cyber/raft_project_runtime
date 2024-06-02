@@ -43,12 +43,14 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
             var newConfAppEntry = state.NewLogInstance(&newConfEntry)
 
             for _, v := range this.pMex.Conf.GetConf(){
+                //HACK: the space is for spacing the elements when converting to []byte
                 var ele string = v + " "
                 newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload,ele...)
             }
 
-            state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             state.SetRole(raftstate.LEADER)
+            state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+            state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
             return exitSucess
         }
         var failureDescr = `cluster already created and settend, New conf can only be applied 
