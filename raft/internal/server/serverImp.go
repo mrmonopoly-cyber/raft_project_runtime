@@ -41,7 +41,7 @@ func (s *server) Start() {
     s.wg.Add(1)
     go s.acceptIncomingConn()
     s.wg.Add(1)
-    go s.run()
+    // go s.run()
 
     s.wg.Wait()
     log.Println("run finished")
