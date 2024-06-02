@@ -144,6 +144,7 @@ func (s *server) externalAgentConnection(agent node.Node){
         <- clientReq.workdone
     }
 
+    log.Println("Done serving client: ", agent.GetIp())
     agent.CloseConnection()
     s.unstableNodes.Delete(agent.GetIp())
 }
