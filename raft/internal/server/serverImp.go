@@ -196,9 +196,7 @@ func (s *server) run() {
         case mess = <-s.messageChannel:
             go s.newMessageReceived(mess)
         case <- timeoutElection:
-            if s._state.GetRole() == raftstate.LEADER {
-                go s.startNewElection()
-            }
+            go s.startNewElection()
         case leaderCommitEntry = <- entryToPropagateChann:
             go s.newEntryToCommit(leaderCommitEntry)
         }
