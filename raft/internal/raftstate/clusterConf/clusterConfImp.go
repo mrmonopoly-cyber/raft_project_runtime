@@ -50,7 +50,9 @@ func (this *conf) GetConfig() []string {
 	}
     
     for _, v := range resMap {
-        res = append(res, v)
+        if v != ""{
+            res = append(res, v)
+        }
     }
 
 	return res
