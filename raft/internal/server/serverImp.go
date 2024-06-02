@@ -182,14 +182,12 @@ func (s *server) run() {
     var leaderCommitEntry int64
     var timeoutElection,err = s._state.GetTimeoutNotifycationChan(raftstate.TIMER_ELECTION)
     var entryToPropagateChann = *s._state.GetLeaderEntryChannel()
+    log.Println("prop : ", entryToPropagateChann)
 
     if err != nil{
         log.Panicln(err)
     }
 
-    if entryToPropagateChann == nil{
-        log.Panicln("propagate chan nil")
-    }
 
     for {
 
