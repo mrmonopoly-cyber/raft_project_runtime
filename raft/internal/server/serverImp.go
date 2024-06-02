@@ -379,7 +379,7 @@ func (s *server) startNewElection(){
 }
 
 func (s *server) leaderHearthBit(){
-    //log.Println("start sending hearthbit")
+    log.Println("sending hearthbit")
     var timerHearthbit,err = s._state.GetTimeoutNotifycationChan(raftstate.TIMER_HEARTHBIT)
     if err != nil {
         log.Panicln(err)
