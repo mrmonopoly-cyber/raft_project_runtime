@@ -29,7 +29,7 @@ func NewnewConfRPC(op protobuf.AdminOp, conf []string) rpcs.Rpc {
 
 // Manage implements rpcs.Rpc.
 func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
-    var exitSucess = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,"")
+    var exitSucess rpcs.Rpc = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,"")
 
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
