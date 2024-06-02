@@ -191,7 +191,8 @@ func (this *raftStateImpl) AppendEntries(newEntries []*l.LogInstance) {
 		}
 		return
 	}
-	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", this.leaderMetadata.leaderEntryToCommit, this.log.GetCommitIndex()+1)
+	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n", 
+            this.leaderMetadata.leaderEntryToCommit, this.log.GetCommitIndex()+1)
 	for range newEntries {
 		this.leaderMetadata.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
 	}

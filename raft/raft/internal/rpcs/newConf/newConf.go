@@ -3,7 +3,7 @@ package newConf
 import (
 	"log"
 	"raft/internal/node"
-	// "raft/internal/raft_log"
+	"raft/internal/raft_log"
 	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	ClientReturnValue "raft/internal/rpcs/clientReturnValue"
@@ -45,7 +45,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
                 newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload, []byte(v)...)
             }
 
-            // state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+            state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             state.SetRole(raftstate.LEADER)
             return exitSucess
         }
