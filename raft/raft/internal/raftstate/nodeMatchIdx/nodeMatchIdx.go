@@ -29,8 +29,8 @@ func NewNodeCommonMatch() NodeCommonMatch{
     return &commonMatchNode{
     	notifyChannNewEntry: make(chan int),
     	allNodeStates:   sync.Map{},
-    	numNode:     1,
+    	numNode:     0,
     	futureCommonIdx:   -1,
-    	numStable:   1,
+    	numStable:   0,
     }
 }
