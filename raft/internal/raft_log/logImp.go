@@ -192,7 +192,8 @@ func (this *log) updateLastApplied() error {
 
 			l.Printf("updating entry: %v", entry)
 			switch entry.Entry.OpType {
-			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL, p.Operation_COMMIT_CONFIG:
+			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL, 
+                p.Operation_COMMIT_CONFIG_REM, p.Operation_COMMIT_CONFIG_ADD:
 				this.applyConf(entry.Entry.OpType, entry)
 			default:
 				(*this).localFs.ApplyLogEntry(entry.Entry)
