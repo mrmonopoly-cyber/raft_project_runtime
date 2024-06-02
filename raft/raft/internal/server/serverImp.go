@@ -41,7 +41,7 @@ func (s *server) Start() {
     s.wg.Add(1)
     go s.acceptIncomingConn()
     s.wg.Add(1)
-    // go s.run()
+    go s.run()
 
     s.wg.Wait()
     log.Println("run finished")
@@ -176,14 +176,15 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
 }
 
 func (s *server) run() {
+    var mess pairMex
+    var leaderCommitEntry int64
     var timeoutElection,err = s._state.GetTimeoutNotifycationChan(raftstate.TIMER_ELECTION)
+
     if err != nil{
         log.Panicln(err)
     }
 
     for {
-        var mess pairMex
-        var leaderCommitEntry int64
 
         select {
         case mess = <-s.messageChannel:
