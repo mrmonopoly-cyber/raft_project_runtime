@@ -296,10 +296,6 @@ func (s *server) startNewElection(){
         if s.numNodes == 0 {
             log.Println("became leader: ",s._state.GetRole())
             s._state.SetRole(raftstate.LEADER)
-            s._state.SetLeaderIp(raftstate.PRI, s._state.GetIdPrivate())
-            s._state.SetLeaderIp(raftstate.PUB, s._state.GetIdPublic())
-
-            s._state.ResetElection()
             go s.leaderHearthBit()
             return
         }
@@ -316,7 +312,7 @@ func (s *server) startNewElection(){
             lastLogTerm = s._state.LastLogTerm()
             voteRequest = RequestVoteRPC.NewRequestVoteRPC(
                 s._state.GetTerm(),
-                s._state.GetIdPrivate(),
+                s._state.GetMyIp(raftstate.PRI),
                 int64(lastLogIndex),
                 uint64(lastLogTerm))
 
@@ -337,19 +333,15 @@ func (s *server) leaderHearthBit(){
         log.Panicln(err)
     }
 
-    for s._state.GetRole() == raftstate.LEADER{
+    for {
         <- timerHearthbit
 
-        log.Println("start broadcast")
         s.applyOnFollowers(func(n node.Node) {
             var hearthBit rpcs.Rpc = s.nodeAppendEntryPayload(n,nil)
             s.encodeAndSend(hearthBit,n)
         })
-        log.Println("end broadcast")
         s._state.RestartTimeout(raftstate.TIMER_ELECTION)
     }
-    s._state.GetStatePool().InitCommonMatch(s._state.LastLogIndex())
-    log.Println("no longer LEADER, stop sending hearthbit")
 }
 
 func (s* server) applyOnFollowers(fn func(n node.Node)){
@@ -359,7 +351,7 @@ func (s* server) applyOnFollowers(fn func(n node.Node)){
         var value any
         var found bool
 
-        if v == s._state.GetIdPrivate() {
+        if v == s._state.GetMyIp(raftstate.PRI){
             continue
         }
 

@@ -32,8 +32,8 @@ func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
     var app = &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
             Term:         state.GetTerm(),
-            LeaderIdPrivate:     state.GetIdPrivate(),
-            LeaderIdPublic:     state.GetIdPublic(),
+            LeaderIdPrivate:     state.GetMyIp(raftstate.PRI),
+            LeaderIdPublic:     state.GetMyIp(raftstate.PUB),
             PrevLogIndex: int64(prevLogIndex),
             PrevLogTerm:  prevLogTerm,
             Entries:      nil,
@@ -51,8 +51,8 @@ func NewAppendEntryRPC(state raftstate.State, prevLogIndex int64, prevLogTerm ui
     return &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
             Term:         state.GetTerm(),
-            LeaderIdPrivate: state.GetIdPrivate(),
-            LeaderIdPublic: state.GetIdPublic(),
+            LeaderIdPrivate:     state.GetMyIp(raftstate.PRI),
+            LeaderIdPublic:     state.GetMyIp(raftstate.PUB),
             PrevLogIndex: prevLogIndex,
             PrevLogTerm:  prevLogTerm,
             Entries:      entries,
@@ -99,7 +99,7 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
 
     log.Println("executing appendEntryRpc: ", this.ToString())
     var role raftstate.Role = state.GetRole()
-    var id string = state.GetIdPrivate()
+    var id string = state.GetMyIp(raftstate.PRI)
     var myTerm uint64 = state.GetTerm()
     var nextIdx int
     var consistent ERRORS

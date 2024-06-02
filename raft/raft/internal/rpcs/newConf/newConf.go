@@ -30,12 +30,11 @@ func NewnewConfRPC(op protobuf.AdminOp, conf []string) rpcs.Rpc {
 // Manage implements rpcs.Rpc.
 func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     var exitSucess rpcs.Rpc = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,"")
+    var myPrivateIp = state.GetMyIp(raftstate.PRI)
 
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
-        log.Printf("debug new conf: this %v, mex: %v\n", state.GetIdPrivate(), *this.pMex.Conf.Leader)
-
-        if state.GetConfig() == nil && state.GetIdPrivate() == *this.pMex.Conf.Leader{
+        if state.GetConfig() == nil && myPrivateIp == *this.pMex.Conf.Leader{
             var newConfEntry = protobuf.LogEntry{
                     Term: state.GetTerm(),
                     OpType: protobuf.Operation_JOIN_CONF_ADD,
