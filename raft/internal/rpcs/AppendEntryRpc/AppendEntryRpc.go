@@ -108,6 +108,7 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
     var entries []raft_log.LogInstance = state.GetEntries()
     var newEntries []*protobuf.LogEntry = this.pMex.GetEntries()
     var newEntriesWrapper []*raft_log.LogInstance = state.NewLogInstanceBatch(newEntries)
+    var err error
 
     var resp rpcs.Rpc = nil
     var leaderCommit int64
@@ -116,7 +117,10 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
         return respondeAppend(id, false, myTerm, -1)
     }
 
-    state.StopTimeout(raftstate.TIMER_ELECTION)
+    err = state.RestartTimeout(raftstate.TIMER_ELECTION)
+    if err != nil {
+        log.Panicln("failed restarting election timer")
+    }
 
     if role != raftstate.FOLLOWER {
         state.SetRole(raftstate.FOLLOWER)
