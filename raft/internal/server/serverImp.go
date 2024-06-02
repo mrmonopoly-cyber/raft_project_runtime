@@ -135,7 +135,11 @@ func (s *server) externalAgentConnection(agent node.Node){
             fmt.Printf("error in reading from node %v with error %v\n",agent.GetIp(), rawMex)
             continue
         }
-        inputMex = genericmessage.Decode(rawMex)
+        inputMex,err = genericmessage.Decode(rawMex)
+        if err != nil{
+            log.Println(err)
+            continue
+        }
         s.messageChannel <- pairMex{inputMex,agent.GetIp()}
     }
 }
@@ -144,13 +148,19 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
     var nodeIp = workingNode.GetIp()
     var message []byte
     var errMes error
+    var rpcMex rpcs.Rpc
 
     for{
         message, errMes = workingNode.Recv()
         if errMes != nil {
             fmt.Printf("error in reading from node %v with error %v\n",nodeIp, errMes)
         }else if message != nil {
-            s.messageChannel <- pairMex{genericmessage.Decode(message),workingNode.GetIp()}
+            rpcMex,errMes = genericmessage.Decode(message)
+            if errMes != nil {
+                log.Println(errMes)
+                continue
+            }
+            s.messageChannel <- pairMex{rpcMex,workingNode.GetIp()}
         }
     }
 }

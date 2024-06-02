@@ -1,7 +1,7 @@
 package genericmessage
 
 import (
-	"log"
+	"errors"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/AppendResponse"
@@ -16,15 +16,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func Decode(raw_mex []byte) (rpcs.Rpc){
+func Decode(raw_mex []byte) (rpcs.Rpc,error){
     var genericMex protobuf.Entry
     var err error
     var outRpc rpcs.Rpc
 
     err = proto.Unmarshal(raw_mex,&genericMex)
     if err != nil {
-        log.Panicln("error decoding generic message: ", string(raw_mex))
-        return nil
+        return nil, errors.New("error decoding generic message: "+ string(raw_mex))
     }
     //log.Println("generic message Decoded with type :", genericMex.GetOpType())
 
@@ -46,11 +45,11 @@ func Decode(raw_mex []byte) (rpcs.Rpc){
     case protobuf.MexType_REDIRECTION:
         outRpc = &Redirection.Redirection{}
     default:
-        log.Panicln("rpc type not recognize in decoing generic message")
+        return nil, errors.New("rpc not recognized")
     }
     
     outRpc.Decode(payload)
-    return outRpc
+    return outRpc,nil
 
 }
 
@@ -64,7 +63,7 @@ func Encode(mex rpcs.Rpc) ([]byte,error){
     genericMessage.Payload = rawByte
 
     if err != nil {
-        log.Panicln("error encoding this message :", mex.ToString())
+        return nil,errors.New("error encoding this message :"+ mex.ToString())
     }
 
     switch mex.(type){
@@ -83,12 +82,12 @@ func Encode(mex rpcs.Rpc) ([]byte,error){
     case *Redirection.Redirection:
         genericMessage.OpType = protobuf.MexType_REDIRECTION
     default:
-        log.Panicln("rpc not recognize: ", mex.ToString())
+        return nil, errors.New("rpc not recognized")
     }
 
     rawByteToSend,err = proto.Marshal(&genericMessage)
     if err != nil {
-        log.Panicln("failed in serializing the rpc AppendEntry")
+        return nil,errors.New("failed in serializing the rpc AppendEntry")
     }
 
     return rawByteToSend,nil
