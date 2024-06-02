@@ -130,14 +130,12 @@ func (s *server) externalAgentConnection(agent node.Node){
         rawMex,err = agent.Recv()
         if err != nil || rawMex == nil {
             fmt.Printf("error in reading from node %v with error %v\n",agent.GetIp(), rawMex)
-            agent.CloseConnection()
-            s.unstableNodes.Delete(agent.GetIp())
             break
         }
         inputMex,err = genericmessage.Decode(rawMex)
         if err != nil{
             log.Println(err)
-            continue
+            break
         }
         clientReq.payload = inputMex
         clientReq.sender = agent.GetIp()
@@ -145,6 +143,9 @@ func (s *server) externalAgentConnection(agent node.Node){
         s.messageChannel <- clientReq
         <- clientReq.workdone
     }
+
+    agent.CloseConnection()
+    s.unstableNodes.Delete(agent.GetIp())
 }
 
 func (s *server) internalNodeConnection(workingNode node.Node) {
