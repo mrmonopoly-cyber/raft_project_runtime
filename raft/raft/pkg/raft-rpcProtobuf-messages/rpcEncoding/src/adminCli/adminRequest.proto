@@ -12,6 +12,7 @@ enum AdminOp {
 
 message clusterConf{
     repeated string conf =1;
+    optional string leader =2;
 }
 
 message changeConfReq{
