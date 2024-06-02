@@ -53,7 +53,6 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
             var newConfAppEntry = this.encodeSendConf(state, protobuf.Operation_JOIN_CONF_ADD)
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
-            state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
             return exitSucess
         }
         var failureMex = "i'm not leader, i cannot change conf"
