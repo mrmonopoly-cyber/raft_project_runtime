@@ -27,6 +27,8 @@ func (t *timeoutPool) AddTimeout(name string, duration time.Duration) {
 	}
 
 	t.timerMap.Store(name, newTimer)
+    newTimer.timer = time.NewTimer(newTimer.duration)
+    newTimer.timer.Stop()
 }
 
 // GetTimeoutNotifycationChan implements TimeoutPool.
@@ -44,12 +46,7 @@ func (t *timeoutPool) RestartTimeout(name string) error {
     if err != nil{
         return err
     }
-	switch timerInstance.timer{
-	case nil:
-		timerInstance.timer = time.NewTimer(timerInstance.duration)
-	default:
-		timerInstance.timer.Reset(timerInstance.duration)
-	}
+	timerInstance.timer.Reset(timerInstance.duration)
 
 	go timerInstance.notifyTimers()
 	return nil
@@ -62,9 +59,7 @@ func (t *timeoutPool) StopTimeout(name string) error {
         return err
     }
     
-    if timerInstance.timer != nil {
-        timerInstance.timer.Stop()
-    }
+    timerInstance.timer.Stop()
     return nil
 }
 
