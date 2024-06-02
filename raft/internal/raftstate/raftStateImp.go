@@ -55,9 +55,9 @@ func (this *raftStateImpl) GetTimeoutNotifycationChan(name string) (chan time.Ti
 func (this *raftStateImpl) SetLeaderIp(vis VISIBILITY, ip string) {
     switch vis{
     case PUB:
-        this.myIp.public = ip
+        this.leaderMetadata.leaderIp.public = ip
     case PRI:
-        this.myIp.private = ip
+        this.leaderMetadata.leaderIp.private = ip
     default:
         log.Panicln("unamanage case in setLeaderIp")
     }
