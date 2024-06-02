@@ -2,7 +2,6 @@ package timeout
 
 import (
 	"errors"
-	"log"
 	"sync"
 	"time"
 )
@@ -10,7 +9,6 @@ import (
 type timeout struct {
 	timer             *time.Ticker
 	duration          time.Duration
-	timerNotification chan time.Time
 }
 
 type timeoutPool struct {
@@ -23,21 +21,19 @@ func (t *timeoutPool) AddTimeout(name string, duration time.Duration) {
 	var newTimer = timeout{
 		timer:             time.NewTicker(duration),
 		duration:          duration,
-		timerNotification: make(chan time.Time),
 	}
 
     newTimer.timer.Stop()
-    go newTimer.notifyTimers()
 	t.timerMap.Store(name, newTimer)
 }
 
 // GetTimeoutNotifycationChan implements TimeoutPool.
-func (t *timeoutPool) GetTimeoutNotifycationChan(name string) (chan time.Time, error) {
+func (t *timeoutPool) GetTimeoutNotifycationChan(name string) (<- chan time.Time, error) {
     var timerInstance, err = t.findTimer(name)
     if err != nil{
         return nil,err
     }
-    return timerInstance.timerNotification,nil
+    return timerInstance.timer.C,nil
 }
 
 // RestartTimeout implements TimeoutPool.
@@ -64,25 +60,17 @@ func (t *timeoutPool) StopTimeout(name string) error {
 }
 
 //utility
-func (t* timeoutPool) findTimer(name string) (timeout, error){
+func (t* timeoutPool) findTimer(name string) (*timeout, error){
 	var v, f = t.timerMap.Load(name)
     var timerInstace timeout
 
 	if !f {
-		return timerInstace,errors.New("timer not found")
+		return &timerInstace,errors.New("timer not found")
 	}
 
     timerInstace = v.(timeout)
 
-    return timerInstace,nil
-}
-
-func (t *timeout) notifyTimers() {
-	for {
-		var ti = <-t.timer.C
-        log.Println("debug: notification timer")
-		t.timerNotification <- ti
-	}
+    return &timerInstace,nil
 }
 
 func newTimeoutPoolImpl() *timeoutPool {
@@ -90,3 +78,4 @@ func newTimeoutPoolImpl() *timeoutPool {
 		timerMap: sync.Map{},
 	}
 }
+
