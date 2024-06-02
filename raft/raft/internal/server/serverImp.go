@@ -260,6 +260,7 @@ func (s *server) newMessageReceived(mess pairMex){
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
             resp = rpcCall.Execute(s._state, senderNode)
+            log.Println("finih executing rpc: ",rpcCall.ToString())
 
             if resp != nil {
                 log.Println("sending resp to caller RPC")
