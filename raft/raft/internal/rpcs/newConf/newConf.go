@@ -35,19 +35,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
         if state.GetConfig() == nil && myPrivateIp == *this.pMex.Conf.Leader{
-            var newConfEntry = protobuf.LogEntry{
-                    Term: state.GetTerm(),
-                    OpType: protobuf.Operation_JOIN_CONF_ADD,
-                    Description: "New configuration of the new cluster",
-                }
-            var newConfAppEntry = state.NewLogInstance(&newConfEntry)
-
-            for _, v := range this.pMex.Conf.GetConf(){
-                //HACK: the space is for spacing the elements when converting to []byte
-                var ele string = v + " "
-                newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload,ele...)
-            }
-
+            var newConfAppEntry = this.encodeSendConf(state, protobuf.Operation_JOIN_CONF_ADD)
             state.SetRole(raftstate.LEADER)
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
@@ -60,9 +48,40 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
         log.Println(failureDescr)
         return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureDescr)
     case protobuf.AdminOp_CHANGE_CONF_ADD:
-        panic("not implemented")
+        if state.GetRole() == raftstate.LEADER{
+            var newConfAppEntry = this.encodeSendConf(state, protobuf.Operation_JOIN_CONF_ADD)
+            state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+            state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
+            return exitSucess
+        }
+        var failureMex = "i'm not leader, i cannot change conf"
+        log.Println(failureMex)
+        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureMex)
     case protobuf.AdminOp_CHANGE_CONF_REM:
-        panic("not implemented")
+        if state.GetRole() == raftstate.LEADER{
+            var newConfAppEntry = this.encodeSendConf(state, protobuf.Operation_JOIN_CONF_DEL)
+            state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+            go func(){
+                <- newConfAppEntry.NotifyApplication
+                //TODO: when join conf remove is applied you can commit conf
+                var commitConf = protobuf.LogEntry{
+                    Term: state.GetTerm(),
+                    OpType: protobuf.Operation_COMMIT_CONFIG,
+                }
+                for _, v := range this.pMex.Conf.GetConf(){
+                    //HACK: the space is for spacing the elements when converting to []byte
+                    var ele string = v + " "
+                    commitConf.Payload = append(newConfAppEntry.Entry.Payload,ele...)
+                }
+
+                newConfAppEntry = state.NewLogInstance(&commitConf)
+                state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+            }()
+            return exitSucess
+        }
+        var failureMex = "i'm not leader, i cannot change conf"
+        log.Println(failureMex)
+        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureMex)
     default:
         var failDescr = "invalid new conf request type: " + this.pMex.Op.String()
         log.Println(failDescr)
@@ -92,4 +111,24 @@ func (this *NewConf) Decode(b []byte) error {
         log.Panicln("error in Encoding Request Vote: ", err)
     }
 	return err
+}
+
+
+//utility
+
+func (this *NewConf) encodeSendConf(state raftstate.State, op protobuf.Operation) *raft_log.LogInstance{
+    var newConfEntry = protobuf.LogEntry{
+        Term: state.GetTerm(),
+        OpType: op,
+    }
+
+    newConfEntry.OpType = op
+    var newConfAppEntry = state.NewLogInstance(&newConfEntry)
+
+    for _, v := range this.pMex.Conf.GetConf(){
+        //HACK: the space is for spacing the elements when converting to []byte
+        var ele string = v + " "
+        newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload,ele...)
+    }
+    return newConfAppEntry
 }
