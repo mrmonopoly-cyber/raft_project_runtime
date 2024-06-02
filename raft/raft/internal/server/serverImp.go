@@ -99,8 +99,10 @@ func (s *server) acceptIncomingConn() {
         }
 
         log.Printf("node with ip %v not found", newConncetionIp)
-        var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn, s._state.GetStatePool())
-        go s.handleConnection(new_node)
+        var newNode node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn, s._state.GetStatePool())
+        s.unstableNodes.Store(newNode.GetIp(),newNode)
+        s.numNodes++
+        go s.handleConnection(newNode)
 	}
 }
 
@@ -124,6 +126,7 @@ func (s *server) externalAgentConnection(agent node.Node){
         resp = Redirection.NewredirectionRPC(leaderIp)
         s.encodeAndSend(resp,agent)
         agent.CloseConnection()
+        s.unstableNodes.Delete(agent.GetIp())
         return
     }
 
@@ -132,6 +135,7 @@ func (s *server) externalAgentConnection(agent node.Node){
         if err != nil || rawMex == nil {
             fmt.Printf("error in reading from node %v with error %v\n",agent.GetIp(), rawMex)
             agent.CloseConnection()
+            s.unstableNodes.Delete(agent.GetIp())
             break
         }
         inputMex,err = genericmessage.Decode(rawMex)
@@ -150,8 +154,6 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
     var rpcMex rpcs.Rpc
 
 
-    s.unstableNodes.Store(workingNode.GetIp(),workingNode)
-    s.numNodes++
     for{
         message, errMes = workingNode.Recv()
         if errMes != nil {
