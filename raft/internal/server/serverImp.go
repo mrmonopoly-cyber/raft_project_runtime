@@ -100,8 +100,6 @@ func (s *server) acceptIncomingConn() {
 
         log.Printf("node with ip %v not found", newConncetionIp)
         var new_node node.Node = node.NewNode(newConncetionIp, newConncetionPort,conn, s._state.GetStatePool())
-        s.unstableNodes.Store(new_node.GetIp(),new_node)
-        s.numNodes++
         go s.handleConnection(new_node)
 	}
 }
@@ -151,6 +149,9 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
     var errMes error
     var rpcMex rpcs.Rpc
 
+
+    s.unstableNodes.Store(workingNode.GetIp(),workingNode)
+    s.numNodes++
     for{
         message, errMes = workingNode.Recv()
         if errMes != nil {
