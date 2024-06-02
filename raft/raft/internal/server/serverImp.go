@@ -22,6 +22,7 @@ import (
 type pairMex struct{
     payload rpcs.Rpc
     sender string
+    workdone chan int
 }
 
 type server struct {
@@ -120,6 +121,7 @@ func (s *server) externalAgentConnection(agent node.Node){
     var err error
     var resp rpcs.Rpc 
     var inputMex rpcs.Rpc 
+    var clientReq pairMex = pairMex{}
 
     //INFO: if leader is assigned and i'm not leader redirect client
     if  leaderIp != "" && leaderIp != s._state.GetIdPublic(){
@@ -143,7 +145,11 @@ func (s *server) externalAgentConnection(agent node.Node){
             log.Println(err)
             continue
         }
-        s.messageChannel <- pairMex{inputMex,agent.GetIp()}
+        clientReq.payload = inputMex
+        clientReq.sender = agent.GetIp()
+        clientReq.workdone = make(chan int)
+        s.messageChannel <- clientReq
+        <- clientReq.workdone
     }
 }
 
@@ -152,6 +158,7 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
     var message []byte
     var errMes error
     var rpcMex rpcs.Rpc
+    var nodeReq pairMex = pairMex{}
 
 
     for{
@@ -164,7 +171,11 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
                 log.Println(errMes)
                 continue
             }
-            s.messageChannel <- pairMex{rpcMex,workingNode.GetIp()}
+            nodeReq.payload = rpcMex
+            nodeReq.sender = workingNode.GetIp()
+            nodeReq.workdone = make(chan int)
+            s.messageChannel <- nodeReq
+            <- nodeReq.workdone
         }
     }
 }
@@ -245,8 +256,7 @@ func (s *server) newMessageReceived(mess pairMex){
 
             f, ok = s.unstableNodes.Load(sender)
             if !ok {
-                log.Printf("Node %s not found for mex:%v\n", sender, mess.payload.ToString())
-                return
+                log.Panicf("Node %s not found for mex:%v\n", sender, mess.payload.ToString())
             }
 
             senderNode = f.(node.Node)
@@ -270,6 +280,7 @@ func (s *server) newMessageReceived(mess pairMex){
                 })
                 go s.leaderHearthBit()
             }
+            mess.workdone <- 1
 }
 
 //utility
