@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+    "time"
 	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
 	"raft/internal/raft_log"
@@ -12,6 +13,7 @@ import (
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/RequestVoteRPC"
+	"raft/internal/rpcs/UpdateNode"
 	"raft/internal/rpcs/redirection"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"reflect"
@@ -183,6 +185,7 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
 func (s *server) run() {
     var mess pairMex
     var leaderCommitEntry int64
+    var nodeToUpdate raftstate.NewNodeToUpdateInfo
     var timeoutElection,err = s._state.GetTimeoutNotifycationChan(raftstate.TIMER_ELECTION)
     var entryToPropagateChann = *s._state.GetLeaderEntryChannel()
 
@@ -199,8 +202,57 @@ func (s *server) run() {
             go s.startNewElection()
         case leaderCommitEntry = <- entryToPropagateChann:
             go s.newEntryToCommit(leaderCommitEntry)
+        case nodeToUpdate = <- s._state.GetNewNodeToUpdate():
+            for _, v := range nodeToUpdate.NodeList {
+                go s.updateNewNode(v,nodeToUpdate.MatchToArrive)
+            }
         }
     }
+}
+
+func (s *server) updateNewNode(nodeIp string, matchIdx uint64) error{
+    var found = false
+    var value any
+    var newNode node.Node
+    var waitTimer *time.Timer = nil
+    var commitConf p.LogEntry
+        
+    if nodeIp == s._state.GetMyIp(raftstate.PRI){
+        return nil
+    }
+
+    value,found = s.unstableNodes.Load(nodeIp)
+    if !found{ //HACK: polling wait
+        waitTimer = time.NewTimer(time.Duration(5 * time.Second))
+        <- waitTimer.C
+        return s.updateNewNode(nodeIp,matchIdx)
+    }
+
+    newNode = value.(node.Node)
+    
+    log.Println("updating node: ", nodeIp)
+    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),newNode)
+    
+    for newNode.GetMatchIndex() < int(matchIdx){
+        //HACK: polling wait
+        waitTimer = time.NewTimer(time.Duration(5 * time.Second))
+        <- waitTimer.C
+    }
+    s.encodeAndSend(UpdateNode.ChangeVoteRightNode(true),newNode)
+    newNode.NodeUpdated()
+    log.Println("done updating node: ", nodeIp)
+    
+    commitConf = p.LogEntry{
+        Term: s._state.GetTerm(),
+        OpType: p.Operation_COMMIT_CONFIG,
+        Description: "committin conf adding " + nodeIp,
+        Payload: []byte(nodeIp),
+    }
+
+    var entryWrapper *raft_log.LogInstance = s._state.NewLogInstance(&commitConf)
+    s._state.AppendEntries([]*raft_log.LogInstance{entryWrapper})
+
+    return nil
 }
 
 func (s *server) newEntryToCommit(leaderCommitEntry int64){

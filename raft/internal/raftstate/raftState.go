@@ -69,6 +69,11 @@ type currentNodeIp interface{
     GetMyIp(vis VISIBILITY) string
 }
 
+type NewNodeToUpdateInfo struct{
+    NodeList []string
+    MatchToArrive uint64
+}
+
 type leaderRoleExtra interface{
     leaderIpMetadata
 
@@ -79,6 +84,9 @@ type leaderRoleExtra interface{
     IncreaseNotSupporters()
     GetNumSupporters() uint64
     GetNumNotSupporters() uint64
+
+    GetNewNodeToUpdate() <- chan NewNodeToUpdateInfo
+    NotifyNodeToUpdate(nodeIps []string)
 }
 
 func NewState(idPrivate string, idPublic string, fsRootDir string) State {
