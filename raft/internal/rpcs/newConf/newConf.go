@@ -40,12 +40,6 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
             state.SetRole(raftstate.LEADER)
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
-            go func (){
-                <- newConfAppEntry.NotifyApplication
-                for range this.pMex.Conf.Conf{
-                    state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
-                }
-            }()
             return exitSucess
         }
         var failureDescr = `cluster already created and settend, New conf can only be applied 
@@ -60,12 +54,6 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
             state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
-            go func (){
-                <- newConfAppEntry.NotifyApplication
-                for range this.pMex.Conf.Conf{
-                    state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
-                }
-            }()
             return exitSucess
         }
         var failureMex = "i'm not leader, i cannot change conf"
@@ -86,9 +74,9 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
                     //HACK: the space is for spacing the elements when converting to []byte
                     var ele string = v + " "
                     commitConf.Payload = append(newConfAppEntry.Entry.Payload,ele...)
+                    state.GetStatePool().ChangeNnuNodes(nodematchidx.DEC)
                 }
 
-                state.GetStatePool().ChangeNnuNodes(nodematchidx.DEC)
                 newConfAppEntry = state.NewLogInstance(&commitConf)
                 state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             }()
@@ -144,6 +132,7 @@ func (this *NewConf) encodeSendConf(state raftstate.State, op protobuf.Operation
         //HACK: the space is for spacing the elements when converting to []byte
         var ele string = v + " "
         newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload,ele...)
+        state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
     }
     return newConfAppEntry
 }
