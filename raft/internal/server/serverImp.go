@@ -262,6 +262,7 @@ func (s *server) newMessageReceived(mess pairMex){
             resp = rpcCall.Execute(s._state, senderNode)
 
             if resp != nil {
+                log.Println("sending resp to caller RPC")
                 byEnc, errEn = genericmessage.Encode(resp)
                 if errEn != nil{
                     log.Panicln("error encoding this rpc: ", resp.ToString())
