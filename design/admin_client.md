@@ -34,7 +34,7 @@ if it's not specified a specific return value type
 
          nodes : []string
 
-         leaderIp : string //optionally
+         leaderIp : string //optional
 
     }
 
