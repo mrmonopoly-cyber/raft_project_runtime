@@ -33,7 +33,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
 
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
-        if state.GetConfig() == nil{
+        if state.GetConfig() == nil && state.GetIdPublic() == *this.pMex.Conf.Leader{
             var newConfEntry = protobuf.LogEntry{
                     Term: state.GetTerm(),
                     OpType: protobuf.Operation_JOIN_CONF_ADD,
