@@ -141,6 +141,7 @@ func (s *server) externalAgentConnection(agent node.Node){
         clientReq.sender = agent.GetIp()
         clientReq.workdone = make(chan int)
         s.messageChannel <- clientReq
+        log.Println("waiting agent completion on chann: ",clientReq.workdone)
         <- clientReq.workdone
     }
 
