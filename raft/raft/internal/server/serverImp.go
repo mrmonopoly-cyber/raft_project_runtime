@@ -193,13 +193,13 @@ func (s *server) run() {
 
         select {
         case mess = <-s.messageChannel:
-            s.newMessageReceived(mess)
+            go s.newMessageReceived(mess)
         case <- timeoutElection:
             if s._state.GetRole() == raftstate.LEADER {
-                s.startNewElection()
+                go s.startNewElection()
             }
         case leaderCommitEntry = <- entryToPropagateChann:
-            s.newEntryToCommit(leaderCommitEntry)
+            go s.newEntryToCommit(leaderCommitEntry)
         }
     }
 }
