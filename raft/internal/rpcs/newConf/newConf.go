@@ -40,6 +40,12 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
             state.SetRole(raftstate.LEADER)
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
+            go func (){
+                <- newConfAppEntry.NotifyApplication
+                for range this.pMex.Conf.Conf{
+                    state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
+                }
+            }()
             return exitSucess
         }
         var failureDescr = `cluster already created and settend, New conf can only be applied 
@@ -54,6 +60,12 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
             state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
+            go func (){
+                <- newConfAppEntry.NotifyApplication
+                for range this.pMex.Conf.Conf{
+                    state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
+                }
+            }()
             return exitSucess
         }
         var failureMex = "i'm not leader, i cannot change conf"
