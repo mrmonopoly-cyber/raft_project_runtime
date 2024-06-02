@@ -47,6 +47,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
             }
 
             state.AppendEntries([]*raft_log.LogInstance{&newConfAppEntry})
+            state.SetRole(raftstate.LEADER)
             return exitSucess
         }
         var failureDescr = `cluster already created and settend, New conf can only be applied 
