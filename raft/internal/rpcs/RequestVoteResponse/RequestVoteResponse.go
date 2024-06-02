@@ -57,9 +57,6 @@ func (this *RequestVoteResponse) Execute(state raftstate.State, sender node.Node
     if supp > nVictory {
         log.Println("election won");
         state.SetRole(raftstate.LEADER)
-        state.SetLeaderIp(raftstate.PRI, state.GetIdPrivate())
-        state.SetLeaderIp(raftstate.PUB, state.GetIdPublic())
-        state.ResetElection()
         return nil
     }
     if supp + notSupp == nodeInCluster{

@@ -66,8 +66,7 @@ type termMetadata interface{
 }
 
 type currentNodeIp interface{
-    GetIdPrivate() string
-    GetIdPublic() string
+    GetMyIp(vis VISIBILITY) string
 }
 
 type leaderRoleExtra interface{
