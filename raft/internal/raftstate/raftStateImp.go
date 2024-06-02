@@ -149,7 +149,7 @@ func (this *raftStateImpl) GetIdPrivate() string {
 }
 
 func (this *raftStateImpl) GetIdPublic() string {
-	return this.myIp.private
+	return this.myIp.public
 }
 
 func (this *raftStateImpl) GetTerm() uint64 {
