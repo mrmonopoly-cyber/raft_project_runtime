@@ -33,9 +33,9 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
 
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
-        log.Printf("debug new conf: this %v, mex: %v\n", state.GetIdPublic(), *this.pMex.Conf.Leader)
+        log.Printf("debug new conf: this %v, mex: %v\n", state.GetIdPrivate(), *this.pMex.Conf.Leader)
 
-        if state.GetConfig() == nil && state.GetIdPublic() == *this.pMex.Conf.Leader{
+        if state.GetConfig() == nil && state.GetIdPrivate() == *this.pMex.Conf.Leader{
             var newConfEntry = protobuf.LogEntry{
                     Term: state.GetTerm(),
                     OpType: protobuf.Operation_JOIN_CONF_ADD,
