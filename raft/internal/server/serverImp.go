@@ -133,7 +133,8 @@ func (s *server) externalAgentConnection(agent node.Node){
         rawMex,err = agent.Recv()
         if err != nil || rawMex == nil {
             fmt.Printf("error in reading from node %v with error %v\n",agent.GetIp(), rawMex)
-            continue
+            agent.CloseConnection()
+            break
         }
         inputMex,err = genericmessage.Decode(rawMex)
         if err != nil{
