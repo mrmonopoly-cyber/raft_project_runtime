@@ -2,6 +2,7 @@ package timeout
 
 import (
 	"errors"
+	"log"
 	"sync"
 	"time"
 )
@@ -84,6 +85,7 @@ func (t* timeoutPool) findTimer(name string) (timeout, error){
 func (t *timeout) notifyTimers() {
 	for {
 		var ti = <-t.timer.C
+        log.Println("debug: notification timer")
 		t.timerNotification <- ti
 	}
 }
