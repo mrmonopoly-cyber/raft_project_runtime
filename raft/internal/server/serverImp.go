@@ -39,7 +39,6 @@ func (s *server) Start() {
     log.Println("Start accepting connections")
 
     s.wg.Add(1)
-
     go s.acceptIncomingConn()
     s.wg.Add(1)
     go s.run()
