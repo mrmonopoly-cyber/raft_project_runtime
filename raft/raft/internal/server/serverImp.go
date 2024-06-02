@@ -182,7 +182,6 @@ func (s *server) run() {
     var leaderCommitEntry int64
     var timeoutElection,err = s._state.GetTimeoutNotifycationChan(raftstate.TIMER_ELECTION)
     var entryToPropagateChann = *s._state.GetLeaderEntryChannel()
-    log.Println("prop : ", entryToPropagateChann)
 
     if err != nil{
         log.Panicln(err)
@@ -190,7 +189,6 @@ func (s *server) run() {
 
 
     for {
-
         select {
         case mess = <-s.messageChannel:
             go s.newMessageReceived(mess)
@@ -283,7 +281,6 @@ func (s *server) newMessageReceived(mess pairMex){
                 })
                 go s.leaderHearthBit()
             }
-            log.Println("prenotify completion of RPC on channel: ", mess.workdone)
             mess.workdone <- 1
             log.Println("notify completion of RPC on channel: ", mess.workdone)
 }
