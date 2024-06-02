@@ -44,6 +44,7 @@ func Decode(raw_mex []byte) (rpcs.Rpc,error){
         outRpc = &UpdateNodeResp.UpdateNodeResp{}
     case protobuf.MexType_REDIRECTION:
         outRpc = &Redirection.Redirection{}
+    case protobuf.MexType_NEW_CONF:
     default:
         return nil, errors.New("rpc not recognized")
     }

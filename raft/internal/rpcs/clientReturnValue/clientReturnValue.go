@@ -1,4 +1,4 @@
-package NEW_RPC
+package ClientReturnValue
 
 import (
 	"log"
@@ -10,25 +10,30 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type NEW_RPC struct {
+type clientReturnValue struct {
+    pMex protobuf.ClientReturnValue
 }
 
-func NewNEW_RPCRPC(term uint64) rpcs.Rpc {
-    return &NEW_RPC{
+func NewclientReturnValueRPC(exitStatus protobuf.STATUS, description string) rpcs.Rpc {
+    return &clientReturnValue{
+        pMex: protobuf.ClientReturnValue{
+            ExitStatus: exitStatus,
+            Description: description,
+        },
     }
 }
 
 // Manage implements rpcs.Rpc.
-func (this *NEW_RPC) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
+func (this *clientReturnValue) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     panic("dummy implementation")
 }
 
 // ToString implements rpcs.Rpc.
-func (this *NEW_RPC) ToString() string {
-    return this.pMex.String()
+func (this *clientReturnValue) ToString() string {
+    panic("dummy implementation")
 }
 
-func (this *NEW_RPC) Encode() ([]byte, error) {
+func (this *clientReturnValue) Encode() ([]byte, error) {
     var mess []byte
     var err error
 
@@ -39,7 +44,7 @@ func (this *NEW_RPC) Encode() ([]byte, error) {
 
 	return mess, err
 }
-func (this *NEW_RPC) Decode(b []byte) error {
+func (this *clientReturnValue) Decode(b []byte) error {
 	err := proto.Unmarshal(b,&this.pMex)
     if err != nil {
         log.Panicln("error in Encoding Request Vote: ", err)
