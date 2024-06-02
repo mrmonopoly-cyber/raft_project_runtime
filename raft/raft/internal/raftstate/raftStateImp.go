@@ -36,10 +36,12 @@ type raftStateImpl struct {
 
 // NotifyNodeToUpdate implements State.
 func (this *raftStateImpl) NotifyNodeToUpdate(nodeIps []string) {
-    this.nodeToUpdateChan <- NewNodeToUpdateInfo{
-        NodeList: nodeIps,
-        MatchToArrive: uint64(this.LastLogIndex()),
-    }
+    go func() {
+        this.nodeToUpdateChan <- NewNodeToUpdateInfo{
+            NodeList: nodeIps,
+            MatchToArrive: uint64(this.LastLogIndex()),
+        }
+    }()
 }
 
 // GetNewNodeToUpdate implements State.
