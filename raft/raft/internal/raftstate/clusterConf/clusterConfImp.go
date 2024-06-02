@@ -3,6 +3,7 @@ package clusterconf
 import (
 	"log"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"reflect"
 	"sync"
 )
 
@@ -72,14 +73,20 @@ func (this *conf) UpdateConfiguration(op protobuf.Operation, nodeIps []string) {
     case protobuf.Operation_JOIN_CONF_DEL:
         for _, v := range nodeIps {
             delete(this.newConf,v)
-            delete(this.oldConf,v)
         }
-    case protobuf.Operation_COMMIT_CONFIG:
+    case protobuf.Operation_COMMIT_CONFIG_ADD:
         for _, v := range nodeIps {
-            delete(this.newConf,v)
             this.oldConf[v] = v
         }
-        if len(this.newConf) == 0 {
+        if reflect.DeepEqual(this.oldConf,this.newConf){
+            this.joinConf = false
+        }
+
+    case protobuf.Operation_COMMIT_CONFIG_REM:
+        for _, v := range nodeIps {
+            delete(this.oldConf,v)
+        }
+        if reflect.DeepEqual(this.oldConf,this.newConf){
             this.joinConf = false
         }
     default:

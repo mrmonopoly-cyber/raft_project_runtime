@@ -246,7 +246,7 @@ func (s *server) updateNewNode(nodeIp string, matchIdx uint64) error{
     
     commitConf = p.LogEntry{
         Term: s._state.GetTerm(),
-        OpType: p.Operation_COMMIT_CONFIG,
+        OpType: p.Operation_COMMIT_CONFIG_ADD,
         Description: "committin conf adding " + nodeIp,
         Payload: []byte(nodeIp),
     }

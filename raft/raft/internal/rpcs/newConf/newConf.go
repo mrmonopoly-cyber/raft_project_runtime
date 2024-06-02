@@ -67,7 +67,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
                 //TODO: when join conf remove is applied you can commit conf
                 var commitConf = protobuf.LogEntry{
                     Term: state.GetTerm(),
-                    OpType: protobuf.Operation_COMMIT_CONFIG,
+                    OpType: protobuf.Operation_COMMIT_CONFIG_REM,
                 }
                 for _, v := range this.pMex.Conf.GetConf(){
                     //HACK: the space is for spacing the elements when converting to []byte
