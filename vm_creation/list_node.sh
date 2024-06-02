@@ -8,7 +8,10 @@ function node_info (){
     virsh --connect=qemu:///system domifaddr --source arp --domain $1
 }
 
-node_num=$(cat ./.work/node_count)
+node_num=0
+if [[ -e ./.work/node_count ]]; then
+    node_num=$(cat ./.work/node_count)
+fi
 node_name=""
 public_ip=""
 
