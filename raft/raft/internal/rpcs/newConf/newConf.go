@@ -5,6 +5,7 @@ import (
 	"raft/internal/node"
 	"raft/internal/raft_log"
 	"raft/internal/raftstate"
+	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 	"raft/internal/rpcs"
 	ClientReturnValue "raft/internal/rpcs/clientReturnValue"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -52,6 +53,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
             var newConfAppEntry = this.encodeSendConf(state, protobuf.Operation_JOIN_CONF_ADD)
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
+            state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
             return exitSucess
         }
         var failureMex = "i'm not leader, i cannot change conf"
@@ -74,6 +76,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
                     commitConf.Payload = append(newConfAppEntry.Entry.Payload,ele...)
                 }
 
+                state.GetStatePool().ChangeNnuNodes(nodematchidx.DEC)
                 newConfAppEntry = state.NewLogInstance(&commitConf)
                 state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             }()

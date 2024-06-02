@@ -13,10 +13,19 @@ type commonMatchNode struct {
 	allNodeStates       sync.Map
 	behindNode          sync.Map
 	numNode             uint
-	futureCommonIdx           int
+	futureCommonIdx     int
 	numStable           int
 }
 
+// ChangeNnuNodes implements NodeCommonMatch.
+func (c *commonMatchNode) ChangeNnuNodes(op OPERATION) {
+	switch op{
+    case INC:
+        c.numNode++
+    case DEC:
+        c.numNode--
+    }
+}
 
 // InitCommonMatch implements NodeCommonMatch.
 func (c *commonMatchNode) InitCommonMatch(commonMatchIndex int) {
@@ -130,20 +139,20 @@ func (c *commonMatchNode) UpdateNodeState(ip string, indexType INDEX, value int)
 		*/
 		matchIdx = nodeStatePriv.GetMatchIndex()
 		nodeStatePriv.SetMatchIndex(value)
-      //   if matchIdx == c.futureCommonIdx {
-		    // log.Panicf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
-      //   }
-        log.Printf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
-        //HACK: i don't know why this if else works in this way but it's working
-        // at least seems like it, probably it's right but i don't know why
+		//   if matchIdx == c.futureCommonIdx {
+		// log.Panicf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
+		//   }
+		log.Printf("check mathc index, current: %v, common %v\n", matchIdx, c.futureCommonIdx)
+		//HACK: i don't know why this if else works in this way but it's working
+		// at least seems like it, probably it's right but i don't know why
 		if matchIdx >= c.futureCommonIdx {
-            c.futureCommonIdx++
+			c.futureCommonIdx++
 			return nil
 		}
 
-        if value < c.futureCommonIdx {
-            return nil
-        }
+		if value < c.futureCommonIdx {
+			return nil
+		}
 		c.numStable++
 		for c.numStable > int(numNodeHalf) {
 			c.notifyChannNewEntry <- c.futureCommonIdx
@@ -170,7 +179,6 @@ func (c *commonMatchNode) AddNode(ip string) {
 	var newState nodeState.VolatileNodeState = nodeState.NewVolatileState()
 
 	c.allNodeStates.Store(ip, newState)
-	c.numNode++
 }
 
 // RemoNode implements NodeCommonMatch.
@@ -179,7 +187,6 @@ func (c *commonMatchNode) RemNode(ip string) {
 	defer c.lock.Unlock()
 
 	c.allNodeStates.Delete(ip)
-	c.numNode--
 }
 
 // GetNotifyChannel implements NodeCommonMatch.

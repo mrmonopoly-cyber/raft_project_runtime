@@ -11,6 +11,12 @@ const(
     NEXT INDEX = iota
 )
 
+type OPERATION uint8
+const(
+    INC OPERATION = iota
+    DEC OPERATION = iota
+)
+
 type NodeCommonMatch interface{
     GetNotifyChannel() chan int
     AddNode(ip string)
@@ -23,6 +29,7 @@ type NodeCommonMatch interface{
     DoneUpdating(ip string)
     IncreaseCommonMathcIndex()
     InitCommonMatch(commonMatchIndex int)
+    ChangeNnuNodes(op OPERATION)
 }
 
 func NewNodeCommonMatch() NodeCommonMatch{

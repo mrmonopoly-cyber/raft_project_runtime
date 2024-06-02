@@ -150,6 +150,7 @@ func (s *server) externalAgentConnection(agent node.Node){
     log.Println("Done serving client: ", agent.GetIp())
     agent.CloseConnection()
     s.unstableNodes.Delete(agent.GetIp())
+    s.numNodes--
 }
 
 func (s *server) internalNodeConnection(workingNode node.Node) {
@@ -180,6 +181,7 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
     }
     workingNode.CloseConnection()
     s.unstableNodes.Delete(nodeIp)
+    s.numNodes--
 }
 
 func (s *server) run() {

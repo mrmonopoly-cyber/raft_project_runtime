@@ -211,12 +211,16 @@ func (this *log) applyConf(ope protobuf.Operation, entry *LogInstance) {
 	//creating a zombie process
     switch ope {
     case p.Operation_JOIN_CONF_DEL, p.Operation_JOIN_CONF_ADD:
-        go func() {
+        go this.notifyCompletion(entry)
+    default:
+    }
+}
+
+func (this *log) notifyCompletion(entry *LogInstance){
+        func() {
             l.Printf("notify change conf %v on channel: %v\n", entry, entry.NotifyApplication)
             entry.NotifyApplication <- 1
         }()
-    default:
-    }
 }
 
 func (this *log) getEntries(startIndex int) []LogInstance{
