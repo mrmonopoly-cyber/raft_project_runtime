@@ -74,9 +74,9 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
                     //HACK: the space is for spacing the elements when converting to []byte
                     var ele string = v + " "
                     commitConf.Payload = append(newConfAppEntry.Entry.Payload,ele...)
+                    state.GetStatePool().ChangeNnuNodes(nodematchidx.DEC)
                 }
 
-                state.GetStatePool().ChangeNnuNodes(nodematchidx.DEC)
                 newConfAppEntry = state.NewLogInstance(&commitConf)
                 state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             }()
@@ -132,6 +132,7 @@ func (this *NewConf) encodeSendConf(state raftstate.State, op protobuf.Operation
         //HACK: the space is for spacing the elements when converting to []byte
         var ele string = v + " "
         newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload,ele...)
+        state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
     }
     return newConfAppEntry
 }
