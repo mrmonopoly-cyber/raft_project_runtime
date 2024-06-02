@@ -181,9 +181,14 @@ func (s *server) run() {
     var mess pairMex
     var leaderCommitEntry int64
     var timeoutElection,err = s._state.GetTimeoutNotifycationChan(raftstate.TIMER_ELECTION)
+    var entryToPropagateChann = *s._state.GetLeaderEntryChannel()
 
     if err != nil{
         log.Panicln(err)
+    }
+
+    if entryToPropagateChann == nil{
+        log.Panicln("propagate chan nil")
     }
 
     for {
@@ -195,7 +200,7 @@ func (s *server) run() {
             if s._state.GetRole() == raftstate.LEADER {
                 s.startNewElection()
             }
-        case leaderCommitEntry = <-(*s._state.GetLeaderEntryChannel()):
+        case leaderCommitEntry = <- entryToPropagateChann:
             s.newEntryToCommit(leaderCommitEntry)
         }
     }
