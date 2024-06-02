@@ -60,7 +60,10 @@ func (t *timeoutPool) StopTimeout(name string) error {
     if err != nil{
         return err
     }
-    timerInstance.timer.Stop()
+    
+    if timerInstance.timer != nil {
+        timerInstance.timer.Stop()
+    }
     return nil
 }
 
