@@ -89,6 +89,7 @@ func (this *conf) UpdateConfiguration(op protobuf.Operation, nodeIps []string) {
     log.Println("new conf updated: ", this.GetConfig())
 
 	this.notifyChange <- 1
+    return
 }
 
 func (this *conf) IsInConf(nodeIp string) bool {

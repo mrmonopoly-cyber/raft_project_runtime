@@ -16,6 +16,7 @@ type cConf interface {
 	IsInConf(ipNode string) bool
 	NotifyChangeInConf() <-chan int
 	GetConfig() []string
+	GetRootFs() string
 }
 
 type log struct {
@@ -30,24 +31,42 @@ type log struct {
 	realClusterState
 }
 
-// GetRootDirFs implements LogEntry.
-func (this *log) GetRootDirFs() string {
-	return this.realClusterState.localFs.GetRootDir()
+// GetConfig implements LogEntry.
+// Subtle: this method shadows the method (realClusterState).GetConfig of log.realClusterState.
+func (this *log) GetConfig() []string {
+    return this.realClusterState.GetConfig()
+}
+
+// GetNumberNodesInCurrentConf implements LogEntry.
+// Subtle: this method shadows the method (realClusterState).GetNumberNodesInCurrentConf of log.realClusterState.
+func (this *log) GetNumberNodesInCurrentConf() int {
+    return this.realClusterState.GetNumberNodesInCurrentConf()
+}
+
+// GetRootFs implements LogEntry.
+func (this *log) GetRootFs() string {
+    return this.realClusterState.GetRootDir()
+}
+
+// IsInConf implements LogEntry.
+// Subtle: this method shadows the method (realClusterState).IsInConf of log.realClusterState.
+func (this *log) IsInConf(ipNode string) bool {
+    return this.realClusterState.IsInConf(ipNode)
 }
 
 // ResetConf implements LogEntry.
 func (this *log) ResetLog() {
-	this.realClusterState.cConf = clusterconf.NewConf()
+	this.realClusterState.Configuration = clusterconf.NewConf()
 }
 
 // NotifyChangeInConfChan implements LogEntry.
 func (this *log) NotifyChangeInConf() <-chan int {
-	return this.realClusterState.cConf.NotifyChangeInConf()
+	return this.realClusterState.Configuration.NotifyChangeInConf()
 }
 
 type realClusterState struct {
-	cConf   clusterconf.Configuration
-	localFs localfs.LocalFs
+	clusterconf.Configuration
+	localfs.LocalFs
 }
 
 // log
@@ -163,28 +182,6 @@ func (this *log) LastLogTerm() uint {
 
 }
 
-//clusterConf
-
-// GetNumberNodesInCurrentConf implements LogEntry.
-func (this *log) GetNumberNodesInCurrentConf() int {
-	return this.cConf.GetNumberNodesInCurrentConf()
-}
-
-// IsInConf implements LogEntry.
-func (this *log) IsInConf(nodeIp string) bool {
-	return this.cConf.IsInConf(nodeIp)
-}
-
-// GetConfig implements LogEntry.
-func (this *log) GetConfig() []string {
-	return this.cConf.GetConfig()
-}
-
-// UpdateConfiguration implements LogEntry.
-func (this *log) UpdateConfiguration(confOp protobuf.Operation, nodeIps []string) {
-	this.cConf.UpdateConfiguration(confOp, nodeIps)
-}
-
 // utility
 
 func (this *log) updateLastApplied() error {
@@ -200,10 +197,10 @@ func (this *log) updateLastApplied() error {
 				p.Operation_COMMIT_CONFIG_REM, p.Operation_COMMIT_CONFIG_ADD:
 				this.applyConf(entry.Entry.OpType, entry)
 			default:
-				(*this).localFs.ApplyLogEntry(entry.Entry)
+				(*this).ApplyLogEntry(entry.Entry)
 			}
 
-            go entry.AtCompletion()
+			go entry.AtCompletion()
 		}
 
 	}
@@ -213,7 +210,7 @@ func (this *log) applyConf(ope protobuf.Operation, entry *LogInstance) {
 	var confUnfiltered string = string(entry.Entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, "K")
 	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
-	this.cConf.UpdateConfiguration(ope, confFiltered)
+	this.UpdateConfiguration(ope, confFiltered)
 	//HACK: if you are follower this goroutine remain stuck forever
 	//creating a zombie process
 }
