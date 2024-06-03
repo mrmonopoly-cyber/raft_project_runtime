@@ -86,6 +86,7 @@ func (this *conf) UpdateConfiguration(op protobuf.Operation, nodeIps []string) {
 		log.Println("invalid configuration operation, doing nothing, given: ", op)
 		return
 	}
+    log.Println("new conf updated: ", this.GetConfig())
 
 	this.notifyChange <- 1
 }
