@@ -18,7 +18,7 @@ func NewConf() Configuration{
         lock: sync.RWMutex{},
         oldConf: map[string]string{},
         newConf: map[string]string{},
-        notifyChange: make(chan int),
+        notifyRemove: make(chan int),
         joinConf: false,
     }
 }
