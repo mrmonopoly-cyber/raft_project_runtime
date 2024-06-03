@@ -38,6 +38,6 @@ func NewNodeCommonMatch() NodeCommonMatch{
     	allNodeStates:   sync.Map{},
     	numNode:     0,
     	futureCommonIdx:   -1,
-    	numStable:   0,
+    	numStable:   1,
     }
 }
