@@ -398,10 +398,10 @@ func (s *server) leaderHearthBit(){
         log.Println("sending hearthbit")
         <- timerHearthbit
 
-        s.applyOnFollowers(func(n node.Node) {
-            var hearthBit rpcs.Rpc = s.nodeAppendEntryPayload(n,nil)
-            s.encodeAndSend(hearthBit,n)
-        })
+        // s.applyOnFollowers(func(n node.Node) {
+        //     var hearthBit rpcs.Rpc = s.nodeAppendEntryPayload(n,nil)
+        //     s.encodeAndSend(hearthBit,n)
+        // })
         s._state.RestartTimeout(raftstate.TIMER_ELECTION)
     }
 }
