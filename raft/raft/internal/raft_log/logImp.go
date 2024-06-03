@@ -202,6 +202,8 @@ func (this *log) updateLastApplied() error {
 			default:
 				(*this).localFs.ApplyLogEntry(entry.Entry)
 			}
+
+            go entry.AtCompletion()
 		}
 
 	}
@@ -214,11 +216,6 @@ func (this *log) applyConf(ope protobuf.Operation, entry *LogInstance) {
 	this.cConf.UpdateConfiguration(ope, confFiltered)
 	//HACK: if you are follower this goroutine remain stuck forever
 	//creating a zombie process
-	switch ope {
-	case p.Operation_JOIN_CONF_DEL, p.Operation_JOIN_CONF_ADD:
-		go entry.AtCompletion()
-	default:
-	}
 }
 
 func (this *log) getEntries(startIndex int) []LogInstance {
