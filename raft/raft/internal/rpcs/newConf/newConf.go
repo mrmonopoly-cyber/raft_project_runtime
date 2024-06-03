@@ -124,14 +124,15 @@ func (this *NewConf) encodeSendConf(state raftstate.State, op protobuf.Operation
         OpType: op,
     }
 
-    newConfEntry.OpType = op
     var newConfAppEntry = state.NewLogInstance(&newConfEntry)
 
     for _, v := range this.pMex.Conf.GetConf(){
         //HACK: the space is for spacing the elements when converting to []byte
         var ele string = v + " "
         newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload,ele...)
-        state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
+        if op == protobuf.Operation_COMMIT_CONFIG_ADD{
+            state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
+        }
     }
     return newConfAppEntry
 }
