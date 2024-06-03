@@ -62,6 +62,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
         if state.GetRole() == raftstate.LEADER{
             var newConfAppEntry = this.encodeSendConf(state, protobuf.Operation_JOIN_CONF_DEL)
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+
             go func(){
                 <- newConfAppEntry.NotifyApplication
                 //TODO: when join conf remove is applied you can commit conf
@@ -80,11 +81,14 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
                 state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
 
                 for _, v := range this.pMex.Conf.Conf{
+                    log.Println("debug: i'm to remove?")
                     if v == state.GetMyIp(raftstate.PRI){
+                    log.Println("debug: i'm to remove? YES")
                         state.SetRole(raftstate.FOLLOWER)
                         state.StopTimeout(raftstate.TIMER_ELECTION)
                     }
                 }
+
             }()
             return exitSucess
         }
