@@ -107,7 +107,7 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
     var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
     var entries []raft_log.LogInstance = state.GetEntries()
     var newEntries []*protobuf.LogEntry = this.pMex.GetEntries()
-    var newEntriesWrapper []*raft_log.LogInstance = state.NewLogInstanceBatch(newEntries,[]func(){})
+    var newEntriesWrapper []*raft_log.LogInstance = state.NewLogInstanceBatch(newEntries,nil)
     var err error
 
     var resp rpcs.Rpc = nil
