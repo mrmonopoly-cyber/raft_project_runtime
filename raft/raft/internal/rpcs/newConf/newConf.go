@@ -77,17 +77,19 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
                     state.GetStatePool().ChangeNnuNodes(nodematchidx.DEC)
                 }
 
-                newConfAppEntry = state.NewLogInstance(&commitConf)
-                state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
-
                 for _, v := range this.pMex.Conf.Conf{
                     log.Println("debug: i'm to remove?")
                     if v == state.GetMyIp(raftstate.PRI){
-                    log.Println("debug: i'm to remove? YES")
+                        log.Println("debug: i'm to remove? YES")
                         state.SetRole(raftstate.FOLLOWER)
                         state.StopTimeout(raftstate.TIMER_ELECTION)
+                        break
                     }
                 }
+
+                newConfAppEntry = state.NewLogInstance(&commitConf)
+                state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+
 
             }()
             return exitSucess
