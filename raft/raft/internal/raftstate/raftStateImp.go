@@ -220,6 +220,7 @@ func (this *raftStateImpl) checkPresenceInTheConf(){
         }
         
         if !found{
+            log.Println("resetting myself")
             this.SetRole(FOLLOWER)
             this.StopTimeout(TIMER_ELECTION)
             this.LogEntry = raft_log.NewLogEntry(this.GetRootDirFs())
