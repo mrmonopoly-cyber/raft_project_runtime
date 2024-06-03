@@ -399,9 +399,8 @@ func (s *server) leaderHearthBit(){
         <- timerHearthbit
 
         s.applyOnFollowers(func(n node.Node) {
-            // var hearthBit rpcs.Rpc = s.nodeAppendEntryPayload(n,nil)
-            s.nodeAppendEntryPayload(n,nil)
-            // s.encodeAndSend(hearthBit,n)
+            var hearthBit rpcs.Rpc = s.nodeAppendEntryPayload(n,nil)
+            s.encodeAndSend(hearthBit,n)
         })
         s._state.RestartTimeout(raftstate.TIMER_ELECTION)
     }
@@ -441,17 +440,21 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []raft_log.LogInst
     var prevLogEntry *raft_log.LogInstance
     var err error
     var prevLogIndex int64 = -1
+    log.Println("phase1")
 
     if toAppend != nil{
         logDataInstance = append(logDataInstance, toAppend...)
     }
+    log.Println("phase2")
 
     for _, v := range logDataInstance {
         logEntryPayload = append(logEntryPayload, v.Entry)
     }
 
+    log.Println("phase3")
     if nodeNextIndex <= s._state.LastLogIndex() || toAppend != nil {
 
+        log.Println("phase4")
         if nodeNextIndex > 0 {
             prevLogEntry,err = s._state.GetEntriAt(int64(nodeNextIndex)-1)
             if err != nil{
@@ -463,8 +466,11 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []raft_log.LogInst
         
         hearthBit = AppendEntryRpc.NewAppendEntryRPC(
             s._state, prevLogIndex, prevLogTerm,logEntryPayload)
+        log.Println("phase5")
 
     }else {
+
+        log.Println("phase4a")
         hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
         log.Printf("sending hearthbit: %v\n", hearthBit.ToString())
     }
