@@ -247,7 +247,6 @@ func (this *raftStateImpl) AppendEntries(newEntries []*l.LogInstance) {
 	for range newEntries {
 		this.leaderMetadata.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
 	}
-	log.Println("debug1")
 }
 
 func (this *raftStateImpl) GetLeaderEntryChannel() *chan int64 {
