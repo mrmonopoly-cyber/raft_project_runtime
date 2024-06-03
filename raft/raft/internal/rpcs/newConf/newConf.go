@@ -130,7 +130,7 @@ func (this *NewConf) encodeSendConf(state raftstate.State, op protobuf.Operation
         //HACK: the space is for spacing the elements when converting to []byte
         var ele string = v + " "
         newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload,ele...)
-        if op == protobuf.Operation_COMMIT_CONFIG_ADD{
+        if op == protobuf.Operation_JOIN_CONF_ADD{
             state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
         }
     }
