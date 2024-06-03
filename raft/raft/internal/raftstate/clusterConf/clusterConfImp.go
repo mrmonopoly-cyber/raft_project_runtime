@@ -12,12 +12,12 @@ type conf struct {
 	oldConf      map[string]string
 	newConf      map[string]string
 	joinConf     bool
-	notifyChange chan int
+	notifyRemove chan int
 }
 
 // NotifyChangeInConf implements Configuration.
 func (this *conf) NotifyChangeInConf() <-chan int {
-	return this.notifyChange
+	return this.notifyRemove
 }
 
 // GetNumberNodesInCurrentConf implements Configuration.
@@ -79,6 +79,7 @@ func (this *conf) UpdateConfiguration(op protobuf.Operation, nodeIps []string) {
 		for _, v := range nodeIps {
 			delete(this.oldConf, v)
 		}
+        this.notifyRemove <- 1
 		if reflect.DeepEqual(this.oldConf, this.newConf) {
 			this.joinConf = false
 		}
@@ -87,9 +88,6 @@ func (this *conf) UpdateConfiguration(op protobuf.Operation, nodeIps []string) {
 		return
 	}
 
-    go func ()  {
-        this.notifyChange <- 1
-    }()
     log.Println("done updating")
     return
 }
