@@ -54,8 +54,8 @@ func (this *conf) GetConfig() []string {
 
 func (this *conf) UpdateConfiguration(op protobuf.Operation, nodeIps []string) {
 	log.Printf("Updating conf with new nodes: %v\n", nodeIps)
-	this.lock.Lock()
-	defer this.lock.Unlock()
+	// this.lock.Lock()
+	// defer this.lock.Unlock()
 
 	switch op {
 	case protobuf.Operation_JOIN_CONF_ADD:
