@@ -272,5 +272,7 @@ func newStateImplementation(idPrivate string, idPublic string, fsRootDir string)
 
 	go s.leaaderUpdateCommitIndex()
 
+    go s.checkPresenceInTheConf()
+
 	return s
 }
