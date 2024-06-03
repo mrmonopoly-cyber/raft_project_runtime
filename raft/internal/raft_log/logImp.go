@@ -209,6 +209,10 @@ func (this *log) updateLastApplied() error {
 func (this *log) applyConf(ope protobuf.Operation, entry *LogInstance) {
 	var confUnfiltered string = string(entry.Entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, "K")
+    for i, v := range confFiltered {
+        confFiltered[i] = strings.Trim(v," ")
+        confFiltered[i] = strings.Trim(v,"K")
+    }
 	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
 	this.UpdateConfiguration(ope, confFiltered)
 	//HACK: if you are follower this goroutine remain stuck forever
