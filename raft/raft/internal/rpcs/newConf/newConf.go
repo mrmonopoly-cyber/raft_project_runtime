@@ -36,8 +36,8 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
         if state.GetConfig() == nil && myPrivateIp == *this.pMex.Conf.Leader{
-            state.SetRole(raftstate.LEADER)
             this.joinConfAdd(state)
+            state.SetRole(raftstate.LEADER)
             return exitSucess
         }
         var failureDescr = `cluster already created and settend, New conf can only be applied 
