@@ -66,7 +66,9 @@ func (this *log) NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogI
     for i, v := range entry {
         res[i] = &LogInstance{
             Entry: v,
-            AtCompletion: post[i],
+        }
+        if post != nil && i < len(post) {
+            res[i].AtCompletion = post[i]
         }
     }
 
