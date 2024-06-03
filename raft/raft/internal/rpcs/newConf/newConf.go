@@ -64,7 +64,9 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
 
             go func(){
+                log.Println("waiting on channel: debug ", newConfAppEntry.NotifyApplication)
                 <- newConfAppEntry.NotifyApplication
+                log.Println("debug, working")
                 //TODO: when join conf remove is applied you can commit conf
                 var commitConf = protobuf.LogEntry{
                     Term: state.GetTerm(),
