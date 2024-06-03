@@ -28,8 +28,8 @@ func (this *conf) GetNumberNodesInCurrentConf() int {
 }
 
 func (this *conf) GetConfig() []string {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
+	// this.lock.RLock()
+	// defer this.lock.RUnlock()
 
 	var resMap map[string]string = map[string]string{}
 	var res []string = nil
@@ -54,8 +54,8 @@ func (this *conf) GetConfig() []string {
 
 func (this *conf) UpdateConfiguration(op protobuf.Operation, nodeIps []string) {
 	log.Printf("Updating conf with new nodes: %v\n", nodeIps)
-	// this.lock.Lock()
-	// defer this.lock.Unlock()
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
 	switch op {
 	case protobuf.Operation_JOIN_CONF_ADD:
