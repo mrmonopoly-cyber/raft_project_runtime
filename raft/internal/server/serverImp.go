@@ -408,7 +408,6 @@ func (s *server) leaderHearthBit(){
 
 func (s* server) applyOnFollowers(fn func(n node.Node)){
     var currentConf []string = s._state.GetConfig()
-    log.Println("currenct Conf: ",currentConf)
     for _, v := range currentConf {
         var nNode node.Node 
         var value any
@@ -436,27 +435,22 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []raft_log.LogInst
     var nodeNextIndex = n.GetNextIndex()
     var prevLogTerm uint64 =0
     var hearthBit rpcs.Rpc
-    log.Println("phase0")
     var logDataInstance []raft_log.LogInstance= s._state.GetCommittedEntriesRange(int(nodeNextIndex))
     var logEntryPayload []*p.LogEntry = nil
     var prevLogEntry *raft_log.LogInstance
     var err error
     var prevLogIndex int64 = -1
-    log.Println("phase1")
 
     if toAppend != nil{
         logDataInstance = append(logDataInstance, toAppend...)
     }
-    log.Println("phase2")
 
     for _, v := range logDataInstance {
         logEntryPayload = append(logEntryPayload, v.Entry)
     }
 
-    log.Println("phase3")
     if nodeNextIndex <= s._state.LastLogIndex() || toAppend != nil {
 
-        log.Println("phase4")
         if nodeNextIndex > 0 {
             prevLogEntry,err = s._state.GetEntriAt(int64(nodeNextIndex)-1)
             if err != nil{
@@ -468,11 +462,7 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []raft_log.LogInst
         
         hearthBit = AppendEntryRpc.NewAppendEntryRPC(
             s._state, prevLogIndex, prevLogTerm,logEntryPayload)
-        log.Println("phase5")
-
     }else {
-
-        log.Println("phase4a")
         hearthBit = AppendEntryRpc.GenerateHearthbeat(s._state)  
         log.Printf("sending hearthbit: %v\n", hearthBit.ToString())
     }
