@@ -409,6 +409,7 @@ func (s *server) leaderHearthBit(){
 
 func (s* server) applyOnFollowers(fn func(n node.Node)){
     var currentConf []string = s._state.GetConfig()
+    log.Println("currenct Conf: ",currentConf)
     for _, v := range currentConf {
         var nNode node.Node 
         var value any
