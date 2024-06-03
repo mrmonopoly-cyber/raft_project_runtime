@@ -59,7 +59,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
             var newConfAppEntry = this.encodeSendConf(
                                 state,
                                 protobuf.Operation_JOIN_CONF_DEL,
-                                this.postOperationRem(state,protobuf.Operation_COMMIT_CONFIG_REM))
+                                this.postOperationConf(state,protobuf.Operation_COMMIT_CONFIG_REM))
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
             return exitSucess
         }
@@ -103,23 +103,28 @@ func (this *NewConf) joinConfAdd(state raftstate.State){
     var newConfAppEntry = this.encodeSendConf(
         state, 
         protobuf.Operation_JOIN_CONF_ADD,
-        this.postOperationRem(state,protobuf.Operation_COMMIT_CONFIG_ADD))
+        this.postOperationConf(state,protobuf.Operation_COMMIT_CONFIG_ADD))
         state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
         state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
 }
 
-func (this *NewConf) postOperationRem(state raftstate.State, op protobuf.Operation) func(){
+func (this *NewConf) postOperationConf(state raftstate.State, op protobuf.Operation) func(){
     return func() {
         //TODO: when join conf remove is applied you can commit conf
         var commitConf = protobuf.LogEntry{
             Term: state.GetTerm(),
             OpType: op, 
         }
+        var numNodeOp = nodematchidx.DEC
+        if op == protobuf.Operation_COMMIT_CONFIG_ADD{
+            numNodeOp = nodematchidx.INC
+        }
+
         for _, v := range this.pMex.Conf.GetConf(){
             //HACK: the space is for spacing the elements when converting to []byte
             var ele string = v + " "
             commitConf.Payload = append(commitConf.Payload,ele...)
-            state.GetStatePool().ChangeNnuNodes(nodematchidx.DEC)
+            state.GetStatePool().ChangeNnuNodes(numNodeOp)
         }
 
         var newConfAppEntry = state.NewLogInstance(&commitConf,func() {})
