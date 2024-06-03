@@ -199,8 +199,9 @@ func (this *log) updateLastApplied() error {
 			default:
 				(*this).ApplyLogEntry(entry.Entry)
 			}
-
-			go entry.AtCompletion()
+            if entry.AtCompletion != nil{
+                go entry.AtCompletion()
+            }
 		}
 
 	}
