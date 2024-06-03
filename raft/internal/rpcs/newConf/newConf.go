@@ -122,7 +122,7 @@ func (this *NewConf) postOperationConf(state raftstate.State, op protobuf.Operat
 
         for _, v := range this.pMex.Conf.GetConf(){
             //HACK: the space is for spacing the elements when converting to []byte
-            var ele string = v + " "
+            var ele string = v + "K"
             commitConf.Payload = append(commitConf.Payload,ele...)
             state.GetStatePool().ChangeNnuNodes(numNodeOp)
         }

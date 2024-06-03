@@ -211,9 +211,9 @@ func (this *log) updateLastApplied() error {
 
 func (this *log) applyConf(ope protobuf.Operation, entry *LogInstance) {
 	var confUnfiltered string = string(entry.Entry.Payload)
-	var confFiltered []string = strings.Split(confUnfiltered, " ")
+	var confFiltered []string = strings.Split(confUnfiltered, "K")
     for i,v := range confFiltered {
-        confFiltered[i] = strings.TrimSuffix(v," ")
+        confFiltered[i] = strings.TrimSuffix(v,"K")
     }
 	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
 	this.cConf.UpdateConfiguration(ope, confFiltered)
