@@ -399,6 +399,7 @@ func (s *server) leaderHearthBit(){
         <- timerHearthbit
 
         s.applyOnFollowers(func(n node.Node) {
+            log.Println("p")
             var hearthBit rpcs.Rpc = s.nodeAppendEntryPayload(n,nil)
             s.encodeAndSend(hearthBit,n)
         })
