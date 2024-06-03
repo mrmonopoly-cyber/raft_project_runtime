@@ -218,12 +218,16 @@ func (s *server) updateNewNode(nodeIp string, matchIdx uint64) error{
     var newNode node.Node
     var waitTimer *time.Timer = nil
     var commitConf p.LogEntry
+    var hearthBit rpcs.Rpc
         
     if nodeIp == s._state.GetMyIp(raftstate.PRI){
         return nil
     }
 
     value,found = s.unstableNodes.Load(nodeIp)
+
+
+
     if !found{ //HACK: polling wait
         waitTimer = time.NewTimer(time.Duration(5 * time.Second))
         <- waitTimer.C
@@ -231,9 +235,13 @@ func (s *server) updateNewNode(nodeIp string, matchIdx uint64) error{
     }
 
     newNode = value.(node.Node)
+
     
     log.Println("updating node: ", nodeIp)
     s.encodeAndSend(UpdateNode.ChangeVoteRightNode(false),newNode)
+
+    hearthBit = s.nodeAppendEntryPayload(newNode,nil)
+    s.encodeAndSend(hearthBit,newNode)
     
     for newNode.GetMatchIndex() < int(matchIdx){
         //HACK: polling wait
