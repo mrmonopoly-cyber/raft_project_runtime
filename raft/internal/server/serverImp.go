@@ -435,6 +435,7 @@ func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []raft_log.LogInst
     var nodeNextIndex = n.GetNextIndex()
     var prevLogTerm uint64 =0
     var hearthBit rpcs.Rpc
+    log.Println("phase0")
     var logDataInstance []raft_log.LogInstance= s._state.GetCommittedEntriesRange(int(nodeNextIndex))
     var logEntryPayload []*p.LogEntry = nil
     var prevLogEntry *raft_log.LogInstance
