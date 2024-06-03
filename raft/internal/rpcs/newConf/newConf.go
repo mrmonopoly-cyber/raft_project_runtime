@@ -36,10 +36,8 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
         if state.GetConfig() == nil && myPrivateIp == *this.pMex.Conf.Leader{
-            var newConfAppEntry = this.encodeSendConf(state, protobuf.Operation_JOIN_CONF_ADD)
             state.SetRole(raftstate.LEADER)
-            state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
-            state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
+            this.joinConfAdd(state)
             return exitSucess
         }
         var failureDescr = `cluster already created and settend, New conf can only be applied 
@@ -50,9 +48,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
         return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureDescr)
     case protobuf.AdminOp_CHANGE_CONF_ADD:
         if state.GetRole() == raftstate.LEADER{
-            var newConfAppEntry = this.encodeSendConf(state, protobuf.Operation_JOIN_CONF_ADD)
-            state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
-            state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
+            this.joinConfAdd(state)
             return exitSucess
         }
         var failureMex = "i'm not leader, i cannot change conf"
@@ -60,40 +56,11 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
         return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureMex)
     case protobuf.AdminOp_CHANGE_CONF_REM:
         if state.GetRole() == raftstate.LEADER{
-            var newConfAppEntry = this.encodeSendConf(state, protobuf.Operation_JOIN_CONF_DEL)
+            var newConfAppEntry = this.encodeSendConf(
+                                state,
+                                protobuf.Operation_JOIN_CONF_DEL,
+                                this.postOperationRem(state,protobuf.Operation_COMMIT_CONFIG_REM))
             state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
-
-            go func(){
-                log.Println("waiting on channel: debug ", newConfAppEntry.NotifyApplication)
-                <- newConfAppEntry.NotifyApplication
-                log.Println("debug, working")
-                //TODO: when join conf remove is applied you can commit conf
-                var commitConf = protobuf.LogEntry{
-                    Term: state.GetTerm(),
-                    OpType: protobuf.Operation_COMMIT_CONFIG_REM,
-                }
-                for _, v := range this.pMex.Conf.GetConf(){
-                    //HACK: the space is for spacing the elements when converting to []byte
-                    var ele string = v + " "
-                    commitConf.Payload = append(newConfAppEntry.Entry.Payload,ele...)
-                    state.GetStatePool().ChangeNnuNodes(nodematchidx.DEC)
-                }
-
-                for _, v := range this.pMex.Conf.Conf{
-                    log.Println("debug: i'm to remove?")
-                    if v == state.GetMyIp(raftstate.PRI){
-                        log.Println("debug: i'm to remove? YES")
-                        state.SetRole(raftstate.FOLLOWER)
-                        state.StopTimeout(raftstate.TIMER_ELECTION)
-                        break
-                    }
-                }
-
-                newConfAppEntry = state.NewLogInstance(&commitConf)
-                state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
-
-
-            }()
             return exitSucess
         }
         var failureMex = "i'm not leader, i cannot change conf"
@@ -132,14 +99,43 @@ func (this *NewConf) Decode(b []byte) error {
 
 
 //utility
+func (this *NewConf) joinConfAdd(state raftstate.State){
+    var newConfAppEntry = this.encodeSendConf(
+        state, 
+        protobuf.Operation_JOIN_CONF_ADD,
+        this.postOperationRem(state,protobuf.Operation_COMMIT_CONFIG_ADD))
+        state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+        state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
+}
 
-func (this *NewConf) encodeSendConf(state raftstate.State, op protobuf.Operation) *raft_log.LogInstance{
+func (this *NewConf) postOperationRem(state raftstate.State, op protobuf.Operation) func(){
+    return func() {
+        //TODO: when join conf remove is applied you can commit conf
+        var commitConf = protobuf.LogEntry{
+            Term: state.GetTerm(),
+            OpType: op, 
+        }
+        for _, v := range this.pMex.Conf.GetConf(){
+            //HACK: the space is for spacing the elements when converting to []byte
+            var ele string = v + " "
+            commitConf.Payload = append(commitConf.Payload,ele...)
+            state.GetStatePool().ChangeNnuNodes(nodematchidx.DEC)
+        }
+
+        var newConfAppEntry = state.NewLogInstance(&commitConf,func() {})
+        state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+    }
+}
+
+func (this *NewConf) encodeSendConf(state raftstate.State, 
+                                    op protobuf.Operation,
+                                    postOperation func() ) *raft_log.LogInstance{
     var newConfEntry = protobuf.LogEntry{
         Term: state.GetTerm(),
         OpType: op,
     }
 
-    var newConfAppEntry = state.NewLogInstance(&newConfEntry)
+    var newConfAppEntry = state.NewLogInstance(&newConfEntry,postOperation)
 
     for _, v := range this.pMex.Conf.GetConf(){
         //HACK: the space is for spacing the elements when converting to []byte

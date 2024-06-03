@@ -21,14 +21,6 @@ func (this *node) InitVolatileState(lastLogIndex int) {
     this.statepool.InitVolatileState(this.GetIp(),lastLogIndex)
 }
 
-// NextIndexStep implements Node.
-func (this *node) NextIndexStep() {
-    var match = this.GetMatchIndex()
-    var next = this.GetNextIndex()
-    this.SetMatchIndex(match+1)
-    this.SetNextIndex(next+1)
-}
-
 // NodeUpdated implements Node.
 func (this *node) NodeUpdated() {
     this.statepool.DoneUpdating(this.GetIp())

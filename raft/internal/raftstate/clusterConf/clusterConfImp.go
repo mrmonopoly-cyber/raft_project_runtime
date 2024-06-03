@@ -8,53 +8,46 @@ import (
 )
 
 type conf struct {
-	lock     sync.RWMutex
-	oldConf  map[string]string
-	newConf  map[string]string
-	changed  bool
-	joinConf bool
+	lock         sync.RWMutex
+	oldConf      map[string]string
+	newConf      map[string]string
+	joinConf     bool
+	notifyChange chan int
+}
+
+// NotifyChangeInConf implements Configuration.
+func (this *conf) NotifyChangeInConf() <-chan int {
+	return this.notifyChange
 }
 
 // GetNumberNodesInCurrentConf implements Configuration.
 func (this *conf) GetNumberNodesInCurrentConf() int {
 	var conf []string = this.GetConfig()
-    log.Printf("num of nodes in conf :%v, conf: %v\n", len(conf), conf)
-    return len(conf)
-}
-
-// ConfChanged implements Configuration.
-func (this *conf) ConfChanged() bool {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-
-	if this.changed {
-		this.changed = false
-		return true
-	}
-	return false
+	log.Printf("num of nodes in conf :%v, conf: %v\n", len(conf), conf)
+	return len(conf)
 }
 
 func (this *conf) GetConfig() []string {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
-    var resMap map[string]string = map[string]string{}
-    var res []string = nil
+	var resMap map[string]string = map[string]string{}
+	var res []string = nil
 
-    for _,v  := range this.oldConf {
-        resMap[v] = v
-    }
-	if this.joinConf {
-        for _,v  := range this.newConf{
-            resMap[v] = v
-        }
+	for _, v := range this.oldConf {
+		resMap[v] = v
 	}
-    
-    for _, v := range resMap {
-        if v != ""{
-            res = append(res, v)
-        }
-    }
+	if this.joinConf {
+		for _, v := range this.newConf {
+			resMap[v] = v
+		}
+	}
+
+	for _, v := range resMap {
+		if v != "" {
+			res = append(res, v)
+		}
+	}
 
 	return res
 }
@@ -64,46 +57,37 @@ func (this *conf) UpdateConfiguration(op protobuf.Operation, nodeIps []string) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-    switch op{
-    case protobuf.Operation_JOIN_CONF_ADD:
-        for _, v := range nodeIps {
-            this.newConf[v] = v
-        }
-        this.joinConf = true
-    case protobuf.Operation_JOIN_CONF_DEL:
-        for _, v := range nodeIps {
-            delete(this.newConf,v)
-        }
-    case protobuf.Operation_COMMIT_CONFIG_ADD:
-        for _, v := range nodeIps {
-            this.oldConf[v] = v
-        }
-        if reflect.DeepEqual(this.oldConf,this.newConf){
-            this.joinConf = false
-        }
+	switch op {
+	case protobuf.Operation_JOIN_CONF_ADD:
+		for _, v := range nodeIps {
+			this.newConf[v] = v
+		}
+		this.joinConf = true
+	case protobuf.Operation_JOIN_CONF_DEL:
+		for _, v := range nodeIps {
+			delete(this.newConf, v)
+		}
+	case protobuf.Operation_COMMIT_CONFIG_ADD:
+		for _, v := range nodeIps {
+			this.oldConf[v] = v
+		}
+		if reflect.DeepEqual(this.oldConf, this.newConf) {
+			this.joinConf = false
+		}
 
-    case protobuf.Operation_COMMIT_CONFIG_REM:
-        for _, v := range nodeIps {
-            delete(this.oldConf,v)
-        }
-        if reflect.DeepEqual(this.oldConf,this.newConf){
-            this.joinConf = false
-        }
-    default:
-        log.Println("invalid configuration operation, doing nothing, given: ", op)
-        return
-    }
-    
-	this.changed = true
-}
+	case protobuf.Operation_COMMIT_CONFIG_REM:
+		for _, v := range nodeIps {
+			delete(this.oldConf, v)
+		}
+		if reflect.DeepEqual(this.oldConf, this.newConf) {
+			this.joinConf = false
+		}
+	default:
+		log.Println("invalid configuration operation, doing nothing, given: ", op)
+		return
+	}
 
-func (this *conf) CommitConfig() {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
-	this.oldConf = this.newConf
-	this.newConf = map[string]string{}
-	this.joinConf = false
+	this.notifyChange <- 1
 }
 
 func (this *conf) IsInConf(nodeIp string) bool {
@@ -115,6 +99,3 @@ func (this *conf) IsInConf(nodeIp string) bool {
 	}
 	return false
 }
-
-
-

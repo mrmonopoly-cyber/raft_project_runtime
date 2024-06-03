@@ -8,7 +8,7 @@ import (
 
 type LogInstance struct {
 	Entry             *p.LogEntry
-	NotifyApplication chan int
+    AtCompletion    func() 
 }
 
 type LogEntry interface {
@@ -27,8 +27,10 @@ type LogEntry interface {
 	LastLogIndex() int
 	LastLogTerm() uint
 
-    NewLogInstanceBatch(entry []*p.LogEntry) []*LogInstance
-    NewLogInstance(entry *p.LogEntry) *LogInstance
+    NewLogInstance(entry *p.LogEntry, post func()) *LogInstance
+    NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogInstance
+
+    GetRootDirFs() string
 
     //conf info
     cConf
@@ -51,20 +53,20 @@ func NewLogEntry(fsRootDir string) LogEntry {
 	return l
 }
 
-func (this *log) NewLogInstance(entry *p.LogEntry) *LogInstance{
+func (this *log) NewLogInstance(entry *p.LogEntry, post func()) *LogInstance{
     return &LogInstance{
         Entry: entry,
-        NotifyApplication: make(chan int),
+        AtCompletion: post,
     }
 }
 
-func (this *log) NewLogInstanceBatch(entry []*p.LogEntry) []*LogInstance{
+func (this *log) NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogInstance{
     var res []*LogInstance = make([]*LogInstance, len(entry))
 
     for i, v := range entry {
         res[i] = &LogInstance{
             Entry: v,
-            NotifyApplication: make(chan int),
+            AtCompletion: post[i],
         }
     }
 

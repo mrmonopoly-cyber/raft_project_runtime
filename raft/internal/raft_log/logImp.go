@@ -14,10 +14,9 @@ import (
 type cConf interface {
 	GetNumberNodesInCurrentConf() int
 	IsInConf(ipNode string) bool
-	ConfChanged() bool
+	NotifyChangeInConf() <-chan int
 	GetConfig() []string
 }
-
 
 type log struct {
 	lock            sync.RWMutex
@@ -31,6 +30,21 @@ type log struct {
 	realClusterState
 }
 
+// GetRootDirFs implements LogEntry.
+func (this *log) GetRootDirFs() string {
+	return this.realClusterState.localFs.GetRootDir()
+}
+
+// ResetConf implements LogEntry.
+func (this *log) ResetLog() {
+	this.realClusterState.cConf = clusterconf.NewConf()
+}
+
+// NotifyChangeInConfChan implements LogEntry.
+func (this *log) NotifyChangeInConf() <-chan int {
+	return this.realClusterState.cConf.NotifyChangeInConf()
+}
+
 type realClusterState struct {
 	cConf   clusterconf.Configuration
 	localFs localfs.LocalFs
@@ -38,21 +52,21 @@ type realClusterState struct {
 
 // log
 // GetCommittedEntries implements LogEntry.
-func (this *log) GetCommittedEntries() []LogInstance{
+func (this *log) GetCommittedEntries() []LogInstance {
 	return this.getEntries(0)
 }
 
 // GetCommittedEntriesRange implements LogEntry.
-func (this *log) GetCommittedEntriesRange(startIndex int) []LogInstance{
+func (this *log) GetCommittedEntriesRange(startIndex int) []LogInstance {
 	return this.getEntries(startIndex)
 }
 
-func (this *log) GetEntries() []LogInstance{
+func (this *log) GetEntries() []LogInstance {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
 	var lenEntries = len(this.entries)
-	var res []LogInstance= make([]LogInstance, lenEntries)
+	var res []LogInstance = make([]LogInstance, lenEntries)
 
 	for i, v := range this.entries {
 		res[i] = v
@@ -76,9 +90,9 @@ func (this *log) AppendEntries(newEntries []*LogInstance) {
 	var lenEntries = len(this.entries)
 
 	for _, v := range newEntries {
-        l.Println("adding new logEntry: ", v)
+		l.Println("adding new logEntry: ", v)
 		if int(this.logSize) < lenEntries {
-			this.entries[this.logSize] = *v 
+			this.entries[this.logSize] = *v
 		} else {
 			this.entries = append(this.entries, *v)
 			lenEntries++
@@ -91,8 +105,8 @@ func (this *log) AppendEntries(newEntries []*LogInstance) {
 func (this *log) DeleteFromEntry(entryIndex uint) {
 	for i := int(entryIndex); i < len(this.entries); i++ {
 		this.entries[i] = LogInstance{
-			Entry:             nil,
-			NotifyApplication: make(chan int),
+			Entry:        nil,
+			AtCompletion: func() {},
 		}
 		this.logSize--
 	}
@@ -161,16 +175,6 @@ func (this *log) IsInConf(nodeIp string) bool {
 	return this.cConf.IsInConf(nodeIp)
 }
 
-// CommitConfig implements LogEntry.
-func (this *log) CommitConfig() {
-	this.cConf.CommitConfig()
-}
-
-// ConfStatus implements LogEntry.
-func (this *log) ConfChanged() bool {
-	return this.cConf.ConfChanged()
-}
-
 // GetConfig implements LogEntry.
 func (this *log) GetConfig() []string {
 	return this.cConf.GetConfig()
@@ -192,8 +196,8 @@ func (this *log) updateLastApplied() error {
 
 			l.Printf("updating entry: %v", entry)
 			switch entry.Entry.OpType {
-			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL, 
-                p.Operation_COMMIT_CONFIG_REM, p.Operation_COMMIT_CONFIG_ADD:
+			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL,
+				p.Operation_COMMIT_CONFIG_REM, p.Operation_COMMIT_CONFIG_ADD:
 				this.applyConf(entry.Entry.OpType, entry)
 			default:
 				(*this).localFs.ApplyLogEntry(entry.Entry)
@@ -210,22 +214,15 @@ func (this *log) applyConf(ope protobuf.Operation, entry *LogInstance) {
 	this.cConf.UpdateConfiguration(ope, confFiltered)
 	//HACK: if you are follower this goroutine remain stuck forever
 	//creating a zombie process
-    switch ope {
-    case p.Operation_JOIN_CONF_DEL, p.Operation_JOIN_CONF_ADD:
-        go this.notifyCompletion(entry)
-    default:
-    }
+	switch ope {
+	case p.Operation_JOIN_CONF_DEL, p.Operation_JOIN_CONF_ADD:
+		go entry.AtCompletion()
+	default:
+	}
 }
 
-func (this *log) notifyCompletion(entry *LogInstance){
-        func() {
-            l.Printf("notify change conf %v on channel: %v\n", entry, entry.NotifyApplication)
-            entry.NotifyApplication <- 1
-        }()
-}
-
-func (this *log) getEntries(startIndex int) []LogInstance{
-	var committedEntries []LogInstance= nil
+func (this *log) getEntries(startIndex int) []LogInstance {
+	var committedEntries []LogInstance = nil
 
 	if startIndex == -1 {
 		startIndex = 0

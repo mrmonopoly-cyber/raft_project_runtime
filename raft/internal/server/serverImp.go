@@ -259,7 +259,7 @@ func (s *server) updateNewNode(nodeIp string, matchIdx uint64) error{
         Payload: []byte(nodeIp),
     }
 
-    var entryWrapper *raft_log.LogInstance = s._state.NewLogInstance(&commitConf)
+    var entryWrapper *raft_log.LogInstance = s._state.NewLogInstance(&commitConf,func() {})
     s._state.AppendEntries([]*raft_log.LogInstance{entryWrapper})
 
     return nil
