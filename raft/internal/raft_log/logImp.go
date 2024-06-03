@@ -203,7 +203,7 @@ func (this *log) updateLastApplied() error {
 				(*this).localFs.ApplyLogEntry(entry.Entry)
 			}
 
-            // go entry.AtCompletion()
+            go entry.AtCompletion()
 		}
 
 	}
