@@ -30,8 +30,6 @@ type LogEntry interface {
     NewLogInstance(entry *p.LogEntry, post func()) *LogInstance
     NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogInstance
 
-    GetRootDirFs() string
-
     //conf info
     cConf
 }
@@ -44,9 +42,9 @@ func NewLogEntry(fsRootDir string) LogEntry {
 	l.lastApplied = -1
     l.logSize = 0
 	l.entries = nil
-    l.cConf = clusterconf.NewConf()
+    l.Configuration = clusterconf.NewConf()
     l.newEntryToApply = make(chan int)
-    l.localFs = localfs.NewFs(fsRootDir)
+    l.LocalFs = localfs.NewFs(fsRootDir)
 
     go l.updateLastApplied()
 
