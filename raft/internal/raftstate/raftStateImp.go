@@ -225,14 +225,8 @@ func (this *raftStateImpl) GetEntries() []l.LogInstance {
 }
 
 func (this *raftStateImpl) AppendEntries(newEntries []*l.LogInstance) {
-	var numNodeInConf = this.GetNumberNodesInCurrentConf()
-
 	this.log.AppendEntries(newEntries)
-	//INFO: thir case of OR happens if there are two nodes in the cluster, the follower drops
-	// and so the leader does not have to ask the dropped follower the ack the deletion of that
-	// node
-	if this.role == FOLLOWER ||
-		(this.role == LEADER && numNodeInConf <= 2) {
+	if this.role == FOLLOWER || this.GetNumberNodesInCurrentConf() <= 1{
 		log.Println("auto commit entry: ", newEntries[0].Entry)
 		for range newEntries {
 			if this.role == LEADER {
