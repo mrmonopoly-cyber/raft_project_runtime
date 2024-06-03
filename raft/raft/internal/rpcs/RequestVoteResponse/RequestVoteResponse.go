@@ -45,10 +45,6 @@ func (this *RequestVoteResponse) Execute(state raftstate.State, sender node.Node
         state.IncreaseNotSupporters()
     }
     
-    //FIX: if the leader drop, there already are two nodes ore more and a new node arrive. 
-    //It's possible that the new node does not have the full conf of the cluster but only a partial 
-    //one. At this point it send an election to who know and may be for different amount in number 
-    //breaking everything
     var nodeInCluster = uint64(state.GetNumberNodesInCurrentConf())
     var nVictory = nodeInCluster/2
     var supp = state.GetNumSupporters()

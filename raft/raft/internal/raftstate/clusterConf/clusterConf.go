@@ -8,10 +8,9 @@ import (
 type Configuration interface{
     GetConfig() []string
     UpdateConfiguration(op protobuf.Operation,nodeIps []string)
-    CommitConfig()
-    ConfChanged() bool
     IsInConf(nodeIp string) bool
     GetNumberNodesInCurrentConf() int
+    NotifyChangeInConf() <- chan int
 }
 
 func NewConf() Configuration{
@@ -19,7 +18,7 @@ func NewConf() Configuration{
         lock: sync.RWMutex{},
         oldConf: map[string]string{},
         newConf: map[string]string{},
-        changed: false,
+        notifyChange: make(chan int),
         joinConf: false,
     }
 }

@@ -3,12 +3,11 @@ package raftstate
 import (
 	"log"
 	"math/rand"
+	"raft/internal/raft_log"
 	l "raft/internal/raft_log"
 	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 	"raft/internal/raftstate/timeout"
 	"time"
-
-	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 )
 
 type Role int
@@ -22,7 +21,7 @@ type raftStateImpl struct {
 	voteFor string
 	voting  bool
 
-	log l.LogEntry
+	l.LogEntry
 
 	nSupporting    uint64
 	nNotSupporting uint64
@@ -49,24 +48,6 @@ func (this *raftStateImpl) GetNewNodeToUpdate() <-chan NewNodeToUpdateInfo {
 	return this.nodeToUpdateChan
 }
 
-// AddTimeout implements State.
-// Subtle: this method shadows the method (TimeoutPool).AddTimeout of raftStateImpl.TimeoutPool.
-func (this *raftStateImpl) AddTimeout(name string, duration time.Duration) {
-	this.TimeoutPool.AddTimeout(name, duration)
-}
-
-// RestartTimeout implements State.
-// Subtle: this method shadows the method (TimeoutPool).RestartTimeout of raftStateImpl.TimeoutPool.
-func (this *raftStateImpl) RestartTimeout(name string) error {
-	return this.TimeoutPool.RestartTimeout(name)
-}
-
-// StopTimeout implements State.
-// Subtle: this method shadows the method (TimeoutPool).StopTimeout of raftStateImpl.TimeoutPool.
-func (this *raftStateImpl) StopTimeout(name string) error {
-	return this.TimeoutPool.StopTimeout(name)
-}
-
 // GetLeaderIp implements State.
 func (this *raftStateImpl) GetLeaderIp(vis VISIBILITY) string {
 	switch vis {
@@ -78,12 +59,6 @@ func (this *raftStateImpl) GetLeaderIp(vis VISIBILITY) string {
 		log.Println("invalid case ", vis)
 		return ""
 	}
-}
-
-// GetTimeoutNotifycationChan implements State.
-// Subtle: this method shadows the method (TimeoutPool).GetTimeoutNotifycationChan of raftStateImpl.TimeoutPool.
-func (this *raftStateImpl) GetTimeoutNotifycationChan(name string) (<-chan time.Time, error) {
-	return this.TimeoutPool.GetTimeoutNotifycationChan(name)
 }
 
 // SetLeaderIp implements State.
@@ -109,74 +84,9 @@ type ipMetadata struct {
 	private string
 }
 
-// NewLogInstance implements State.
-func (this *raftStateImpl) NewLogInstance(entry *protobuf.LogEntry) *l.LogInstance {
-	return this.log.NewLogInstance(entry)
-}
-
-// NewLogInstanceBatch implements State.
-func (this *raftStateImpl) NewLogInstanceBatch(entry []*protobuf.LogEntry) []*l.LogInstance {
-	return this.log.NewLogInstanceBatch(entry)
-}
-
-// GetCommittedEntriesRange implements State.
-func (this *raftStateImpl) GetCommittedEntriesRange(startIndex int) []l.LogInstance {
-	return this.log.GetCommittedEntriesRange(startIndex)
-}
-
-// LastLogTerm implements State.
-func (this *raftStateImpl) LastLogTerm() uint {
-	return this.log.LastLogTerm()
-}
-
-// GetCommittedEntries implements State.
-func (this *raftStateImpl) GetCommittedEntries() []l.LogInstance {
-	return this.log.GetCommittedEntries()
-}
-
 // GetStatePool implements State.
 func (this *raftStateImpl) GetStatePool() nodematchidx.NodeCommonMatch {
 	return this.leaderMetadata.statePool
-}
-
-// GetEntriAt implements State.
-func (this *raftStateImpl) GetEntriAt(index int64) (*l.LogInstance, error) {
-	return this.log.GetEntriAt(index)
-}
-
-// IncreaseCommitIndex implements State.
-func (this *raftStateImpl) IncreaseCommitIndex() {
-	this.log.IncreaseCommitIndex()
-}
-
-// MinimumCommitIndex implements State.
-func (this *raftStateImpl) MinimumCommitIndex(val uint) {
-	this.log.MinimumCommitIndex(val)
-}
-
-// DeleteFromEntry implements State.
-func (this *raftStateImpl) DeleteFromEntry(entryIndex uint) {
-	this.log.DeleteFromEntry(entryIndex)
-}
-
-// GetNumberNodesInCurrentConf implements State.
-func (this *raftStateImpl) GetNumberNodesInCurrentConf() int {
-	return this.log.GetNumberNodesInCurrentConf()
-}
-
-// IsInConf implements State.
-func (this *raftStateImpl) IsInConf(nodeIp string) bool {
-	return this.log.IsInConf(nodeIp)
-}
-
-// ConfStatus implements State.
-func (this *raftStateImpl) ConfChanged() bool {
-	return this.log.ConfChanged()
-}
-
-// GetConfig implements State.
-func (this *raftStateImpl) GetConfig() []string {
-	return this.log.GetConfig()
 }
 
 // GetMyIp implements State.
@@ -220,40 +130,27 @@ func (this *raftStateImpl) SetRole(newRole Role) {
 	this.role = newRole
 }
 
-func (this *raftStateImpl) GetEntries() []l.LogInstance {
-	return this.log.GetEntries()
-}
-
 func (this *raftStateImpl) AppendEntries(newEntries []*l.LogInstance) {
-	this.log.AppendEntries(newEntries)
+    this.LogEntry.AppendEntries(newEntries)
 	if this.role == FOLLOWER || this.GetNumberNodesInCurrentConf() <= 1{
 		log.Println("auto commit entry: ", newEntries[0].Entry)
 		for range newEntries {
 			if this.role == LEADER {
 				this.leaderMetadata.statePool.IncreaseCommonMathcIndex()
 			}
-			this.log.IncreaseCommitIndex()
+			this.LogEntry.IncreaseCommitIndex()
 		}
 		return
 	}
 	log.Printf("leader, request to send log Entry to follower: ch %v, idx: %v\n",
-		this.leaderMetadata.leaderEntryToCommit, this.log.GetCommitIndex()+1)
+		this.leaderMetadata.leaderEntryToCommit, this.LogEntry.GetCommitIndex()+1)
 	for range newEntries {
-		this.leaderMetadata.leaderEntryToCommit <- this.log.GetCommitIndex() + 1
+		this.leaderMetadata.leaderEntryToCommit <- this.LogEntry.GetCommitIndex() + 1
 	}
 }
 
 func (this *raftStateImpl) GetLeaderEntryChannel() *chan int64 {
 	return &this.leaderMetadata.leaderEntryToCommit
-}
-
-func (this *raftStateImpl) GetCommitIndex() int64 {
-	return this.log.GetCommitIndex()
-}
-
-// LastLogIndex implements State.
-func (this *raftStateImpl) LastLogIndex() int {
-	return this.log.LastLogIndex()
 }
 
 func (this *raftStateImpl) CanVote() bool {
@@ -310,6 +207,37 @@ func (this *raftStateImpl) leaaderUpdateCommitIndex() {
 	}
 }
 
+func (this *raftStateImpl) checkPresenceInTheConf(){
+    for{
+        <- this.NotifyChangeInConf()
+        var conf = this.GetConfig()
+        var found = false
+        for _, v := range conf {
+            if v == this.myIp.private{
+               found = true 
+               continue
+            }
+        }
+        
+        if !found{
+            this.SetRole(FOLLOWER)
+            this.StopTimeout(TIMER_ELECTION)
+            this.LogEntry = raft_log.NewLogEntry(this.GetRootDirFs())
+
+            this.nNotSupporting = 0
+            this.nSupporting = 0
+
+            this.voting = true
+            this.voteFor = ""
+
+            this.leaderMetadata.leaderIp.public = ""
+            this.leaderMetadata.leaderIp.private = ""
+            this.leaderMetadata.statePool = nodematchidx.NewNodeCommonMatch()
+        }
+
+    }
+}
+
 func newStateImplementation(idPrivate string, idPublic string, fsRootDir string) *raftStateImpl {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	var randelection = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
@@ -332,7 +260,7 @@ func newStateImplementation(idPrivate string, idPublic string, fsRootDir string)
 	s.leaderMetadata.statePool = nodematchidx.NewNodeCommonMatch()
 	s.leaderMetadata.leaderEntryToCommit = make(chan int64)
 
-	s.log = l.NewLogEntry(fsRootDir)
+	s.LogEntry = l.NewLogEntry(fsRootDir)
 
 	s.TimeoutPool = timeout.NewTimeoutPool()
 	s.TimeoutPool.AddTimeout(TIMER_ELECTION, time.Duration(randelection))

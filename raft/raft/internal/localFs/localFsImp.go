@@ -10,128 +10,130 @@ import (
 	"sync"
 )
 
-
-
-type fs struct{
-    lock sync.RWMutex
-    rootDir string
-    files map[string]string
+type fs struct {
+	lock    sync.RWMutex
+	rootDir string
+	files   map[string]string
 }
 
-func (this *fs)ApplyLogEntry(mex *protobuf.LogEntry) error{
-    switch mex.GetOpType(){
-    case protobuf.Operation_READ:
-    }
-    
-    log.Println("Apply log entry not implemented")
-    return nil
+// GetRootDir implements LocalFs.
+func (this *fs) GetRootDir() string {
+	return this.rootDir
 }
 
-//utility
-func (this *fs) create(file string) error{
-    (*this).lock.Lock()
-    defer (*this).lock.Unlock()
+func (this *fs) ApplyLogEntry(mex *protobuf.LogEntry) error {
+	switch mex.GetOpType() {
+	case protobuf.Operation_READ:
+	}
 
-    var filePath string = this.getFilePath(file)
-    var fd *os.File
-    var err error
-
-    fd,err = os.Create(filePath)
-    if err == nil {
-        fd.Close()
-        (*this).files[file] = filePath
-    }
-
-    return err 
-}
-func (this *fs) read(file string) ([]byte,error){
-    (*this).lock.RLock()
-    defer (*this).lock.Unlock()
-
-    var resultBuffer bytes.Buffer
-    var content []byte = make([]byte, 1024)
-    var err error
-    var fd *os.File 
-
-    fd,err= this.searchFile(file)
-    if err != nil {
-        return nil,err
-    }
-
-    for err != io.EOF{
-        _,err = fd.Read(content)
-        if err != nil && err != io.EOF {
-            fd.Close()
-            return nil, errors.New("error reading file: " + file)
-        }
-        resultBuffer.Write(content)
-    }
-    fd.Close()
-
-    return resultBuffer.Bytes(),nil
+	log.Println("Apply log entry not implemented")
+	return nil
 }
 
-func (this *fs) update(file string, data []byte) error{
-    (*this).lock.Lock()
-    defer (*this).lock.Unlock()
+// utility
+func (this *fs) create(file string) error {
+	(*this).lock.Lock()
+	defer (*this).lock.Unlock()
 
-    var fd *os.File
-    var err error
+	var filePath string = this.getFilePath(file)
+	var fd *os.File
+	var err error
 
-    fd,err = this.searchFile(file)
-    if err != nil{
-        return err
-    }
-    
-    _,err = fd.WriteAt(data,0)
-    fd.Close()
-    return err 
+	fd, err = os.Create(filePath)
+	if err == nil {
+		fd.Close()
+		(*this).files[file] = filePath
+	}
+
+	return err
 }
-func (this *fs) delete(file string) error{
-    (*this).lock.Lock()
-    defer (*this).lock.Unlock()
+func (this *fs) read(file string) ([]byte, error) {
+	(*this).lock.RLock()
+	defer (*this).lock.Unlock()
 
-    var err = os.Remove(this.getFilePath(file))
-    if err == nil {
-        delete(this.files,file)
-    }
+	var resultBuffer bytes.Buffer
+	var content []byte = make([]byte, 1024)
+	var err error
+	var fd *os.File
 
-    return err
-}
+	fd, err = this.searchFile(file)
+	if err != nil {
+		return nil, err
+	}
 
-func (this *fs) rename(file string, newName string) error{
-    (*this).lock.Lock()
-    defer (*this).lock.Unlock()
+	for err != io.EOF {
+		_, err = fd.Read(content)
+		if err != nil && err != io.EOF {
+			fd.Close()
+			return nil, errors.New("error reading file: " + file)
+		}
+		resultBuffer.Write(content)
+	}
+	fd.Close()
 
-    var err = os.Rename(file,newName)
-    if err == nil{
-        delete(this.files,file)
-        this.files[newName] = this.getFilePath(file)
-    }
-
-    return err
-}
-
-
-func (this *fs) getFilePath(file string) string{
-    return this.rootDir + file
+	return resultBuffer.Bytes(), nil
 }
 
-func (this *fs) searchFile(file string) (*os.File,error){
-    var found bool
-    var filePath string
-    var err error
-    var fd *os.File
+func (this *fs) update(file string, data []byte) error {
+	(*this).lock.Lock()
+	defer (*this).lock.Unlock()
 
-    filePath,found = (*this).files[file]
-    if !found{
-        return nil,errors.New("file not found")
-    }
+	var fd *os.File
+	var err error
 
-    fd, err = os.Open(filePath)
-    if err != nil{
-        return nil,err
-    }
+	fd, err = this.searchFile(file)
+	if err != nil {
+		return err
+	}
 
-    return fd,err
+	_, err = fd.WriteAt(data, 0)
+	fd.Close()
+	return err
+}
+func (this *fs) delete(file string) error {
+	(*this).lock.Lock()
+	defer (*this).lock.Unlock()
+
+	var err = os.Remove(this.getFilePath(file))
+	if err == nil {
+		delete(this.files, file)
+	}
+
+	return err
+}
+
+func (this *fs) rename(file string, newName string) error {
+	(*this).lock.Lock()
+	defer (*this).lock.Unlock()
+
+	var err = os.Rename(file, newName)
+	if err == nil {
+		delete(this.files, file)
+		this.files[newName] = this.getFilePath(file)
+	}
+
+	return err
+}
+
+func (this *fs) getFilePath(file string) string {
+	return this.rootDir + file
+}
+
+func (this *fs) searchFile(file string) (*os.File, error) {
+	var found bool
+	var filePath string
+	var err error
+	var fd *os.File
+
+	filePath, found = (*this).files[file]
+	if !found {
+		return nil, errors.New("file not found")
+	}
+
+	fd, err = os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return fd, err
 }

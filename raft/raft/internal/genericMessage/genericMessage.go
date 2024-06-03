@@ -8,7 +8,6 @@ import (
 	"raft/internal/rpcs/RequestVoteRPC"
 	"raft/internal/rpcs/RequestVoteResponse"
 	"raft/internal/rpcs/UpdateNode"
-	"raft/internal/rpcs/UpdateNodeResp"
 	ClientReturnValue "raft/internal/rpcs/clientReturnValue"
 	"raft/internal/rpcs/newConf"
 	"raft/internal/rpcs/redirection"
@@ -42,8 +41,6 @@ func Decode(raw_mex []byte) (rpcs.Rpc,error){
         outRpc = &RequestVoteResponse.RequestVoteResponse{}
     case protobuf.MexType_UPDATE_NODE:
         outRpc= &UpdateNode.UpdateNode{}
-    case protobuf.MexType_UPDATE_NODE_RESP:
-        outRpc = &UpdateNodeResp.UpdateNodeResp{}
     case protobuf.MexType_REDIRECTION:
         outRpc = &Redirection.Redirection{}
     case protobuf.MexType_NEW_CONF:
@@ -83,8 +80,6 @@ func Encode(mex rpcs.Rpc) ([]byte,error){
         genericMessage.OpType = protobuf.MexType_REQUEST_VOTE_RESPONSE
     case *UpdateNode.UpdateNode:
         genericMessage.OpType = protobuf.MexType_UPDATE_NODE
-    case *UpdateNodeResp.UpdateNodeResp:
-        genericMessage.OpType = protobuf.MexType_UPDATE_NODE_RESP
     case *Redirection.Redirection:
         genericMessage.OpType = protobuf.MexType_REDIRECTION
     case *newConf.NewConf:
