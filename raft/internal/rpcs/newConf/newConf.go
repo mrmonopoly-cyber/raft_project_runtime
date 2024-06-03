@@ -78,6 +78,13 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
 
                 newConfAppEntry = state.NewLogInstance(&commitConf)
                 state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
+
+                for _, v := range this.pMex.Conf.Conf{
+                    if v == state.GetMyIp(raftstate.PRI){
+                        state.SetRole(raftstate.FOLLOWER)
+                        state.StopTimeout(raftstate.TIMER_ELECTION)
+                    }
+                }
             }()
             return exitSucess
         }
