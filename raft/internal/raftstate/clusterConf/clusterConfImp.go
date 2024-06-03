@@ -28,8 +28,8 @@ func (this *conf) GetNumberNodesInCurrentConf() int {
 }
 
 func (this *conf) GetConfig() []string {
-	// this.lock.RLock()
-	// defer this.lock.RUnlock()
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 
 	var resMap map[string]string = map[string]string{}
 	var res []string = nil
@@ -86,7 +86,6 @@ func (this *conf) UpdateConfiguration(op protobuf.Operation, nodeIps []string) {
 		log.Println("invalid configuration operation, doing nothing, given: ", op)
 		return
 	}
-    log.Println("new conf updated: ", this.GetConfig())
 
     go func ()  {
         this.notifyChange <- 1
