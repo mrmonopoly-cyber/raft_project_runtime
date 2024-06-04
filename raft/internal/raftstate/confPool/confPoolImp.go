@@ -201,7 +201,7 @@ func confPoolImpl(rootDir string) *confPool {
 	var res = &confPool{
 		mainConf:     nil,
 		newConf:      nil,
-		confQueue:    queue.NewQueue[tuple](),
+		confQueue:    nil,
 		emptyNewConf: make(chan int),
 		nodeList:     sync.Map{},
 		numNodes:     0,
