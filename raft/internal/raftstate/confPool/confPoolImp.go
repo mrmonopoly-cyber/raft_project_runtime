@@ -178,9 +178,9 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		c.newConf.AppendEntry(entry)
 		joinConf = true
 	}
-    
+    c.autoCommitC <- 1
+
 	go func() {
-        c.autoCommitC <- 1
 		log.Println("waiting main conf commit of entry: ", entry)
         <-entry.Committed
 		if joinConf {
