@@ -33,6 +33,7 @@ func (q *queueImp[T]) Size() int {
 
 // WaitEl implements Queue.
 func (q *queueImp[T]) WaitEl() <-chan int {
+    log.Println("waiting new ele chan: ", q.notifyAdd)
     return q.notifyAdd
 }
 
