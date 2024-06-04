@@ -53,6 +53,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
 
                 state.AppendEntry(state.NewLogInstance(&commit,nil))
             }) 
+            log.Println("appending log entry: ",newConfLog)
             state.AppendEntry(newConfLog)
             return exitSucess
         }
