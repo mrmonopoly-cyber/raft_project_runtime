@@ -21,9 +21,9 @@ type log struct {
 }
 
 // AppendEntry implements LogEntry.
-func (this *log) AppendEntry(newEntrie *LogInstance) {
-    l.Println("adding new entrie to the log: ",*newEntrie)
-    this.entries = append(this.entries, *newEntrie)
+func (this *log) AppendEntry(newEntrie LogInstance) {
+    l.Println("adding new entrie to the log: ",newEntrie)
+    this.entries = append(this.entries, newEntrie)
 }
 
 // log
