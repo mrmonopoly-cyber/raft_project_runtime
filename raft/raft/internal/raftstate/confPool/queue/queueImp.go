@@ -1,5 +1,9 @@
 package queue
 
+import (
+    "log"
+)
+
 type queueImp[T any] struct {
     buffer []T
     notifyAdd chan int
@@ -16,6 +20,8 @@ func (q *queueImp[T]) Pop() T {
 func (q *queueImp[T]) Push(v T) {
     q.buffer = append(q.buffer, v)
     go func(){
+
+        log.Println("pushing notification on: ", q.notifyAdd)
         q.notifyAdd <- 1
     }()
 }
