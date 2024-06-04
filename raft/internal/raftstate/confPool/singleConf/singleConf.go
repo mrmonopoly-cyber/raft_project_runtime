@@ -2,7 +2,7 @@ package singleconf
 
 import (
 	"raft/internal/raft_log"
-	leadercommidx "raft/internal/raftstate/confPool/LeaderCommIdx"
+	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	"sync"
 )
 
@@ -14,14 +14,14 @@ const(
 
 type SingleConf interface{
     GetConfig() []string
-    AutoCommit(status bool)
     raft_log.LogEntry
 }
 
 func NewSingleConf( fsRootDir string, 
                     conf []string,  
                     nodeList *sync.Map,
-                    leaderCommoIdx leadercommidx.LeaderCommonIdx) SingleConf{
-    return newSingleConfImp(fsRootDir,conf,nodeList,leaderCommoIdx)
+                    autoCommit *bool,
+                    commonStatePool nodeIndexPool.NodeIndexPool) SingleConf{
+    return newSingleConfImp(fsRootDir,conf,nodeList,autoCommit,commonStatePool)
 }
 
