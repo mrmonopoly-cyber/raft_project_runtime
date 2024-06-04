@@ -172,8 +172,10 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		panic("not implemented")
 	}
 
+    log.Println("append entry main conf: ",entry)
 	c.mainConf.AppendEntry(entry)
 	if c.newConf != nil {
+        log.Println("append entry new conf: ",entry)
 		c.newConf.AppendEntry(entry)
 		joinConf = true
 	}
