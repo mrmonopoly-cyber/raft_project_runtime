@@ -106,7 +106,12 @@ func (c *confPool) MinimumCommitIndex(val uint) {
 
 // NewLogInstance implements ConfPool.
 func (c *confPool) NewLogInstance(entry *protobuf.LogEntry, post func()) *raft_log.LogInstance {
-	panic("unimplemented")
+    var res = &raft_log.LogInstance{
+        Entry: entry,
+        Committed: make(chan int),
+        AtCompletion: post,
+    }
+    return res
 }
 
 func (c *confPool) GetNodeList() *sync.Map {
