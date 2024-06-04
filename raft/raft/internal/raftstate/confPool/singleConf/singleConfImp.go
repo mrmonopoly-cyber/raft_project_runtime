@@ -2,7 +2,7 @@ package singleconf
 
 import (
 	"raft/internal/raft_log"
-	leadercommidx "raft/internal/raftstate/confPool/LeaderCommIdx"
+	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	"sync"
 )
 
@@ -10,23 +10,18 @@ type singleConfImp struct {
 	nodeList *sync.Map
 	conf     sync.Map
 	numNodes uint
-    autoCommit bool
+    autoCommit *bool
 	raft_log.LogEntry
-    leadercommidx.LeaderCommonIdx
+    nodeIndexPool.NodeIndexPool
 }
 
 func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
     s.LogEntry.AppendEntry(entry)
-    if s.autoCommit{ //INFO: FOLLOWER
+    if *s.autoCommit{ //INFO: FOLLOWER
         s.LogEntry.IncreaseCommitIndex()
         return
     }
     //INFO:LEADER
-}
-
-// AutoCommit implements SingleConf.
-func (s *singleConfImp) AutoCommit(status bool) {
-	s.autoCommit = true
 }
 
 // GetConfig implements SingleConf.
@@ -44,14 +39,15 @@ func (s *singleConfImp) GetConfig() []string {
 func newSingleConfImp(  fsRootDir string, 
                         conf []string, 
                         nodeList *sync.Map,
-                        leaderCommIdx leadercommidx.LeaderCommonIdx) *singleConfImp{
+                        autoCommit *bool,
+                        commonStatePool nodeIndexPool.NodeIndexPool) *singleConfImp{
     var res = &singleConfImp{
         nodeList: nodeList,
         conf: sync.Map{},
         numNodes: 0,
         LogEntry: raft_log.NewLogEntry(fsRootDir),
-        autoCommit: false,
-        LeaderCommonIdx: leaderCommIdx,
+        autoCommit: autoCommit,
+        NodeIndexPool: commonStatePool,
     }
 
     for _, v := range conf {

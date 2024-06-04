@@ -89,13 +89,13 @@ func (this *raftStateImpl) SetRole(newRole Role) {
 	}
 	switch newRole {
 	case FOLLOWER:
-		this.StopTimeout(TIMER_HEARTHBIT)
         this.ConfPool.AutoCommitSet(true)
+		this.StopTimeout(TIMER_HEARTHBIT)
 	case LEADER:
+        this.ConfPool.AutoCommitSet(false)
 		this.RestartTimeout(TIMER_HEARTHBIT)
 		this.leaderIp = this.myIp
 		this.ResetElection()
-        this.ConfPool.AutoCommitSet(false)
 	}
 	this.role = newRole
 }

@@ -5,7 +5,7 @@ import (
 	"log"
 	"raft/internal/node"
 	"raft/internal/raft_log"
-	leadercommidx "raft/internal/raftstate/confPool/LeaderCommIdx"
+	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	"raft/internal/raftstate/confPool/queue"
 	singleconf "raft/internal/raftstate/confPool/singleConf"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -21,21 +21,19 @@ type tuple struct {
 
 type confPool struct {
 	fsRootDir    string
+	autoCommit   bool
 	mainConf     singleconf.SingleConf
 	newConf      singleconf.SingleConf
 	confQueue    queue.Queue[tuple]
 	emptyNewConf chan int
 	nodeList     sync.Map
 	numNodes     uint
-    leadercommidx.LeaderCommonIdx
+	nodeIndexPool.NodeIndexPool
 }
 
 // AutoCommitSet implements ConfPool.
 func (c *confPool) AutoCommitSet(status bool) {
-	c.mainConf.AutoCommit(status)
-    if c.newConf != nil {
-        c.newConf.AutoCommit(status)
-    }
+    c.autoCommit = status
 }
 
 // GetNode implements ConfPool.
@@ -164,43 +162,49 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
 		for i := range confFiltered {
 			confFiltered[i] = strings.Trim(confFiltered[i], " ")
+			c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, confFiltered[i])
 		}
 		confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
-		var newConf = singleconf.NewSingleConf(c.fsRootDir, confFiltered, &c.nodeList, c.LeaderCommonIdx)
+		var newConf = singleconf.NewSingleConf(
+			c.fsRootDir,
+			confFiltered,
+			&c.nodeList,
+			&c.autoCommit,
+			c.NodeIndexPool)
 		log.Println("checking conf is the same: ", newConf, c.newConf)
-        //WARN: DANGEROUS
-		if c.newConf==nil || !reflect.DeepEqual(c.newConf.GetConfig(),newConf.GetConfig()) {
-            c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
+		//WARN: DANGEROUS
+		if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
+			c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
 			return
 		}
 	case protobuf.Operation_JOIN_CONF_DEL:
 		panic("not implemented")
 	}
 
-    log.Println("append entry main conf: ",entry)
+	log.Println("append entry main conf: ", entry)
 	c.mainConf.AppendEntry(entry)
 	if c.newConf != nil {
-        log.Println("append entry new conf: ",entry)
+		log.Println("append entry new conf: ", entry)
 		c.newConf.AppendEntry(entry)
 		joinConf = true
 	}
 
 	go func() {
 		log.Println("waiting main conf commit of entry: ", entry)
-        <-entry.Committed
+		<-entry.Committed
 		if joinConf {
-		    log.Println("waiting new conf commit of entry: ", entry)
+			log.Println("waiting new conf commit of entry: ", entry)
 			<-entry.Committed
 		}
-        log.Println("entry committed: ",entry)
+		log.Println("entry committed: ", entry)
 		switch {
 		case entry.Entry.OpType == protobuf.Operation_COMMIT_CONFIG_ADD:
 			c.mainConf = c.newConf
 			c.newConf = nil
-            c.emptyNewConf <- 1
-            log.Println("commit config applied [main,new]: ",c.mainConf,c.newConf)
-        }
-		if entry.AtCompletion != nil{
+			c.emptyNewConf <- 1
+			log.Println("commit config applied [main,new]: ", c.mainConf, c.newConf)
+		}
+		if entry.AtCompletion != nil {
 			entry.AtCompletion()
 		}
 	}()
@@ -213,9 +217,9 @@ func (c *confPool) joinNextConf() {
 		c.emptyNewConf <- 1
 	}()
 	for {
-        log.Println("waiting commiting of new conf")
+		log.Println("waiting commiting of new conf")
 		<-c.emptyNewConf
-        log.Println("waiting new conf to join")
+		log.Println("waiting new conf to join")
 		<-c.confQueue.WaitEl()
 		var co = c.confQueue.Pop()
 		c.newConf = co.SingleConf
@@ -225,16 +229,21 @@ func (c *confPool) joinNextConf() {
 
 func confPoolImpl(rootDir string) *confPool {
 	var res = &confPool{
-		mainConf:     nil,
-		newConf:      nil,
-		confQueue:    queue.NewQueue[tuple](),
-		emptyNewConf: make(chan int),
-		nodeList:     sync.Map{},
-		numNodes:     0,
-		fsRootDir:    rootDir,
-        LeaderCommonIdx: leadercommidx.NewLeaederCommonIdx(),
+		mainConf:      nil,
+		newConf:       nil,
+		confQueue:     queue.NewQueue[tuple](),
+		emptyNewConf:  make(chan int),
+		nodeList:      sync.Map{},
+		numNodes:      0,
+		fsRootDir:     rootDir,
+		NodeIndexPool: nodeIndexPool.NewLeaederCommonIdx(),
 	}
-	res.mainConf = singleconf.NewSingleConf(rootDir, nil, &res.nodeList, res.LeaderCommonIdx)
+	res.mainConf = singleconf.NewSingleConf(
+		rootDir,
+		nil,
+		&res.nodeList,
+		&res.autoCommit,
+		res.NodeIndexPool)
 
 	go res.joinNextConf()
 
