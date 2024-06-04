@@ -125,20 +125,19 @@ func (this *log) LastLogTerm() uint {
 
 func (this *log) updateLastApplied() error {
 	for {
-		select {
-		case <-this.newEntryToApply:
-			this.lastApplied++
-			var entry *LogInstance = &this.entries[this.lastApplied]
+		<-this.newEntryToApply
+        this.lastApplied++
+        var entry *LogInstance = &this.entries[this.lastApplied]
 
-			l.Printf("updating entry: %v", entry)
-			switch entry.Entry.OpType {
-			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL,
-				p.Operation_COMMIT_CONFIG_REM, p.Operation_COMMIT_CONFIG_ADD:
-			default:
-				(*this).ApplyLogEntry(entry.Entry)
-			}
-		}
+        l.Printf("updating entry: %v", entry)
+        switch entry.Entry.OpType {
+            case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL,
+            p.Operation_COMMIT_CONFIG_REM, p.Operation_COMMIT_CONFIG_ADD:
+        default:
+            (*this).ApplyLogEntry(entry.Entry)
+        }
 
+        entry.Committed <- 1
 	}
 }
 
