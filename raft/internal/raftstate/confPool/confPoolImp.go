@@ -190,9 +190,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 }
 
 func (c *confPool) joinNextConf() {
-    go func(){
-        c.emptyNewConf <- 1
-    }()
+    c.emptyNewConf <- 1
 	for {
 		<-c.emptyNewConf
         log.Println("waiting on cc")
