@@ -170,20 +170,18 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		joinConf = true
 	}
 
-    go func() {
-        if joinConf {
-            <-entry.Committed
-        }
-        <-entry.Committed
-        switch {
-        case entry.Entry.OpType == protobuf.Operation_COMMIT_CONFIG_ADD:
-            c.mainConf = c.newConf
-            c.newConf = nil
-            c.emptyNewConf <- 1
-        case entry.AtCompletion != nil:
-            entry.AtCompletion()
-        }
-    }()
+	if joinConf {
+		<-entry.Committed
+	}
+	<-entry.Committed
+	switch {
+	case entry.Entry.OpType == protobuf.Operation_COMMIT_CONFIG_ADD:
+		c.mainConf = c.newConf
+		c.newConf = nil
+		c.emptyNewConf <- 1
+	case entry.AtCompletion != nil:
+		entry.AtCompletion()
+	}
 
 }
 
