@@ -193,7 +193,8 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 			c.mainConf = c.newConf
 			c.newConf = nil
 			c.emptyNewConf <- 1
-		case entry.AtCompletion != nil:
+        }
+		if entry.AtCompletion != nil{
 			entry.AtCompletion()
 		}
 	}()
