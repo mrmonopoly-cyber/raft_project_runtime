@@ -203,6 +203,7 @@ func (s *server) newMessageReceived(mess pairMex){
                 }
                 senderNode = v.(node.Node)
             }
+            log.Println("node founded: ", senderNode.GetIp())
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
             resp = rpcCall.Execute(s._state, senderNode)
