@@ -7,6 +7,7 @@ import (
 type queueImp[T any] struct {
     buffer []T
     notifyAdd chan int
+    res <-chan int
 }
 
 // Pop implements Queue.
@@ -33,12 +34,15 @@ func (q *queueImp[T]) Size() int {
 
 // WaitEl implements Queue.
 func (q *queueImp[T]) WaitEl() <-chan int {
-    return q.notifyAdd
+    return q.res
 }
 
 func NewQueueImp[T any]() Queue[T] {
-	return &queueImp[T]{
+	var res = &queueImp[T]{
         buffer: nil,
         notifyAdd: make(chan int),
+        res: nil,
     }
+    res.res = res.notifyAdd
+    return res
 }
