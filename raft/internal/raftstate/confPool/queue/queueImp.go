@@ -33,7 +33,7 @@ func (q *queueImp[T]) WaitEl() <-chan int {
     return q.notifyAdd
 }
 
-func NewQueueImp[T any]() Queue[T] {
+func newQueueImp[T any]() Queue[T] {
 	return &queueImp[T]{
         buffer: nil,
         notifyAdd: make(chan int),
