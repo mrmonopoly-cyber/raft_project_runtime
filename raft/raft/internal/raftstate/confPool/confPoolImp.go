@@ -174,6 +174,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		joinConf = true
 	}
 
+    log.Println("waiting commit of entry: ",entry)
 	if joinConf {
 		<-entry.Committed
 	}
