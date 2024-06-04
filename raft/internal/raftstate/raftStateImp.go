@@ -90,10 +90,12 @@ func (this *raftStateImpl) SetRole(newRole Role) {
 	switch newRole {
 	case FOLLOWER:
 		this.StopTimeout(TIMER_HEARTHBIT)
+        this.ConfPool.AutoCommitSet(true)
 	case LEADER:
 		this.RestartTimeout(TIMER_HEARTHBIT)
 		this.leaderIp = this.myIp
 		this.ResetElection()
+        this.ConfPool.AutoCommitSet(false)
 	}
 	this.role = newRole
 }
@@ -149,7 +151,6 @@ func newStateImplementation(idPrivate string, idPublic string, fsRootDir string)
 	var randelection = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
 	var s = new(raftStateImpl)
 
-	s.role = FOLLOWER
 	s.term = 0
 
 	s.myIp.private = idPrivate
@@ -170,7 +171,7 @@ func newStateImplementation(idPrivate string, idPublic string, fsRootDir string)
 	s.TimeoutPool.RestartTimeout(TIMER_HEARTHBIT)
 
     s.ConfPool = confpool.NewConfPoll(fsRootDir)
-    s.ConfPool.AutoCommitSet(true)
+    s.SetRole(FOLLOWER)
 
 	return s
 }

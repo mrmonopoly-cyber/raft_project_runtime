@@ -50,8 +50,8 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
                     Term: state.GetTerm(),
                     OpType: protobuf.Operation_COMMIT_CONFIG_ADD,
                 }
-                state.SetRole(raftstate.LEADER)
                 state.AppendEntry(state.NewLogInstance(&commit,nil))
+                state.SetRole(raftstate.LEADER)
             }) 
             log.Println("appending log entry: ",newConfLog)
             state.AppendEntry(newConfLog)
