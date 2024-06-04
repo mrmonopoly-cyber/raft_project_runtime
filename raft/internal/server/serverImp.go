@@ -169,11 +169,16 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
 
 func (s *server) run() {
     var mess pairMex
-    var timeoutElection,err = s._state.GetTimeoutNotifycationChan(raftstate.TIMER_ELECTION)
-
+    var err error
+    timeoutElection,err := s._state.GetTimeoutNotifycationChan(raftstate.TIMER_ELECTION)
     if err != nil{
         log.Panicln(err)
     }
+    timeoutHearthbit,err := s._state.GetTimeoutNotifycationChan(raftstate.TIMER_HEARTHBIT)
+    if err != nil{
+        log.Panicln(err)
+    }
+
 
     for {
         select {
@@ -182,6 +187,8 @@ func (s *server) run() {
             go s.newMessageReceived(mess)
         case <- timeoutElection:
             log.Println("election not implemented")
+        case <- timeoutHearthbit:
+            log.Println("sending hearthbit")
         }
     }
 }
