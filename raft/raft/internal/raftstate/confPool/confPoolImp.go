@@ -194,7 +194,9 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		case entry.Entry.OpType == protobuf.Operation_COMMIT_CONFIG_ADD:
 			c.mainConf = c.newConf
 			c.newConf = nil
-			c.emptyNewConf <- 1
+            go func ()  {
+                c.emptyNewConf <- 1
+            }()
             log.Println("commit config applied [main,new]: ",c.mainConf,c.newConf)
         }
 		if entry.AtCompletion != nil{
