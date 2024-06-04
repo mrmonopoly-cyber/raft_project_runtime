@@ -135,7 +135,9 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
                 state.DeleteFromEntry(uint(nextIdx))
                 resp = respondeAppend(id, false, myTerm, nextIdx)
             default:
-                state.AppendEntries(newEntriesWrapper)
+                for _,v := range newEntriesWrapper {
+                    state.AppendEntry(v)
+                }
                 leaderCommit = this.pMex.GetLeaderCommit()
 
                 if leaderCommit > state.GetCommitIndex() {

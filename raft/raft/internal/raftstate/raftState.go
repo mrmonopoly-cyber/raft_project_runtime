@@ -1,9 +1,8 @@
 package raftstate
 
 import (
-	l "raft/internal/raft_log"
-	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
-    "raft/internal/raftstate/timeout"
+	confpool "raft/internal/raftstate/confPool"
+	"raft/internal/raftstate/timeout"
 	"time"
 )
 
@@ -31,14 +30,16 @@ const (
 )
 
 type State interface {
+    leaderIpMetadata
     currentNodeIp
+
     termMetadata
     voteMetadata
     roleMetadata
-    l.LogEntry
+
     timeout.TimeoutPool
 
-    leaderRoleExtra
+    confpool.ConfPool
 }
 
 type leaderIpMetadata interface{
@@ -69,25 +70,6 @@ type currentNodeIp interface{
     GetMyIp(vis VISIBILITY) string
 }
 
-type NewNodeToUpdateInfo struct{
-    NodeList []string
-    MatchToArrive uint64
-}
-
-type leaderRoleExtra interface{
-    leaderIpMetadata
-
-    GetLeaderEntryChannel() *chan int64
-    GetStatePool() nodematchidx.NodeCommonMatch
-
-    IncreaseSupporters()
-    IncreaseNotSupporters()
-    GetNumSupporters() uint64
-    GetNumNotSupporters() uint64
-
-    GetNewNodeToUpdate() <- chan NewNodeToUpdateInfo
-    NotifyNodeToUpdate(nodeIps []string)
-}
 
 func NewState(idPrivate string, idPublic string, fsRootDir string) State {
 	return newStateImplementation(idPrivate, idPublic, fsRootDir)

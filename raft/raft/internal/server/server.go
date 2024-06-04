@@ -3,7 +3,6 @@ package server
 import (
 	"log"
 	"net"
-    "sync"
 	state "raft/internal/raftstate"
 )
 
@@ -23,8 +22,6 @@ func NewServer(ipAddPrivate string, ipAddrPublic string, port string, serversIp 
 
 	var server = &server{
 		_state:         state.NewState(ipAddPrivate, ipAddrPublic, fsRootDir),
-		unstableNodes:    &sync.Map{},
-        clientNodes:    &sync.Map{},
 		messageChannel: make(chan pairMex),
 		listener:       listener,
 	}

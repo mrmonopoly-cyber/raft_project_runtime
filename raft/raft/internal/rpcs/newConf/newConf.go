@@ -5,7 +5,6 @@ import (
 	"raft/internal/node"
 	"raft/internal/raft_log"
 	"raft/internal/raftstate"
-	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 	"raft/internal/rpcs"
 	ClientReturnValue "raft/internal/rpcs/clientReturnValue"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -35,9 +34,26 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
 
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
-        if state.GetConfig() == nil && myPrivateIp == *this.pMex.Conf.Leader{
-            this.joinConfAdd(state)
-            state.SetRole(raftstate.LEADER)
+        if state.GetConf() == nil && myPrivateIp == *this.pMex.Conf.Leader{
+            var newEntryBaseEntry = protobuf.LogEntry{
+                Term: state.GetTerm(),
+                OpType: protobuf.Operation_JOIN_CONF_ADD,
+            }
+
+            for _, v := range this.pMex.Conf.Conf {
+                newEntryBaseEntry.Payload = append(newEntryBaseEntry.Payload, v...)
+                newEntryBaseEntry.Payload = append(newEntryBaseEntry.Payload, raft_log.SEPARATOR...)
+            }
+
+            var newConfLog = state.NewLogInstance(&newEntryBaseEntry,func() {
+                var commit = protobuf.LogEntry{
+                    Term: state.GetTerm(),
+                    OpType: protobuf.Operation_COMMIT_CONFIG_ADD,
+                }
+
+                state.AppendEntry(state.NewLogInstance(&commit,nil))
+            }) 
+            state.AppendEntry(newConfLog)
             return exitSucess
         }
         var failureDescr = `cluster already created and settend, New conf can only be applied 
@@ -48,20 +64,16 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
         return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureDescr)
     case protobuf.AdminOp_CHANGE_CONF_ADD:
         if state.GetRole() == raftstate.LEADER{
-            this.joinConfAdd(state)
-            return exitSucess
+            panic("not implemented")
+            // return exitSucess
         }
         var failureMex = "i'm not leader, i cannot change conf"
         log.Println(failureMex)
         return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureMex)
     case protobuf.AdminOp_CHANGE_CONF_REM:
         if state.GetRole() == raftstate.LEADER{
-            var newConfAppEntry = this.encodeSendConf(
-                                state,
-                                protobuf.Operation_JOIN_CONF_DEL,
-                                this.postOperationConf(state,protobuf.Operation_COMMIT_CONFIG_REM))
-            state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
-            return exitSucess
+            panic("not implemented")
+            // return exitSucess
         }
         var failureMex = "i'm not leader, i cannot change conf"
         log.Println(failureMex)
@@ -95,64 +107,4 @@ func (this *NewConf) Decode(b []byte) error {
         log.Panicln("error in Encoding Request Vote: ", err)
     }
 	return err
-}
-
-
-//utility
-func (this *NewConf) joinConfAdd(state raftstate.State){
-    var newConfAppEntry = this.encodeSendConf(
-        state, 
-        protobuf.Operation_JOIN_CONF_ADD,
-        this.postOperationConf(state,protobuf.Operation_COMMIT_CONFIG_ADD))
-        state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
-        state.NotifyNodeToUpdate(this.pMex.Conf.GetConf())
-}
-
-func (this *NewConf) postOperationConf(state raftstate.State, op protobuf.Operation) func(){
-    return func() {
-        //TODO: when join conf remove is applied you can commit conf
-        var commitConf = protobuf.LogEntry{
-            Term: state.GetTerm(),
-            OpType: op, 
-        }
-        var numNodeOp = nodematchidx.DEC
-        if op == protobuf.Operation_COMMIT_CONFIG_ADD{
-            numNodeOp = nodematchidx.INC
-        }
-
-        for i, v := range this.pMex.Conf.GetConf(){
-            //HACK: the space is for spacing the elements when converting to []byte
-            var ele string = v
-            var separator = "K"
-            if i != 0 {
-                commitConf.Payload = append(commitConf.Payload,separator...)
-            }
-            commitConf.Payload = append(commitConf.Payload,ele...)
-            state.GetStatePool().ChangeNnuNodes(numNodeOp)
-        }
-
-        var newConfAppEntry = state.NewLogInstance(&commitConf,func() {})
-        state.AppendEntries([]*raft_log.LogInstance{newConfAppEntry})
-    }
-}
-
-func (this *NewConf) encodeSendConf(state raftstate.State, 
-                                    op protobuf.Operation,
-                                    postOperation func() ) *raft_log.LogInstance{
-    var newConfEntry = protobuf.LogEntry{
-        Term: state.GetTerm(),
-        OpType: op,
-    }
-
-    var newConfAppEntry = state.NewLogInstance(&newConfEntry,postOperation)
-
-    for _, v := range this.pMex.Conf.GetConf(){
-        //HACK: the space is for spacing the elements when converting to []byte
-        var ele string = v + " "
-        newConfAppEntry.Entry.Payload = append(newConfAppEntry.Entry.Payload,ele...)
-        if op == protobuf.Operation_JOIN_CONF_ADD{
-            state.GetStatePool().ChangeNnuNodes(nodematchidx.INC)
-        }
-    }
-    return newConfAppEntry
 }

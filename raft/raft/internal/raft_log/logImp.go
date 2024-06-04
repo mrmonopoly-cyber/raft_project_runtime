@@ -4,20 +4,9 @@ import (
 	"errors"
 	l "log"
 	localfs "raft/internal/localFs"
-	clusterconf "raft/internal/raftstate/clusterConf"
-	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
-	"strings"
 	"sync"
 )
-
-type cConf interface {
-	GetNumberNodesInCurrentConf() int
-	IsInConf(ipNode string) bool
-	NotifyChangeInConf() <-chan int
-	GetConfig() []string
-	GetRootFs() string
-}
 
 type log struct {
 	lock            sync.RWMutex
@@ -28,45 +17,12 @@ type log struct {
 	commitIndex int64
 	lastApplied int
 
-	realClusterState
+    localfs.LocalFs
 }
 
-// GetConfig implements LogEntry.
-// Subtle: this method shadows the method (realClusterState).GetConfig of log.realClusterState.
-func (this *log) GetConfig() []string {
-    return this.realClusterState.GetConfig()
-}
-
-// GetNumberNodesInCurrentConf implements LogEntry.
-// Subtle: this method shadows the method (realClusterState).GetNumberNodesInCurrentConf of log.realClusterState.
-func (this *log) GetNumberNodesInCurrentConf() int {
-    return this.realClusterState.GetNumberNodesInCurrentConf()
-}
-
-// GetRootFs implements LogEntry.
-func (this *log) GetRootFs() string {
-    return this.realClusterState.GetRootDir()
-}
-
-// IsInConf implements LogEntry.
-// Subtle: this method shadows the method (realClusterState).IsInConf of log.realClusterState.
-func (this *log) IsInConf(ipNode string) bool {
-    return this.realClusterState.IsInConf(ipNode)
-}
-
-// ResetConf implements LogEntry.
-func (this *log) ResetLog() {
-	this.realClusterState.Configuration = clusterconf.NewConf()
-}
-
-// NotifyChangeInConfChan implements LogEntry.
-func (this *log) NotifyChangeInConf() <-chan int {
-	return this.realClusterState.Configuration.NotifyChangeInConf()
-}
-
-type realClusterState struct {
-	clusterconf.Configuration
-	localfs.LocalFs
+// AppendEntry implements LogEntry.
+func (this *log) AppendEntry(newEntries *LogInstance) {
+	panic("unimplemented")
 }
 
 // log
@@ -100,24 +56,6 @@ func (this *log) GetEntriAt(index int64) (*LogInstance, error) {
 		return &this.entries[index], nil
 	}
 	return nil, errors.New("invalid index: " + string(rune(index)))
-}
-
-func (this *log) AppendEntries(newEntries []*LogInstance) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
-	var lenEntries = len(this.entries)
-
-	for _, v := range newEntries {
-		l.Println("adding new logEntry: ", v)
-		if int(this.logSize) < lenEntries {
-			this.entries[this.logSize] = *v
-		} else {
-			this.entries = append(this.entries, *v)
-			lenEntries++
-		}
-		this.logSize++
-	}
 }
 
 // DeleteFromEntry implements LogEntry.
@@ -195,29 +133,14 @@ func (this *log) updateLastApplied() error {
 			switch entry.Entry.OpType {
 			case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL,
 				p.Operation_COMMIT_CONFIG_REM, p.Operation_COMMIT_CONFIG_ADD:
-				this.applyConf(entry.Entry.OpType, entry)
 			default:
 				(*this).ApplyLogEntry(entry.Entry)
 			}
-            if entry.AtCompletion != nil{
-                go entry.AtCompletion()
-            }
 		}
 
 	}
 }
 
-func (this *log) applyConf(ope protobuf.Operation, entry *LogInstance) {
-	var confUnfiltered string = string(entry.Entry.Payload)
-	var confFiltered []string = strings.Split(confUnfiltered, "K")
-    for i := range confFiltered {
-        confFiltered[i] = strings.Trim(confFiltered[i]," ")
-    }
-	l.Printf("applying the new conf:%v\t%v\n", confUnfiltered, confFiltered)
-	this.UpdateConfiguration(ope, confFiltered)
-	//HACK: if you are follower this goroutine remain stuck forever
-	//creating a zombie process
-}
 
 func (this *log) getEntries(startIndex int) []LogInstance {
 	var committedEntries []LogInstance = nil
