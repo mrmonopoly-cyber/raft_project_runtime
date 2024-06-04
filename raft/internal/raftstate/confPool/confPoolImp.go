@@ -5,7 +5,7 @@ import (
 	"log"
 	"raft/internal/node"
 	"raft/internal/raft_log"
-	leadercommidx "raft/internal/raftstate/confPool/LeaderCommIdx"
+	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	"raft/internal/raftstate/confPool/queue"
 	singleconf "raft/internal/raftstate/confPool/singleConf"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -27,7 +27,7 @@ type confPool struct {
 	emptyNewConf chan int
 	nodeList     sync.Map
 	numNodes     uint
-    leadercommidx.LeaderCommonIdx
+    nodeIndexPool.NodeIndexPool
 }
 
 // AutoCommitSet implements ConfPool.
@@ -164,9 +164,10 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
 		for i := range confFiltered {
 			confFiltered[i] = strings.Trim(confFiltered[i], " ")
+            c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, confFiltered[i])
 		}
 		confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
-		var newConf = singleconf.NewSingleConf(c.fsRootDir, confFiltered, &c.nodeList, c.LeaderCommonIdx)
+		var newConf = singleconf.NewSingleConf(c.fsRootDir, confFiltered, &c.nodeList, c.NodeIndexPool)
 		log.Println("checking conf is the same: ", newConf, c.newConf)
         //WARN: DANGEROUS
 		if c.newConf==nil || !reflect.DeepEqual(c.newConf.GetConfig(),newConf.GetConfig()) {
@@ -232,9 +233,9 @@ func confPoolImpl(rootDir string) *confPool {
 		nodeList:     sync.Map{},
 		numNodes:     0,
 		fsRootDir:    rootDir,
-        LeaderCommonIdx: leadercommidx.NewLeaederCommonIdx(),
+        NodeIndexPool: nodeIndexPool.NewLeaederCommonIdx(),
 	}
-	res.mainConf = singleconf.NewSingleConf(rootDir, nil, &res.nodeList, res.LeaderCommonIdx)
+	res.mainConf = singleconf.NewSingleConf(rootDir, nil, &res.nodeList, res.NodeIndexPool)
 
 	go res.joinNextConf()
 
