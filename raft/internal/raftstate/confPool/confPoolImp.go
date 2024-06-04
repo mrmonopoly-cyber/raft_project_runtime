@@ -232,7 +232,7 @@ func confPoolImpl(rootDir string) *confPool {
 		nodeList:     sync.Map{},
 		numNodes:     0,
 		fsRootDir:    rootDir,
-        autoCommitRight: true,
+        autoCommitRight: false,
 	}
 	res.mainConf = singleconf.NewSingleConf(rootDir, nil, &res.nodeList)
 
