@@ -2,7 +2,6 @@ package singleconf
 
 import (
 	"raft/internal/raft_log"
-	nodematchidx "raft/internal/raftstate/nodeMatchIdx"
 	"sync"
 )
 
@@ -12,7 +11,6 @@ type singleConfImp struct {
 	numNodes uint
     autoCommit bool
 	raft_log.LogEntry
-    nodematchidx.NodeCommonMatch
 }
 
 func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
@@ -47,7 +45,6 @@ func newSingleConfImp(fsRootDir string, conf []string, nodeList *sync.Map) *sing
         conf: sync.Map{},
         numNodes: 0,
         LogEntry: raft_log.NewLogEntry(fsRootDir),
-        NodeCommonMatch: nodematchidx.NewNodeCommonMatch(),
     }
 
     for _, v := range conf {
