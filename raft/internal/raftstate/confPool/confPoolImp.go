@@ -194,7 +194,7 @@ func (c *confPool) joinNextConf() {
     log.Println("waiting on: ", c.confQueue.C)
 	for {
 		<-c.emptyNewConf
-		<-c.confQueue.C
+		<-c.confQueue.WaitEl()
 		var co = c.confQueue.Pop()
 		c.newConf = co.SingleConf
 		c.AppendEntry(co.LogInstance)
