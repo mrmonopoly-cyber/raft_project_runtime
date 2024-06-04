@@ -179,6 +179,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	}
 
     if c.autoCommitRight {
+        log.Println("autocommit entry: ",entry)
         c.mainConf.IncreaseCommitIndex()
         if c.newConf != nil {
             c.newConf.IncreaseCommitIndex()
@@ -232,7 +233,7 @@ func confPoolImpl(rootDir string) *confPool {
 		nodeList:     sync.Map{},
 		numNodes:     0,
 		fsRootDir:    rootDir,
-        autoCommitRight: true,
+        autoCommitRight: false,
 	}
 	res.mainConf = singleconf.NewSingleConf(rootDir, nil, &res.nodeList)
 
