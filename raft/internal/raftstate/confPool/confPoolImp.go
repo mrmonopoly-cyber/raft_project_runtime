@@ -181,11 +181,12 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
     c.autoCommitC <- 1
 
 	go func() {
-		log.Println("waiting commit of entry: ", entry)
+		log.Println("waiting main conf commit of entry: ", entry)
+        <-entry.Committed
 		if joinConf {
+		    log.Println("waiting new conf commit of entry: ", entry)
 			<-entry.Committed
 		}
-		<-entry.Committed
         log.Println("entry committed: ",entry)
 		switch {
 		case entry.Entry.OpType == protobuf.Operation_COMMIT_CONFIG_ADD:
