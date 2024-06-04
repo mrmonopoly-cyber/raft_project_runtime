@@ -157,8 +157,10 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
 		var newConf = singleconf.NewSingleConf(c.fsRootDir, confFiltered, &c.nodeList)
 		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
+        log.Println("waiting conf pushed: ",newConf)
 		for c.newConf != nil {
 		} //HACK: POLLING WAIT
+        log.Println("checking conf is the same: ",newConf, c.newConf)
 		if c.newConf != newConf {
 			return
 		}
