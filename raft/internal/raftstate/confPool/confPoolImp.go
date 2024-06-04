@@ -190,10 +190,13 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 }
 
 func (c *confPool) joinNextConf() {
+    var waitNewEl = c.confQueue.WaitEl()
+    log.Println("waiting new ele chan: ", waitNewEl)
+
     c.emptyNewConf <- 1
 	for {
 		<-c.emptyNewConf
-		<-c.confQueue.WaitEl()
+		<-waitNewEl
 		var co = c.confQueue.Pop()
 		c.newConf = co.SingleConf
 		c.AppendEntry(co.LogInstance)
