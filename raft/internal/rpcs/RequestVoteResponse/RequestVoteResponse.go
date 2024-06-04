@@ -39,26 +39,26 @@ func (this *RequestVoteResponse) Execute(state raftstate.State, sender node.Node
 
     if this.GetVote() {
         log.Println("received positive vote");
-        state.IncreaseSupporters()
+        // state.IncreaseSupporters()
     }else {
         log.Println("received negative vote");
-        state.IncreaseNotSupporters()
+        // state.IncreaseNotSupporters()
     }
     
-    var nodeInCluster = uint64(state.GetNumberNodesInCurrentConf())
-    var nVictory = nodeInCluster/2
-    var supp = state.GetNumSupporters()
-    var notSupp = state.GetNumNotSupporters()
-
-    if supp > nVictory {
-        log.Println("election won");
-        state.SetRole(raftstate.LEADER)
-        return nil
-    }
-    if supp + notSupp == nodeInCluster{
-        log.Println("election lost");
-        state.ResetElection()
-    }
+    // var nodeInCluster = uint64(state.GetNumberNodesInCurrentConf())
+    // var nVictory = nodeInCluster/2
+    // var supp = state.GetNumSupporters()
+    // var notSupp = state.GetNumNotSupporters()
+    //
+    // if supp > nVictory {
+    //     log.Println("election won");
+    //     state.SetRole(raftstate.LEADER)
+    //     return nil
+    // }
+    // if supp + notSupp == nodeInCluster{
+    //     log.Println("election lost");
+    //     state.ResetElection()
+    // }
 
     return nil
 }

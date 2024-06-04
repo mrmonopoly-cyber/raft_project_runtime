@@ -88,7 +88,6 @@ func (this *conf) UpdateConfiguration(op protobuf.Operation, nodeIps []string) {
 		return
 	}
 
-    log.Println("done updating")
     return
 }
 

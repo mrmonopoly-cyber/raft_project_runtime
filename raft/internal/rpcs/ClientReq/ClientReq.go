@@ -30,7 +30,9 @@ func (this *ClientReq) Execute(state raftstate.State, sender node.Node) rpcs.Rpc
 
     newLogEntry.Description = "new " + string(operation) + " operation on file" + string((*this).pMex.Others)
 
-    state.AppendEntries(newLogEntryWrp)
+    for _,v := range newLogEntryWrp {
+        state.AppendEntry(v)
+    }
 
     return nil
 }

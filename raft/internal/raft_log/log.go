@@ -2,12 +2,14 @@ package raft_log
 
 import (
 	localfs "raft/internal/localFs"
-	clusterconf "raft/internal/raftstate/clusterConf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 )
 
+const SEPARATOR = "K"
+
 type LogInstance struct {
 	Entry             *p.LogEntry
+    Committed       chan int
     AtCompletion    func() 
 }
 
@@ -17,7 +19,7 @@ type LogEntry interface {
 
 	GetEntries() []LogInstance
     GetEntriAt(index int64) (*LogInstance,error)
-    AppendEntries(newEntries []*LogInstance)
+    AppendEntry(newEntries *LogInstance)
     DeleteFromEntry(entryIndex uint)
 
     GetCommitIndex() int64
@@ -30,8 +32,6 @@ type LogEntry interface {
     NewLogInstance(entry *p.LogEntry, post func()) *LogInstance
     NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogInstance
 
-    //conf info
-    cConf
 }
 
 
@@ -42,7 +42,6 @@ func NewLogEntry(fsRootDir string) LogEntry {
 	l.lastApplied = -1
     l.logSize = 0
 	l.entries = nil
-    l.Configuration = clusterconf.NewConf()
     l.newEntryToApply = make(chan int)
     l.LocalFs = localfs.NewFs(fsRootDir)
 
@@ -55,6 +54,7 @@ func (this *log) NewLogInstance(entry *p.LogEntry, post func()) *LogInstance{
     return &LogInstance{
         Entry: entry,
         AtCompletion: post,
+        Committed: make(chan int),
     }
 }
 

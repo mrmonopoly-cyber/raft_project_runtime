@@ -41,13 +41,13 @@ func (this *AppendResponse) Execute(state raftstate.State, sender node.Node) rpc
         } else {
             log.Println("consistency fail")
             //log.Println(this.pMex.GetLogIndexError())
-            sender.SetNextIndex(int(this.pMex.GetLogIndexError()))
+            // sender.SetNextIndex(int(this.pMex.GetLogIndexError()))
             //log.Println((*senderState).GetNextIndex())
         }
     } else {
         log.Printf("response ok increasing match and next index of node: %v\n", *this.pMex.Id)
-        sender.SetNextIndex(int(this.pMex.GetLogIndexError())+1)
-        sender.SetMatchIndex(int(this.pMex.GetLogIndexError()))
+        // sender.SetNextIndex(int(this.pMex.GetLogIndexError())+1)
+        // sender.SetMatchIndex(int(this.pMex.GetLogIndexError()))
     }
 
     return resp
