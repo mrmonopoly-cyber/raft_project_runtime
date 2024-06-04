@@ -13,8 +13,6 @@ const(
 
 type SingleConf interface{
     GetConfig() []string
-    GetNumNodes() uint
-    SendMexToNode(ip string, mex []byte) error
     raft_log.LogEntry
 }
 
