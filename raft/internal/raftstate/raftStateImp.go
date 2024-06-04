@@ -172,6 +172,7 @@ func newStateImplementation(idPrivate string, idPublic string, fsRootDir string)
 
     s.ConfPool = confpool.NewConfPoll(fsRootDir)
     s.SetRole(FOLLOWER)
+    s.ConfPool.AutoCommitSet(true)
 
 	return s
 }
