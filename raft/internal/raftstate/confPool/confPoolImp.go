@@ -212,7 +212,9 @@ func (c *confPool) joinNextConf() {
 		c.emptyNewConf <- 1
 	}()
 	for {
+        log.Println("waiting commiting of new conf")
 		<-c.emptyNewConf
+        log.Println("waiting new conf to join")
 		<-c.confQueue.WaitEl()
 		var co = c.confQueue.Pop()
 		c.newConf = co.SingleConf
