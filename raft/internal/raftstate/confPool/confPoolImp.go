@@ -186,7 +186,6 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 }
 
 func (c *confPool) joinNextConf() {
-    c.emptyNewConf <- 1
 	for {
 		<-c.emptyNewConf
 		<-c.confQueue.WaitEl()
