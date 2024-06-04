@@ -27,7 +27,6 @@ type confPool struct {
 	numNodes     uint
 
 	autoCommitRight bool
-	autoCommitC     chan int
 }
 
 // AutoCommitSet implements ConfPool.
@@ -178,7 +177,13 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		c.newConf.AppendEntry(entry)
 		joinConf = true
 	}
-    c.autoCommitC <- 1
+
+    if c.autoCommitRight {
+        c.mainConf.IncreaseCommitIndex()
+        if c.newConf != nil {
+            c.newConf.IncreaseCommitIndex()
+        }
+    }
 
 	go func() {
 		log.Println("waiting main conf commit of entry: ", entry)
@@ -218,18 +223,6 @@ func (c *confPool) joinNextConf() {
 	}
 }
 
-func (c *confPool) autoCommit() {
-	for {
-		<-c.autoCommitC
-		if c.autoCommitRight {
-			c.mainConf.IncreaseCommitIndex()
-			if c.newConf != nil {
-				c.newConf.IncreaseCommitIndex()
-			}
-		}
-	}
-}
-
 func confPoolImpl(rootDir string) *confPool {
 	var res = &confPool{
 		mainConf:     nil,
@@ -240,12 +233,10 @@ func confPoolImpl(rootDir string) *confPool {
 		numNodes:     0,
 		fsRootDir:    rootDir,
         autoCommitRight: false,
-        autoCommitC: make(chan int),
 	}
 	res.mainConf = singleconf.NewSingleConf(rootDir, nil, &res.nodeList)
 
 	go res.joinNextConf()
-	go res.autoCommit()
 
 	return res
 }
