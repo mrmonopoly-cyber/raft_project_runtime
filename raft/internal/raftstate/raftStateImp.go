@@ -170,6 +170,7 @@ func newStateImplementation(idPrivate string, idPublic string, fsRootDir string)
 	s.TimeoutPool.RestartTimeout(TIMER_HEARTHBIT)
 
     s.ConfPool = confpool.NewConfPoll(fsRootDir)
+    s.ConfPool.AutoCommitSet(true)
 
 	return s
 }

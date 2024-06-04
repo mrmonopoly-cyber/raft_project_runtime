@@ -13,6 +13,7 @@ const(
 )
 
 type ConfPool interface{
+    AutoCommitSet(status bool)
     UpdateNodeList(op OP, node node.Node)
     GetConf() []string
     GetNodeList() *sync.Map
