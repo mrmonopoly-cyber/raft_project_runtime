@@ -188,7 +188,6 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 			<-entry.Committed
 		}
 		<-entry.Committed
-        log.Println("debug ok")
 		switch {
 		case entry.Entry.OpType == protobuf.Operation_COMMIT_CONFIG_ADD:
 			c.mainConf = c.newConf
