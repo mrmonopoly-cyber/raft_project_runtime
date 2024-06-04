@@ -21,7 +21,7 @@ type confPool struct {
 	fsRootDir    string
 	mainConf     singleconf.SingleConf
 	newConf      singleconf.SingleConf
-	confQueue    *queue.QueueImp[tuple]
+	confQueue    queue.Queue[tuple]
 	emptyNewConf chan int
 	nodeList     sync.Map
 	numNodes     uint
@@ -190,13 +190,12 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 }
 
 func (c *confPool) joinNextConf() {
-    go func(){
+    go func ()  {
         c.emptyNewConf <- 1
     }()
 	for {
 		<-c.emptyNewConf
-        log.Println("waiting on cc")
-		<-c.confQueue.C
+		<-c.confQueue.WaitEl()
 		var co = c.confQueue.Pop()
 		c.newConf = co.SingleConf
 		c.AppendEntry(co.LogInstance)
@@ -207,7 +206,7 @@ func confPoolImpl(rootDir string) *confPool {
 	var res = &confPool{
 		mainConf:     nil,
 		newConf:      nil,
-		confQueue:    queue.NewQueueImp[tuple](),
+		confQueue:    queue.NewQueue[tuple](),
 		emptyNewConf: make(chan int),
 		nodeList:     sync.Map{},
 		numNodes:     0,
