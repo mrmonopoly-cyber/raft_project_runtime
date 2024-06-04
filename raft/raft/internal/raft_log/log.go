@@ -19,7 +19,7 @@ type LogEntry interface {
 
 	GetEntries() []LogInstance
     GetEntriAt(index int64) (*LogInstance,error)
-    AppendEntry(newEntries *LogInstance)
+    AppendEntry(newEntrie *LogInstance)
     DeleteFromEntry(entryIndex uint)
 
     GetCommitIndex() int64
