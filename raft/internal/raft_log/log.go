@@ -3,6 +3,7 @@ package raft_log
 import (
 	localfs "raft/internal/localFs"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"sync"
 )
 
 const SEPARATOR = "K"
@@ -37,13 +38,15 @@ type LogEntry interface {
 
 
 func NewLogEntry(fsRootDir string) LogEntry {
-	var l = new(log)
-	l.commitIndex = -1
-	l.lastApplied = -1
-    l.logSize = 0
-	l.entries = nil
-    l.newEntryToApply = make(chan int)
-    l.LocalFs = localfs.NewFs(fsRootDir)
+	var l = &log{
+        commitIndex: -1,
+        lastApplied: -1,
+        logSize: 0,
+        entries: nil,
+        newEntryToApply: make(chan int),
+        LocalFs: localfs.NewFs(fsRootDir),
+        lock: sync.RWMutex{},
+    }
 
     go l.updateLastApplied()
 
