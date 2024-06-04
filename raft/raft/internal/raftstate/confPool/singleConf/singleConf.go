@@ -13,21 +13,11 @@ const(
 
 type SingleConf interface{
     GetConfig() []string
+    AutoCommit(status bool)
     raft_log.LogEntry
 }
 
 func NewSingleConf(fsRootDir string, conf []string, nodeList *sync.Map) SingleConf{
-    var res = &singleConfImp{
-        nodeList: nodeList,
-        conf: sync.Map{},
-        numNodes: 0,
-        LogEntry: raft_log.NewLogEntry(fsRootDir),
-    }
-
-    for _, v := range conf {
-        res.conf.Store(v,v)
-        res.numNodes++
-    }
-    return res
+    return newSingleConfImp(fsRootDir,conf,nodeList)
 }
 
