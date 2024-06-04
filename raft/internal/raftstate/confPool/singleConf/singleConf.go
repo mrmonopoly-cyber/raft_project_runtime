@@ -2,6 +2,7 @@ package singleconf
 
 import (
 	"raft/internal/raft_log"
+	leadercommidx "raft/internal/raftstate/confPool/LeaderCommIdx"
 	"sync"
 )
 
@@ -17,7 +18,10 @@ type SingleConf interface{
     raft_log.LogEntry
 }
 
-func NewSingleConf(fsRootDir string, conf []string, nodeList *sync.Map) SingleConf{
-    return newSingleConfImp(fsRootDir,conf,nodeList)
+func NewSingleConf( fsRootDir string, 
+                    conf []string,  
+                    nodeList *sync.Map,
+                    leaderCommoIdx leadercommidx.LeaderCommonIdx) SingleConf{
+    return newSingleConfImp(fsRootDir,conf,nodeList,leaderCommoIdx)
 }
 
