@@ -194,6 +194,7 @@ func (c *confPool) joinNextConf() {
     log.Println("waiting on: ", c.confQueue.C)
 	for {
 		<-c.emptyNewConf
+        log.Println("waiting on cc: ", c.confQueue.C)
 		<-c.confQueue.C
 		var co = c.confQueue.Pop()
 		c.newConf = co.SingleConf
