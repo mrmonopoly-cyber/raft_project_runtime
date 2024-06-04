@@ -136,8 +136,10 @@ func (this *log) updateLastApplied() error {
         default:
             (*this).ApplyLogEntry(entry.Entry)
         }
-
-        entry.Committed <- 1
+        l.Println("notifing completion: ",entry.Entry)
+        go func ()  {
+            entry.Committed <- 1
+        }()
 	}
 }
 
