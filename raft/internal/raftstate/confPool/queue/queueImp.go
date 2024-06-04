@@ -15,9 +15,7 @@ func (q *queueImp[T]) Pop() T {
 // Push implements Queue.
 func (q *queueImp[T]) Push(v T) {
     q.buffer = append(q.buffer, v)
-    go func(){
-        q.notifyAdd <- 1
-    }()
+    q.notifyAdd <- 1
 }
 
 // Size implements Queue.
