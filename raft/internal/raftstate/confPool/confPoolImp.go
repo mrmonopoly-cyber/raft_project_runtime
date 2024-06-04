@@ -191,9 +191,10 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 
 func (c *confPool) joinNextConf() {
     c.emptyNewConf <- 1
+    log.Println("waiting on: ", c.confQueue.C)
 	for {
 		<-c.emptyNewConf
-        log.Println("waiting on cc")
+        log.Println("waiting on cc: ", c.confQueue.C)
 		<-c.confQueue.C
 		var co = c.confQueue.Pop()
 		c.newConf = co.SingleConf
