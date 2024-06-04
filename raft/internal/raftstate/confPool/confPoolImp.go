@@ -151,7 +151,7 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 	}
 }
 
-func (c *confPool) AppendEntry(entry raft_log.LogInstance) {
+func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	var joinConf bool = false
 
 	log.Println("appending entry, general pool: ", entry)
@@ -164,7 +164,7 @@ func (c *confPool) AppendEntry(entry raft_log.LogInstance) {
 		}
 		confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
 		var newConf = singleconf.NewSingleConf(c.fsRootDir, confFiltered, &c.nodeList)
-		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: &entry})
+		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
 		log.Println("waiting conf pushed: ", newConf)
 		for c.newConf == nil {
 		} //HACK: POLLING WAIT
@@ -176,9 +176,9 @@ func (c *confPool) AppendEntry(entry raft_log.LogInstance) {
 		panic("not implemented")
 	}
 
-	c.mainConf.AppendEntry(entry)
+	c.mainConf.AppendEntry(*entry)
 	if c.newConf != nil {
-		c.newConf.AppendEntry(entry)
+		c.newConf.AppendEntry(*entry)
 		joinConf = true
 	}
 
@@ -210,7 +210,7 @@ func (c *confPool) joinNextConf() {
 		<-c.confQueue.WaitEl()
 		var co = c.confQueue.Pop()
 		c.newConf = co.SingleConf
-		c.AppendEntry(*co.LogInstance)
+		c.AppendEntry(co.LogInstance)
 	}
 }
 
