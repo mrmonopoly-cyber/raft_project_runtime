@@ -24,6 +24,7 @@ type log struct {
 func (this *log) AppendEntry(newEntrie *LogInstance) {
     l.Println("adding new entrie to the log: ",*newEntrie)
     this.entries = append(this.entries, *newEntrie)
+    this.logSize++
 }
 
 // log
