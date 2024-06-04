@@ -137,9 +137,7 @@ func (this *log) updateLastApplied() error {
             (*this).ApplyLogEntry(entry.Entry)
         }
 
-        go func(){
-            entry.Committed <- 1
-        }()
+        entry.Committed <- 1
 	}
 }
 
