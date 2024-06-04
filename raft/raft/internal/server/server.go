@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	state "raft/internal/raftstate"
+	"sync"
 )
 
 
@@ -24,6 +25,8 @@ func NewServer(ipAddPrivate string, ipAddrPublic string, port string, serversIp 
 		_state:         state.NewState(ipAddPrivate, ipAddrPublic, fsRootDir),
 		messageChannel: make(chan pairMex),
 		listener:       listener,
+        clientList: sync.Map{},
+        wg: sync.WaitGroup{},
 	}
 
     log.Println("number of others ip: ", len(serversIp))

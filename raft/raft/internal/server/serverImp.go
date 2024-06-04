@@ -24,9 +24,10 @@ type pairMex struct{
 
 type server struct {
     wg             sync.WaitGroup
-	_state         state.State
-	messageChannel chan pairMex
-	listener       net.Listener
+    _state         state.State
+    messageChannel chan pairMex
+    listener       net.Listener
+    clientList      sync.Map
 }
 
 func (s *server) Start() {
@@ -106,6 +107,8 @@ func (s *server) externalAgentConnection(agent node.Node){
     var resp rpcs.Rpc 
     var inputMex rpcs.Rpc 
     var clientReq pairMex = pairMex{}
+
+    s.clientList.Store(agent.GetIp(),agent)
 
     //INFO: send to the client who you think is the leader, (blank means you are not in the conf)
     resp = Redirection.NewredirectionRPC(leaderIp)
@@ -192,8 +195,12 @@ func (s *server) newMessageReceived(mess pairMex){
 
             senderNode,errEn = s._state.GetNode(mess.sender)
             if errEn != nil {
-                log.Println(errEn)
-                return
+                var v,f = s.clientList.Load(mess.sender)
+                if !f{
+                    log.Println(errEn)
+                    return
+                }
+                senderNode = v.(node.Node)
             }
             oldRole = s._state.GetRole()
             rpcCall = mess.payload
