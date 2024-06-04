@@ -125,6 +125,7 @@ func (this *log) LastLogTerm() uint {
 
 func (this *log) updateLastApplied() error {
 	for {
+        l.Println("waiting new entry to apply")
 		<-this.newEntryToApply
         this.lastApplied++
         var entry *LogInstance = &this.entries[this.lastApplied]
