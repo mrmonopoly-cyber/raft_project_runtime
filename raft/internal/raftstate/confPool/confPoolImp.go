@@ -2,6 +2,7 @@ package confpool
 
 import (
 	"errors"
+	"log"
 	"raft/internal/node"
 	"raft/internal/raft_log"
 	"raft/internal/raftstate/confPool/queue"
@@ -145,6 +146,7 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	var joinConf bool = false
 
+    log.Println("appending entry, general pool: ",entry)
 	switch entry.Entry.OpType {
 	case protobuf.Operation_JOIN_CONF_ADD:
 		var confUnfiltered string = string(entry.Entry.Payload)
