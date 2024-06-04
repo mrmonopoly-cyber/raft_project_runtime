@@ -239,7 +239,7 @@ func confPoolImpl(rootDir string) *confPool {
 		nodeList:     sync.Map{},
 		numNodes:     0,
 		fsRootDir:    rootDir,
-        autoCommitRight: false,
+        autoCommitRight: true,
         autoCommitC: make(chan int),
 	}
 	res.mainConf = singleconf.NewSingleConf(rootDir, nil, &res.nodeList)
