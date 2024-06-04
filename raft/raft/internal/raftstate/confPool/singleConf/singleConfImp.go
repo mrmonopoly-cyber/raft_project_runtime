@@ -1,8 +1,6 @@
 package singleconf
 
 import (
-	"errors"
-	"raft/internal/node"
 	"raft/internal/raft_log"
 	"sync"
 )
@@ -25,21 +23,4 @@ func (s *singleConfImp) GetConfig() []string {
     })
 
     return res
-}
-
-// GetNumNodes implements SingleConf.
-func (s *singleConfImp) GetNumNodes() uint {
-	return s.numNodes
-}
-
-// SendMexToNode implements SingleConf.
-func (s *singleConfImp) SendMexToNode(ip string, mex []byte) error {
-	var v,f = s.nodeList.Load(ip)
-    var nodeS node.Node
-    if !f{
-        return errors.New("node not found")
-    }
-
-    nodeS = v.(node.Node)
-    return nodeS.Send(mex)
 }
