@@ -1,6 +1,8 @@
 package singleconf
 
 import (
+	"log"
+	"raft/internal/node"
 	"raft/internal/raft_log"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	"sync"
@@ -21,7 +23,25 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
         s.LogEntry.IncreaseCommitIndex()
         return
     }
+
     //INFO:LEADER
+    //Propagate to all nodes in this conf
+    s.conf.Range(func(key, value any) bool {
+        var v,f = s.nodeList.Load(key)
+        var fNode node.Node
+
+        if !f{
+            log.Println("node not yet connected or crashes, skipping send")
+            return false
+        }
+        fNode = v.(node.Node)
+        fNode.GetIp() //INFO: just to remove the compiler error
+
+        //TODO: generate an AppendEntry for this specific node and send it
+        //The AppendEntry will contain all the missed entry + the new one
+
+        return true
+    })
 }
 
 // GetConfig implements SingleConf.
