@@ -25,34 +25,42 @@ type confPool struct {
 	emptyNewConf chan int
 	nodeList     sync.Map
 	numNodes     uint
+
+	autoCommitRight bool
+	autoCommitC     chan int
+}
+
+// AutoCommitSet implements ConfPool.
+func (c *confPool) AutoCommitSet(status bool) {
+	c.autoCommitRight = status
 }
 
 // GetNode implements ConfPool.
-func (c *confPool) GetNode(ip string) (node.Node,error) {
-    var v,f = c.nodeList.Load(ip)
-    if !f{
-        return nil,errors.New("node not found: " + ip)
-    }
-    return v.(node.Node),nil
+func (c *confPool) GetNode(ip string) (node.Node, error) {
+	var v, f = c.nodeList.Load(ip)
+	if !f {
+		return nil, errors.New("node not found: " + ip)
+	}
+	return v.(node.Node), nil
 }
 
 // NewLogInstanceBatch implements ConfPool.
 func (c *confPool) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []func()) []*raft_log.LogInstance {
-    var res []*raft_log.LogInstance = nil
-    var postLen = len(post)
+	var res []*raft_log.LogInstance = nil
+	var postLen = len(post)
 
-    for i, v := range entry {
-        var inst = raft_log.LogInstance{
-            Entry: v,
-        }
-        if i < postLen{
-            inst.AtCompletion = post[i]
-        }
-        
-        res = append(res, &inst)
-    }
+	for i, v := range entry {
+		var inst = raft_log.LogInstance{
+			Entry: v,
+		}
+		if i < postLen {
+			inst.AtCompletion = post[i]
+		}
 
-    return res
+		res = append(res, &inst)
+	}
+
+	return res
 }
 
 // DeleteFromEntry implements ConfPool.
@@ -107,12 +115,12 @@ func (c *confPool) MinimumCommitIndex(val uint) {
 
 // NewLogInstance implements ConfPool.
 func (c *confPool) NewLogInstance(entry *protobuf.LogEntry, post func()) *raft_log.LogInstance {
-    var res = &raft_log.LogInstance{
-        Entry: entry,
-        Committed: make(chan int),
-        AtCompletion: post,
-    }
-    return res
+	var res = &raft_log.LogInstance{
+		Entry:        entry,
+		Committed:    make(chan int),
+		AtCompletion: post,
+	}
+	return res
 }
 
 func (c *confPool) GetNodeList() *sync.Map {
@@ -146,7 +154,7 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	var joinConf bool = false
 
-    log.Println("appending entry, general pool: ",entry)
+	log.Println("appending entry, general pool: ", entry)
 	switch entry.Entry.OpType {
 	case protobuf.Operation_JOIN_CONF_ADD:
 		var confUnfiltered string = string(entry.Entry.Payload)
@@ -157,10 +165,10 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
 		var newConf = singleconf.NewSingleConf(c.fsRootDir, confFiltered, &c.nodeList)
 		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
-        log.Println("waiting conf pushed: ",newConf)
+		log.Println("waiting conf pushed: ", newConf)
 		for c.newConf == nil {
 		} //HACK: POLLING WAIT
-        log.Println("checking conf is the same: ",newConf, c.newConf)
+		log.Println("checking conf is the same: ", newConf, c.newConf)
 		if c.newConf != newConf {
 			return
 		}
@@ -174,32 +182,47 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		joinConf = true
 	}
 
-    log.Println("waiting commit of entry: ",entry)
-	if joinConf {
+	go func() {
+		log.Println("waiting commit of entry: ", entry)
+		if joinConf {
+			<-entry.Committed
+		}
 		<-entry.Committed
-	}
-	<-entry.Committed
-	switch {
-	case entry.Entry.OpType == protobuf.Operation_COMMIT_CONFIG_ADD:
-		c.mainConf = c.newConf
-		c.newConf = nil
-		c.emptyNewConf <- 1
-	case entry.AtCompletion != nil:
-		entry.AtCompletion()
-	}
+		switch {
+		case entry.Entry.OpType == protobuf.Operation_COMMIT_CONFIG_ADD:
+			c.mainConf = c.newConf
+			c.newConf = nil
+			c.emptyNewConf <- 1
+		case entry.AtCompletion != nil:
+			entry.AtCompletion()
+		}
+	}()
 
 }
 
+// daemon
 func (c *confPool) joinNextConf() {
-    go func ()  {
-        c.emptyNewConf <- 1
-    }()
+	go func() {
+		c.emptyNewConf <- 1
+	}()
 	for {
 		<-c.emptyNewConf
 		<-c.confQueue.WaitEl()
 		var co = c.confQueue.Pop()
 		c.newConf = co.SingleConf
 		c.AppendEntry(co.LogInstance)
+	}
+}
+
+func (c *confPool) autoCommit() {
+	for {
+		<-c.autoCommitC
+		if c.autoCommitRight {
+			c.mainConf.IncreaseCommitIndex()
+			if c.newConf != nil {
+				c.newConf.IncreaseCommitIndex()
+			}
+		}
 	}
 }
 
@@ -212,10 +235,13 @@ func confPoolImpl(rootDir string) *confPool {
 		nodeList:     sync.Map{},
 		numNodes:     0,
 		fsRootDir:    rootDir,
+        autoCommitRight: false,
+        autoCommitC: make(chan int),
 	}
 	res.mainConf = singleconf.NewSingleConf(rootDir, nil, &res.nodeList)
 
-    go res.joinNextConf()
+	go res.joinNextConf()
+	go res.autoCommit()
 
 	return res
 }
