@@ -4,5 +4,5 @@ type LeaderCommonIdx interface{
 }
 
 func NewLeaederCommonIdx() LeaderCommonIdx{
-    panic("not implemented")
+    return nil
 }
