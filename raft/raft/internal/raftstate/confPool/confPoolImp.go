@@ -8,6 +8,7 @@ import (
 	"raft/internal/raftstate/confPool/queue"
 	singleconf "raft/internal/raftstate/confPool/singleConf"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -161,7 +162,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		for c.newConf != nil {
 		} //HACK: POLLING WAIT
         log.Println("checking conf is the same: ",newConf, c.newConf)
-		if c.newConf != newConf {
+        if reflect.DeepEqual(c.newConf.GetConfig(),newConf.GetConfig()){
 			return
 		}
 	case protobuf.Operation_JOIN_CONF_DEL:
