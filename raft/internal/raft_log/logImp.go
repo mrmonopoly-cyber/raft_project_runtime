@@ -82,6 +82,7 @@ func (this *log) IncreaseCommitIndex() {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	if this.commitIndex < int64(this.logSize)-1 {
+        l.Println("ok to increase commitIndex")
 		this.commitIndex++
 		this.newEntryToApply <- 1
 	}
@@ -126,7 +127,7 @@ func (this *log) LastLogTerm() uint {
 
 func (this *log) updateLastApplied() error {
 	for {
-        l.Println("waiting new entry to apply")
+        l.Println("waiting new entry to apply on ch: ", this.newEntryToApply)
 		<-this.newEntryToApply
         this.lastApplied++
         var entry *LogInstance = &this.entries[this.lastApplied]
