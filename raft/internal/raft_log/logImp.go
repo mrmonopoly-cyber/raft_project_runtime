@@ -22,7 +22,6 @@ type log struct {
 
 // AppendEntry implements LogEntry.
 func (this *log) AppendEntry(newEntries *LogInstance) {
-    l.Println("main append Entry")
 	panic("unimplemented")
 }
 
