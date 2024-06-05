@@ -120,6 +120,7 @@ func (c *confPool) NewLogInstance(entry *protobuf.LogEntry, post func()) *raft_l
 	var res = &raft_log.LogInstance{
 		Entry:        entry,
 		AtCompletion: post,
+        Committed: make(chan int),
 	}
 	return res
 }
