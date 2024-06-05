@@ -1,8 +1,8 @@
 package raftstate
 
 import (
-	"log"
 	"math/rand"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	confpool "raft/internal/raftstate/confPool"
 	"raft/internal/raftstate/timeout"
 	"time"
@@ -34,41 +34,18 @@ type raftStateImpl struct {
 }
 
 // GetLeaderIp implements State.
-func (this *raftStateImpl) GetLeaderIp(vis VISIBILITY) string {
-	switch vis {
-	case PUB:
-		return this.leaderIp.public
-	case PRI:
-		return this.leaderIp.private
-	default:
-		log.Panicln("invalid case ", vis)
-		return ""
-	}
+func (this *raftStateImpl) GetLeaderIp(vis clustermetadata.VISIBILITY) string {
+    panic("raft state")
 }
 
 // SetLeaderIp implements State.
-func (this *raftStateImpl) SetLeaderIp(vis VISIBILITY, ip string) {
-	switch vis {
-	case PUB:
-		this.leaderIp.public = ip
-	case PRI:
-		this.leaderIp.private = ip
-	default:
-		log.Panicln("unamanage case in setLeaderIp")
-	}
+func (this *raftStateImpl) SetLeaderIp(vis clustermetadata.VISIBILITY, ip string) {
+    panic("raft state")
 }
 
 // GetMyIp implements State.
-func (this *raftStateImpl) GetMyIp(vis VISIBILITY) string {
-	switch vis {
-	case PUB:
-		return this.myIp.public
-	case PRI:
-		return this.myIp.private
-	default:
-		log.Panicln("invalid case ip: ", vis)
-		return ""
-	}
+func (this *raftStateImpl) GetMyIp(vis clustermetadata.VISIBILITY) string {
+    panic("raft state")
 }
 
 func (this *raftStateImpl) GetTerm() uint64 {
@@ -79,25 +56,12 @@ func (this *raftStateImpl) SetTerm(newTerm uint64) {
 	this.term = newTerm
 }
 
-func (this *raftStateImpl) GetRole() Role {
-	return this.role
+func (this *raftStateImpl) GetRole() clustermetadata.Role{
+    panic("raft state")
 }
 
-func (this *raftStateImpl) SetRole(newRole Role) {
-	if this.role == newRole {
-		return
-	}
-	switch newRole {
-	case FOLLOWER:
-        this.ConfPool.AutoCommitSet(true)
-		this.StopTimeout(TIMER_HEARTHBIT)
-	case LEADER:
-        this.ConfPool.AutoCommitSet(false)
-		this.RestartTimeout(TIMER_HEARTHBIT)
-		this.leaderIp = this.myIp
-		this.ResetElection()
-	}
-	this.role = newRole
+func (this *raftStateImpl) SetRole(newRole clustermetadata.Role) {
+    panic("raft state")
 }
 
 func (this *raftStateImpl) CanVote() bool {
@@ -170,8 +134,7 @@ func newStateImplementation(idPrivate string, idPublic string, fsRootDir string)
 	s.TimeoutPool.AddTimeout(TIMER_HEARTHBIT, time.Duration(H_TIMEOUT))
 	s.TimeoutPool.RestartTimeout(TIMER_HEARTHBIT)
 
-    s.ConfPool = confpool.NewConfPoll(fsRootDir)
-    s.SetRole(FOLLOWER)
+    s.ConfPool = nil
     s.ConfPool.AutoCommitSet(true)
 
 	return s

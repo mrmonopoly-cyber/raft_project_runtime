@@ -5,6 +5,7 @@ import (
 	"log"
 	"raft/internal/node"
 	"raft/internal/raft_log"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	"raft/internal/raftstate/confPool/queue"
 	singleconf "raft/internal/raftstate/confPool/singleConf"
@@ -29,6 +30,7 @@ type confPool struct {
 	nodeList     sync.Map
 	numNodes     uint
 	nodeIndexPool.NodeIndexPool
+    commonMetadata clustermetadata.ClusterMetadata
 }
 
 // AutoCommitSet implements ConfPool.
@@ -170,7 +172,8 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 			confFiltered,
 			&c.nodeList,
 			&c.autoCommit,
-			c.NodeIndexPool)
+			c.NodeIndexPool,
+            c.commonMetadata)
 		log.Println("checking conf is the same: ", newConf, c.newConf)
 		//WARN: DANGEROUS
 		if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
@@ -227,7 +230,7 @@ func (c *confPool) joinNextConf() {
 	}
 }
 
-func confPoolImpl(rootDir string) *confPool {
+func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata) *confPool {
 	var res = &confPool{
 		mainConf:      nil,
 		newConf:       nil,
@@ -237,13 +240,15 @@ func confPoolImpl(rootDir string) *confPool {
 		numNodes:      0,
 		fsRootDir:     rootDir,
 		NodeIndexPool: nodeIndexPool.NewLeaederCommonIdx(),
+        commonMetadata: commonMetadata,
 	}
 	res.mainConf = singleconf.NewSingleConf(
 		rootDir,
 		nil,
 		&res.nodeList,
 		&res.autoCommit,
-		res.NodeIndexPool)
+		res.NodeIndexPool,
+        res.commonMetadata)
 
 	go res.joinNextConf()
 

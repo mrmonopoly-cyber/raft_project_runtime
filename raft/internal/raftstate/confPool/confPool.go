@@ -3,6 +3,7 @@ package confpool
 import (
 	"raft/internal/node"
 	"raft/internal/raft_log"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	"sync"
 )
 
@@ -22,6 +23,6 @@ type ConfPool interface {
 	raft_log.LogEntry
 }
 
-func NewConfPoll(rootDirFs string) ConfPool {
-    return confPoolImpl(rootDirFs)
+func NewConfPoll(rootDirFs string,commonMetadata clustermetadata.ClusterMetadata) ConfPool {
+    return confPoolImpl(rootDirFs,commonMetadata)
 }

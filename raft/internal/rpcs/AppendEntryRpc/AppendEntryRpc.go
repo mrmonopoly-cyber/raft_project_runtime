@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"raft/internal/node"
-	"raft/internal/raftstate"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	"raft/internal/rpcs"
 	"raft/internal/raft_log"
 	app_resp "raft/internal/rpcs/AppendResponse"
@@ -25,19 +25,19 @@ type AppendEntryRpc struct {
     pMex protobuf.AppendEntriesRequest
 }
 
-func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
-    var prevLogIndex = state.LastLogIndex()
-    var prevLogTerm uint64 = uint64(state.LastLogTerm())
+func GenerateHearthbeat(intLog raft_log.LogEntry, state clustermetadata.ClusterMetadata) rpcs.Rpc {
+    var prevLogIndex = intLog.LastLogIndex()
+    var prevLogTerm uint64 = uint64(intLog.LastLogTerm())
 
     var app = &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
             Term:         state.GetTerm(),
-            LeaderIdPrivate:     state.GetMyIp(raftstate.PRI),
-            LeaderIdPublic:     state.GetMyIp(raftstate.PUB),
+            LeaderIdPrivate:     state.GetMyIp(clustermetadata.PRI),
+            LeaderIdPublic:     state.GetMyIp(clustermetadata.PUB),
             PrevLogIndex: int64(prevLogIndex),
             PrevLogTerm:  prevLogTerm,
             Entries:      nil,
-            LeaderCommit: state.GetCommitIndex(),
+            LeaderCommit: intLog.GetCommitIndex(),
         },
     }
 
@@ -46,17 +46,20 @@ func GenerateHearthbeat(state raftstate.State) rpcs.Rpc {
     return app
 }
 
-func NewAppendEntryRPC(state raftstate.State, prevLogIndex int64, prevLogTerm uint64, 
+func NewAppendEntryRPC( state clustermetadata.ClusterMetadata, 
+                        intLog raft_log.LogEntry,
+                        prevLogIndex int64, 
+                        prevLogTerm uint64, 
     entries []*protobuf.LogEntry) rpcs.Rpc {
     return &AppendEntryRpc{
         pMex: protobuf.AppendEntriesRequest{
             Term:         state.GetTerm(),
-            LeaderIdPrivate:     state.GetMyIp(raftstate.PRI),
-            LeaderIdPublic:     state.GetMyIp(raftstate.PUB),
+            LeaderIdPrivate:     state.GetMyIp(clustermetadata.PRI),
+            LeaderIdPublic:     state.GetMyIp(clustermetadata.PUB),
             PrevLogIndex: prevLogIndex,
             PrevLogTerm:  prevLogTerm,
             Entries:      entries,
-            LeaderCommit: state.GetCommitIndex(),
+            LeaderCommit: intLog.GetCommitIndex(),
         },
     }
 }
@@ -95,19 +98,22 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []raft_log
 
 
 //Manage implements rpcs.Rpc.
-func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
+func (this *AppendEntryRpc) Execute( 
+            intLog raft_log.LogEntry,
+            metadata clustermetadata.ClusterMetadata,
+            sender node.Node)rpcs.Rpc {
 
     log.Println("executing appendEntryRpc: ", this.ToString())
-    var role raftstate.Role = state.GetRole()
-    var id string = state.GetMyIp(raftstate.PRI)
-    var myTerm uint64 = state.GetTerm()
+    var role = metadata.GetRole()
+    var id string = metadata.GetMyIp(clustermetadata.PRI)
+    var myTerm uint64 = metadata.GetTerm()
     var nextIdx int
     var consistent ERRORS
     var prevLogIndex int64 = this.pMex.GetPrevLogIndex()
     var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
-    var entries []raft_log.LogInstance = state.GetEntries()
+    var entries []raft_log.LogInstance = intLog.GetEntries()
     var newEntries []*protobuf.LogEntry = this.pMex.GetEntries()
-    var newEntriesWrapper []*raft_log.LogInstance = state.NewLogInstanceBatch(newEntries,nil)
+    var newEntriesWrapper []*raft_log.LogInstance = intLog.NewLogInstanceBatch(newEntries,nil)
     var err error
 
     var resp rpcs.Rpc = nil
@@ -118,12 +124,12 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
     }
 
 
-    if role != raftstate.FOLLOWER {
-        state.SetRole(raftstate.FOLLOWER)
+    if role != clustermetadata.FOLLOWER {
+        metadata.SetRole(clustermetadata.FOLLOWER)
     }
 
-    state.SetLeaderIp(raftstate.PRI, this.pMex.LeaderIdPrivate)
-    state.SetLeaderIp(raftstate.PUB, this.pMex.LeaderIdPublic)
+    metadata.SetLeaderIp(clustermetadata.PRI, this.pMex.LeaderIdPrivate)
+    metadata.SetLeaderIp(clustermetadata.PUB, this.pMex.LeaderIdPublic)
 
     if  len(newEntries) > 0{
         //log.Println("received Append Entry", newEntries)
@@ -132,28 +138,28 @@ func (this *AppendEntryRpc) Execute(state raftstate.State, sender node.Node) rpc
             case C2:
                 resp = respondeAppend(id, false, myTerm, nextIdx)
             case C3:
-                state.DeleteFromEntry(uint(nextIdx))
+                intLog.DeleteFromEntry(uint(nextIdx))
                 resp = respondeAppend(id, false, myTerm, nextIdx)
             default:
                 for _,v := range newEntriesWrapper {
-                    state.AppendEntry(v)
+                    intLog.AppendEntry(v)
                 }
                 leaderCommit = this.pMex.GetLeaderCommit()
 
-                if leaderCommit > state.GetCommitIndex() {
-                    state.MinimumCommitIndex(uint(leaderCommit))
+                if leaderCommit > intLog.GetCommitIndex() {
+                    intLog.MinimumCommitIndex(uint(leaderCommit))
                 }
-                resp = respondeAppend(id, true , myTerm, state.LastLogIndex())
+                resp = respondeAppend(id, true , myTerm, intLog.LastLogIndex())
         }
     } 
 
     if resp == nil {
         log.Println("hearthbeat")
-        resp = respondeAppend(id, true, myTerm, state.LastLogIndex())
+        resp = respondeAppend(id, true, myTerm, intLog.LastLogIndex())
         log.Println("hearthbit resp: ", resp.ToString())
     }
 
-    err = state.RestartTimeout(raftstate.TIMER_ELECTION)
+    err = metadata.RestartTimeout(clustermetadata.TIMER_ELECTION)
     if err != nil {
         log.Panicln("failed restarting election timer")
     }

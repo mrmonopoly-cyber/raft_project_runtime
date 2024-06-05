@@ -1,15 +1,10 @@
 package raftstate
 
 import (
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	confpool "raft/internal/raftstate/confPool"
 	"raft/internal/raftstate/timeout"
 	"time"
-)
-
-const (
-	LEADER Role = iota
-	FOLLOWER
-	CANDIDATE
 )
 
 const (
@@ -30,15 +25,8 @@ const (
 )
 
 type State interface {
-    leaderIpMetadata
-    currentNodeIp
-
-    termMetadata
-    voteMetadata
-    roleMetadata
-
+    clustermetadata.ClusterMetadata
     timeout.TimeoutPool
-
     confpool.ConfPool
 }
 

@@ -4,7 +4,7 @@ import (
 	"log"
 	"raft/internal/node"
 	"raft/internal/raft_log"
-	"raft/internal/raftstate"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -17,13 +17,16 @@ type ClientReq struct {
 
 
 // Manage implements rpcs.Rpc.
-func (this *ClientReq) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
+func (this *ClientReq) Execute(
+            intLog raft_log.LogEntry,
+            metadata clustermetadata.ClusterMetadata,
+            sender node.Node) rpcs.Rpc {
     var operation protobuf.Operation = (*this).pMex.Op
     var newEntries []*protobuf.LogEntry =make([]*protobuf.LogEntry, 1)
     var newLogEntry protobuf.LogEntry = protobuf.LogEntry{}
-    var newLogEntryWrp []*raft_log.LogInstance = state.NewLogInstanceBatch(newEntries,[]func(){})
+    var newLogEntryWrp []*raft_log.LogInstance = intLog.NewLogInstanceBatch(newEntries,[]func(){})
 
-    newLogEntry.Term = state.GetTerm()
+    newLogEntry.Term = metadata.GetTerm()
     newEntries[0] = &newLogEntry
 
     newLogEntry.OpType = operation
@@ -31,7 +34,7 @@ func (this *ClientReq) Execute(state raftstate.State, sender node.Node) rpcs.Rpc
     newLogEntry.Description = "new " + string(operation) + " operation on file" + string((*this).pMex.Others)
 
     for _,v := range newLogEntryWrp {
-        state.AppendEntry(v)
+        intLog.AppendEntry(v)
     }
 
     return nil

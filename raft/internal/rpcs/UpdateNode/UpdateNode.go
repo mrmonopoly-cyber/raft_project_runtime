@@ -3,7 +3,8 @@ package UpdateNode
 import (
 	"log"
 	"raft/internal/node"
-	"raft/internal/raftstate"
+	"raft/internal/raft_log"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -23,8 +24,10 @@ func ChangeVoteRightNode(voteAble bool) rpcs.Rpc {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *UpdateNode) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
-    state.VoteRight(this.pMex.Votante)
+func (this *UpdateNode) Execute(intLog raft_log.LogEntry,
+                                metadata clustermetadata.ClusterMetadata,
+                                sender node.Node) rpcs.Rpc {
+    metadata.VoteRight(this.pMex.Votante)
     return nil
 }
 

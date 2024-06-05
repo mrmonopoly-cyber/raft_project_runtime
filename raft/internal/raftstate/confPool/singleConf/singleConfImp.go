@@ -4,6 +4,7 @@ import (
 	"log"
 	"raft/internal/node"
 	"raft/internal/raft_log"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	"sync"
 )
@@ -15,6 +16,7 @@ type singleConfImp struct {
     autoCommit *bool
 	raft_log.LogEntry
     nodeIndexPool.NodeIndexPool
+    clustermetadata.ClusterMetadata
 }
 
 func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
@@ -29,6 +31,7 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
     s.conf.Range(func(key, value any) bool {
         var v,f = s.nodeList.Load(key)
         var fNode node.Node
+
 
         if !f{
             log.Println("node not yet connected or crashes, skipping send")
@@ -60,7 +63,8 @@ func newSingleConfImp(  fsRootDir string,
                         conf []string, 
                         nodeList *sync.Map,
                         autoCommit *bool,
-                        commonStatePool nodeIndexPool.NodeIndexPool) *singleConfImp{
+                        commonStatePool nodeIndexPool.NodeIndexPool,
+                        commonMetadata clustermetadata.ClusterMetadata) *singleConfImp{
     var res = &singleConfImp{
         nodeList: nodeList,
         conf: sync.Map{},
@@ -68,6 +72,7 @@ func newSingleConfImp(  fsRootDir string,
         LogEntry: raft_log.NewLogEntry(fsRootDir),
         autoCommit: autoCommit,
         NodeIndexPool: commonStatePool,
+        ClusterMetadata: commonMetadata,
     }
 
     for _, v := range conf {

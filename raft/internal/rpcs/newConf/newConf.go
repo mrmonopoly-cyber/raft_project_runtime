@@ -4,8 +4,8 @@ import (
 	"log"
 	"raft/internal/node"
 	"raft/internal/raft_log"
-	"raft/internal/raftstate"
 	"raft/internal/rpcs"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	ClientReturnValue "raft/internal/rpcs/clientReturnValue"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -28,15 +28,15 @@ func NewnewConfRPC(op protobuf.AdminOp, conf []string) rpcs.Rpc {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
+func (this* NewConf) Execute(intLog raft_log.LogEntry,metadata clustermetadata.ClusterMetadata, sender node.Node) rpcs.Rpc{
     var exitSucess rpcs.Rpc = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,"")
-    var myPrivateIp = state.GetMyIp(raftstate.PRI)
+    var myPrivateIp = metadata.GetMyIp(clustermetadata.PRI)
 
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
-        if state.GetConf() == nil && myPrivateIp == *this.pMex.Conf.Leader{
+        if metadata.GetLeaderIp(clustermetadata.PRI) == "" && myPrivateIp == *this.pMex.Conf.Leader{
             var newEntryBaseEntry = protobuf.LogEntry{
-                Term: state.GetTerm(),
+                Term: metadata.GetTerm(),
                 OpType: protobuf.Operation_JOIN_CONF_ADD,
             }
 
@@ -45,18 +45,18 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
                 newEntryBaseEntry.Payload = append(newEntryBaseEntry.Payload, raft_log.SEPARATOR...)
             }
 
-            var newConfLog = state.NewLogInstance(&newEntryBaseEntry,func() {
+            var newConfLog = intLog.NewLogInstance(&newEntryBaseEntry,func() {
                 var commit = protobuf.LogEntry{
-                    Term: state.GetTerm(),
+                    Term: metadata.GetTerm(),
                     OpType: protobuf.Operation_COMMIT_CONFIG_ADD,
                 }
 
-                state.AppendEntry(state.NewLogInstance(&commit,nil))
+                intLog.AppendEntry(intLog.NewLogInstance(&commit,nil))
             }) 
             log.Println("appending log entry: ",newConfLog)
 
-            state.SetRole(raftstate.LEADER)
-            state.AppendEntry(newConfLog)
+            metadata.SetRole(clustermetadata.LEADER)
+            intLog.AppendEntry(newConfLog)
 
             return exitSucess
         }
@@ -67,7 +67,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
         log.Println(failureDescr)
         return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureDescr)
     case protobuf.AdminOp_CHANGE_CONF_ADD:
-        if state.GetRole() == raftstate.LEADER{
+        if metadata.GetRole() == clustermetadata.LEADER{
             panic("not implemented")
             // return exitSucess
         }
@@ -75,7 +75,7 @@ func (this *NewConf) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
         log.Println(failureMex)
         return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureMex)
     case protobuf.AdminOp_CHANGE_CONF_REM:
-        if state.GetRole() == raftstate.LEADER{
+        if metadata.GetRole() == clustermetadata.LEADER{
             panic("not implemented")
             // return exitSucess
         }

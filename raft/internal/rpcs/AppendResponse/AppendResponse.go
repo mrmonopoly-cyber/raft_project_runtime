@@ -3,7 +3,8 @@ package AppendResponse
 import (
 	"log"
 	"raft/internal/node"
-	"raft/internal/raftstate"
+	"raft/internal/raft_log"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strconv"
@@ -30,14 +31,17 @@ func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError in
 }
 
 // Manage implements rpcs.Rpc.
-func (this *AppendResponse) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
+func (this *AppendResponse) Execute( 
+            intLog raft_log.LogEntry,
+            metadata clustermetadata.ClusterMetadata,
+            sender node.Node)rpcs.Rpc {
     var resp rpcs.Rpc = nil
     var term uint64 = this.pMex.GetTerm()
 
     if !this.pMex.GetSuccess() {
-        if term > state.GetTerm() {
-            state.SetTerm(term)
-            state.SetRole(raftstate.FOLLOWER)
+        if term > metadata.GetTerm() {
+            metadata.SetTerm(term)
+            metadata.SetRole(clustermetadata.FOLLOWER)
         } else {
             log.Println("consistency fail")
             //log.Println(this.pMex.GetLogIndexError())
