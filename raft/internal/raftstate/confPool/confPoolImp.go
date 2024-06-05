@@ -155,7 +155,6 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	switch entry.Entry.OpType {
 	case protobuf.Operation_JOIN_CONF_ADD:
 		var confUnfiltered string = string(entry.Entry.Payload)
-        log.Printf("debug unfiltered conf: %vEND\n",confUnfiltered)
 		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
         for i := range confFiltered {
             // var ip = strings.TrimSuffix(confFiltered[i]," ")
@@ -164,7 +163,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
             if *ip == "" || *ip == " "{
                 continue
             }
-	        log.Println("adding node in new conf: ", ip)
+	        log.Printf("adding node in new conf: %vEND\n", ip)
 			c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, *ip)
 		}
         if c.mainConf.GetConfig() != nil {
