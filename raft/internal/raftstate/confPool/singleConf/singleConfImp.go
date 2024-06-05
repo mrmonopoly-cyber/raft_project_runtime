@@ -33,7 +33,7 @@ func (s *singleConfImp) CommiEntryC() <-chan int {
 }
 
 func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
-	s.AppendEntry(entry)
+	s.LogEntry.AppendEntry(entry)
 	if s.GetRole() == clustermetadata.FOLLOWER ||
 		s.numNodes <= 1 {
 		//INFO: FOLLOWER or THE ONLY NODE IN THE CONF
