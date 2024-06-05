@@ -9,6 +9,7 @@ const (
 type NodeState interface{
     UpdateNodeState(info INFO, val int)
     FetchData(info INFO) int
+    Substribe() <- chan int
 }
 
 func NewNodeState() NodeState{
