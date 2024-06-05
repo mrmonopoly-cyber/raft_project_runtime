@@ -32,6 +32,7 @@ func NewServer(ipAddPrivate string, ipAddrPublic string, port string, serversIp 
 	}
     server.ConfPool = confpool.NewConfPoll(fsRootDir,server.ClusterMetadata)
 
+
     log.Println("number of others ip: ", len(serversIp))
     log.Printf("other ips: %v\n",serversIp)
     server.connectToNodes(serversIp,port)

@@ -7,7 +7,6 @@ import (
 	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
 	"raft/internal/raft_log"
-	"raft/internal/raftstate"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	confpool "raft/internal/raftstate/confPool"
 	"raft/internal/rpcs"
@@ -171,11 +170,11 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
 func (s *server) run() {
     var mess pairMex
     var err error
-    timeoutElection,err := s.GetTimeoutNotifycationChan(raftstate.TIMER_ELECTION)
+    timeoutElection,err := s.GetTimeoutNotifycationChan(clustermetadata.TIMER_ELECTION)
     if err != nil{
         log.Panicln(err)
     }
-    timeoutHearthbit,err := s.GetTimeoutNotifycationChan(raftstate.TIMER_HEARTHBIT)
+    timeoutHearthbit,err := s.GetTimeoutNotifycationChan(clustermetadata.TIMER_HEARTHBIT)
     if err != nil{
         log.Panicln(err)
     }
