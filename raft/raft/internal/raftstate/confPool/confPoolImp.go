@@ -62,12 +62,15 @@ func (c *confPool) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []func()
 
 // DeleteFromEntry implements ConfPool.
 func (c *confPool) DeleteFromEntry(entryIndex uint) {
-	panic("unimplemented")
+	c.mainConf.DeleteFromEntry(entryIndex)
+    if c.newConf != nil{
+        c.newConf.DeleteFromEntry(entryIndex)
+    }
 }
 
 // GetCommitIndex implements ConfPool.
 func (c *confPool) GetCommitIndex() int64 {
-	panic("unimplemented")
+    return c.mainConf.GetCommitIndex()
 }
 
 // GetCommittedEntries implements ConfPool.
@@ -87,7 +90,7 @@ func (c *confPool) GetEntriAt(index int64) (*raft_log.LogInstance, error) {
 
 // GetEntries implements ConfPool.
 func (c *confPool) GetEntries() []*protobuf.LogEntry{
-	panic("unimplemented")
+    return c.mainConf.GetEntries()
 }
 
 // IncreaseCommitIndex implements ConfPool.
@@ -97,17 +100,17 @@ func (c *confPool) IncreaseCommitIndex() {
 
 // LastLogIndex implements ConfPool.
 func (c *confPool) LastLogIndex() int {
-	panic("unimplemented")
+	return c.mainConf.LastLogIndex()
 }
 
 // LastLogTerm implements ConfPool.
 func (c *confPool) LastLogTerm() uint {
-	panic("unimplemented")
+    return c.mainConf.LastLogTerm()
 }
 
 // MinimumCommitIndex implements ConfPool.
 func (c *confPool) MinimumCommitIndex(val uint) {
-	panic("unimplemented")
+    c.mainConf.MinimumCommitIndex(val)
 }
 
 // NewLogInstance implements ConfPool.
