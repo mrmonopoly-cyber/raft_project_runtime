@@ -169,7 +169,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
         if c.mainConf.GetConfig() != nil {
             confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
         }
-        log.Println("new conf: ", confFiltered,len(confFiltered))
+        log.Printf("new conf: %vEND %v\n", confFiltered,len(confFiltered))
 		var newConf = singleconf.NewSingleConf(
 			c.fsRootDir,
 			confFiltered,
