@@ -22,7 +22,6 @@ type tuple struct {
 
 type confPool struct {
 	fsRootDir    string
-	autoCommit   bool
 	mainConf     singleconf.SingleConf
 	newConf      singleconf.SingleConf
 	confQueue    queue.Queue[tuple]
@@ -31,11 +30,6 @@ type confPool struct {
 	numNodes     uint
 	nodeIndexPool.NodeIndexPool
     commonMetadata clustermetadata.ClusterMetadata
-}
-
-// AutoCommitSet implements ConfPool.
-func (c *confPool) AutoCommitSet(status bool) {
-    c.autoCommit = status
 }
 
 // GetNode implements ConfPool.
@@ -171,7 +165,6 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 			c.fsRootDir,
 			confFiltered,
 			&c.nodeList,
-			&c.autoCommit,
 			c.NodeIndexPool,
             c.commonMetadata)
 		log.Println("checking conf is the same: ", newConf, c.newConf)
@@ -246,7 +239,6 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 		rootDir,
 		nil,
 		&res.nodeList,
-		&res.autoCommit,
 		res.NodeIndexPool,
         res.commonMetadata)
 

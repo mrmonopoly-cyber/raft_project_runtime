@@ -13,7 +13,6 @@ type singleConfImp struct {
 	nodeList *sync.Map
 	conf     sync.Map
 	numNodes uint
-    autoCommit *bool
 	raft_log.LogEntry
     nodeIndexPool.NodeIndexPool
     clustermetadata.ClusterMetadata
@@ -21,7 +20,7 @@ type singleConfImp struct {
 
 func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
     s.LogEntry.AppendEntry(entry)
-    if *s.autoCommit{ //INFO: FOLLOWER
+    if s.GetRole() == clustermetadata.FOLLOWER { //INFO: FOLLOWER
         s.LogEntry.IncreaseCommitIndex()
         return
     }
@@ -62,7 +61,6 @@ func (s *singleConfImp) GetConfig() []string {
 func newSingleConfImp(  fsRootDir string, 
                         conf []string, 
                         nodeList *sync.Map,
-                        autoCommit *bool,
                         commonStatePool nodeIndexPool.NodeIndexPool,
                         commonMetadata clustermetadata.ClusterMetadata) *singleConfImp{
     var res = &singleConfImp{
@@ -70,7 +68,6 @@ func newSingleConfImp(  fsRootDir string,
         conf: sync.Map{},
         numNodes: 0,
         LogEntry: raft_log.NewLogEntry(fsRootDir),
-        autoCommit: autoCommit,
         NodeIndexPool: commonStatePool,
         ClusterMetadata: commonMetadata,
     }

@@ -110,7 +110,7 @@ func (this *raftStateImpl) ResetElection() {
 }
 
 
-func newStateImplementation(idPrivate string, idPublic string, fsRootDir string) *raftStateImpl {
+func newStateImplementation(idPrivate string, idPublic string) *raftStateImpl {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	var randelection = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
 	var s = new(raftStateImpl)
@@ -135,7 +135,6 @@ func newStateImplementation(idPrivate string, idPublic string, fsRootDir string)
 	s.TimeoutPool.RestartTimeout(TIMER_HEARTHBIT)
 
     s.ConfPool = nil
-    s.ConfPool.AutoCommitSet(true)
 
 	return s
 }

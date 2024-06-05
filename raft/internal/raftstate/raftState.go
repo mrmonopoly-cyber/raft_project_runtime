@@ -59,6 +59,6 @@ type currentNodeIp interface{
 }
 
 
-func NewState(idPrivate string, idPublic string, fsRootDir string) State {
-	return newStateImplementation(idPrivate, idPublic, fsRootDir)
+func NewState(idPrivate string, idPublic string) State {
+	return newStateImplementation(idPrivate, idPublic)
 }

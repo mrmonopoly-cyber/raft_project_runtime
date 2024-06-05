@@ -19,7 +19,6 @@ type ConfPool interface {
 	GetConf() []string
 	GetNodeList() *sync.Map
 	GetNode(ip string) (node.Node, error)
-	AutoCommitSet(status bool)
 	raft_log.LogEntry
 }
 

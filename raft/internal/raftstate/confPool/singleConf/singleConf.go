@@ -21,9 +21,8 @@ type SingleConf interface{
 func NewSingleConf( fsRootDir string, 
                     conf []string,  
                     nodeList *sync.Map,
-                    autoCommit *bool,
                     commonStatePool nodeIndexPool.NodeIndexPool,
                     commonMetadata clustermetadata.ClusterMetadata) SingleConf{
-    return newSingleConfImp(fsRootDir,conf,nodeList,autoCommit,commonStatePool,commonMetadata)
+    return newSingleConfImp(fsRootDir,conf,nodeList,commonStatePool,commonMetadata)
 }
 
