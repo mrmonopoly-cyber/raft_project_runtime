@@ -3,7 +3,8 @@ package server
 import (
 	"log"
 	"net"
-	state "raft/internal/raftstate"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
+	confpool "raft/internal/raftstate/confPool"
 	"sync"
 )
 
@@ -22,12 +23,14 @@ func NewServer(ipAddPrivate string, ipAddrPublic string, port string, serversIp 
     log.Printf("my ip are: %v, %v\n",  ipAddPrivate, ipAddrPublic)
 
 	var server = &server{
-		_state:         state.NewState(ipAddPrivate, ipAddrPublic, fsRootDir),
-		messageChannel: make(chan pairMex),
-		listener:       listener,
-        clientList: sync.Map{},
         wg: sync.WaitGroup{},
+        listener:       listener,
+        clientList: sync.Map{},
+        messageChannel: make(chan pairMex),
+        ClusterMetadata: clustermetadata.NewClusterMetadata(ipAddPrivate,ipAddrPublic),
+        ConfPool: nil,
 	}
+    server.ConfPool = confpool.NewConfPoll(fsRootDir,server.ClusterMetadata)
 
     log.Println("number of others ip: ", len(serversIp))
     log.Printf("other ips: %v\n",serversIp)

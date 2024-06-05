@@ -3,7 +3,8 @@ package RequestVoteRPC
 import (
 	"log"
 	"raft/internal/node"
-	"raft/internal/raftstate"
+	"raft/internal/raft_log"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/RequestVoteResponse"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -75,11 +76,14 @@ func (this *RequestVoteRPC) GetLastLogTerm() uint64 {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *RequestVoteRPC) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
-	var myVote string = state.GetVoteFor()
+
+func (this *RequestVoteRPC) Execute(intLog raft_log.LogEntry,
+            metadata clustermetadata.ClusterMetadata,
+            sender node.Node) rpcs.Rpc{
+	var myVote string = metadata.GetVoteFor()
 	var senderIp = this.pMex.GetCandidateId()
 
-	if !state.CanVote() {
+	if !metadata.CanVote() {
 		log.Printf("request vote: this node cannot vote right now")
 		return nil
 	}
@@ -92,25 +96,26 @@ func (this *RequestVoteRPC) Execute(state raftstate.State, sender node.Node) rpc
     */
 
     log.Printf("my vote: %v, candidate id: %v\n", myVote, this.pMex.CandidateId)
-    log.Printf("my term: %v, candidate term: %v\n", state.GetTerm(), this.pMex.Term)
+    log.Printf("my term: %v, candidate term: %v\n", metadata.GetTerm(), this.pMex.Term)
     log.Printf("my laslogidx: %v, candidate lastlogidx: %v\n", 
-    state.LastLogIndex(), this.pMex.LastLogIndex)
+    intLog.LastLogIndex(), this.pMex.LastLogIndex)
     log.Printf("my lastlogTerm: %v, candidate lastlotTerm: %v\n", 
-    state.LastLogTerm(), this.pMex.GetLastLogTerm())
+    intLog.LastLogTerm(), this.pMex.GetLastLogTerm())
 
     
-    if (this.pMex.Term >= state.GetTerm()) && (myVote == "" || myVote == this.pMex.CandidateId) &&
-        (this.pMex.LastLogIndex >= int64(state.LastLogIndex())) && (this.pMex.LastLogTerm >= uint64(state.LastLogTerm())){
-            state.VoteFor(this.pMex.CandidateId)
+    if (this.pMex.Term >= metadata.GetTerm()) && (myVote == "" || myVote == this.pMex.CandidateId) &&
+        (this.pMex.LastLogIndex >= int64(intLog.LastLogIndex())) && 
+        (this.pMex.LastLogTerm >= uint64(intLog.LastLogTerm())){
+            metadata.VoteFor(this.pMex.CandidateId)
             log.Println("vote accepted")
-            return this.respondeVote(state,&senderIp,true)
+            return this.respondeVote(metadata,&senderIp,true)
     }
 
     log.Println("vote rejected")
-	return this.respondeVote(state, &senderIp, false)
+	return this.respondeVote(metadata, &senderIp, false)
 }
 
-func (this *RequestVoteRPC) respondeVote(state raftstate.State, sender *string, vote bool) rpcs.Rpc{
+func (this *RequestVoteRPC)respondeVote(state clustermetadata.ClusterMetadata, sender *string, vote bool) rpcs.Rpc{
     var resp = RequestVoteResponse.NewRequestVoteResponseRPC(*sender,vote, state.GetTerm())
     return resp
 }

@@ -2,8 +2,9 @@ package RequestVoteResponse
 
 import (
 	"log"
+	"raft/internal/raft_log"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	"raft/internal/node"
-	"raft/internal/raftstate"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -31,9 +32,12 @@ func (this *RequestVoteResponse) GetId() string {
 
 
 // Manage implements rpcs.Rpc.
-func (this *RequestVoteResponse) Execute(state raftstate.State, sender node.Node) rpcs.Rpc {
-    if this.pMex.Term > state.GetTerm(){
-        state.SetRole(raftstate.FOLLOWER)
+func (this *RequestVoteResponse) Execute(
+                    intLog raft_log.LogEntry,
+                    metadata clustermetadata.ClusterMetadata,
+                    sender node.Node) rpcs.Rpc{
+    if this.pMex.Term > metadata.GetTerm(){
+        metadata.SetRole(clustermetadata.FOLLOWER)
         return nil
     }
 

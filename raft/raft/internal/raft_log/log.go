@@ -37,12 +37,12 @@ type LogEntry interface {
 
 
 
-func NewLogEntry(fsRootDir string) LogEntry {
+func NewLogEntry(fsRootDir string, oldEntries []LogInstance) LogEntry {
 	var l = &log{
         commitIndex: -1,
         lastApplied: -1,
         logSize: 0,
-        entries: nil,
+        entries: oldEntries,
         newEntryToApply: make(chan int),
         LocalFs: localfs.NewFs(fsRootDir),
         lock: sync.RWMutex{},

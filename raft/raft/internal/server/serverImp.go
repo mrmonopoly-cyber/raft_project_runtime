@@ -8,12 +8,12 @@ import (
 	"raft/internal/node"
 	"raft/internal/raft_log"
 	"raft/internal/raftstate"
-	state "raft/internal/raftstate"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	confpool "raft/internal/raftstate/confPool"
 	"raft/internal/rpcs"
+	"raft/internal/rpcs/redirection"
 	"strings"
 	"sync"
-    "raft/internal/rpcs/redirection"
 )
 
 type pairMex struct{
@@ -24,10 +24,11 @@ type pairMex struct{
 
 type server struct {
     wg             sync.WaitGroup
-    _state         state.State
-    messageChannel chan pairMex
     listener       net.Listener
     clientList      sync.Map
+    messageChannel chan pairMex
+    confpool.ConfPool
+    clustermetadata.ClusterMetadata
 }
 
 func (s *server) Start() {
@@ -61,7 +62,7 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
         }
         new_node = node.NewNode(serversIp[i], port, nodeConn)
         log.Printf("connected to new node, storing it: %v\n", new_node.GetIp())
-        this._state.UpdateNodeList(confpool.ADD,new_node)
+        this.UpdateNodeList(confpool.ADD,new_node)
         go (*this).internalNodeConnection(new_node)
 	}
 
@@ -93,7 +94,7 @@ func (s *server) acceptIncomingConn() {
 
 func (s* server) handleConnection(workingNode node.Node){
     if strings.Contains(workingNode.GetIp(), "10.0.0") {
-        s._state.UpdateNodeList(confpool.ADD,workingNode)
+        s.UpdateNodeList(confpool.ADD,workingNode)
         s.internalNodeConnection(workingNode)
         return
     }
@@ -101,7 +102,7 @@ func (s* server) handleConnection(workingNode node.Node){
 }
 
 func (s *server) externalAgentConnection(agent node.Node){
-    var leaderIp = s._state.GetLeaderIp(raftstate.PUB)
+    var leaderIp = s.GetLeaderIp(clustermetadata.PUB)
     var rawMex []byte
     var err error
     var resp rpcs.Rpc 
@@ -164,17 +165,17 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
         }
     }
     workingNode.CloseConnection()
-    s._state.UpdateNodeList(confpool.REM,workingNode)
+    s.UpdateNodeList(confpool.REM,workingNode)
 }
 
 func (s *server) run() {
     var mess pairMex
     var err error
-    timeoutElection,err := s._state.GetTimeoutNotifycationChan(raftstate.TIMER_ELECTION)
+    timeoutElection,err := s.GetTimeoutNotifycationChan(raftstate.TIMER_ELECTION)
     if err != nil{
         log.Panicln(err)
     }
-    timeoutHearthbit,err := s._state.GetTimeoutNotifycationChan(raftstate.TIMER_HEARTHBIT)
+    timeoutHearthbit,err := s.GetTimeoutNotifycationChan(raftstate.TIMER_HEARTHBIT)
     if err != nil{
         log.Panicln(err)
     }
@@ -195,13 +196,13 @@ func (s *server) run() {
 
 func (s *server) newMessageReceived(mess pairMex){
             var rpcCall rpcs.Rpc
-            var oldRole raftstate.Role
+            var oldRole clustermetadata.Role
             var resp rpcs.Rpc
             var byEnc []byte
             var errEn error
             var senderNode node.Node 
 
-            senderNode,errEn = s._state.GetNode(mess.sender)
+            senderNode,errEn = s.GetNode(mess.sender)
             if errEn != nil {
                 var v,f = s.clientList.Load(mess.sender)
                 if !f{
@@ -211,9 +212,9 @@ func (s *server) newMessageReceived(mess pairMex){
                 senderNode = v.(node.Node)
             }
             log.Println("node founded: ", senderNode.GetIp())
-            oldRole = s._state.GetRole()
+            oldRole = s.GetRole()
             rpcCall = mess.payload
-            resp = rpcCall.Execute(s._state, senderNode)
+            resp = rpcCall.Execute(s.ConfPool, s.ClusterMetadata, senderNode)
             log.Println("finih executing rpc: ",rpcCall.ToString())
 
             if resp != nil {
@@ -225,7 +226,7 @@ func (s *server) newMessageReceived(mess pairMex){
                 senderNode.Send(byEnc)
             }
 
-            if s._state.GetRole() == raftstate.LEADER && oldRole != state.LEADER {
+            if s.GetRole() == clustermetadata.LEADER && oldRole != clustermetadata.LEADER{
             }
             mess.workdone <- 1
 }

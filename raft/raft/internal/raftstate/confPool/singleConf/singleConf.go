@@ -2,6 +2,7 @@ package singleconf
 
 import (
 	"raft/internal/raft_log"
+	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	"sync"
 )
@@ -19,9 +20,10 @@ type SingleConf interface{
 
 func NewSingleConf( fsRootDir string, 
                     conf []string,  
+                    oldEntries []raft_log.LogInstance,
                     nodeList *sync.Map,
-                    autoCommit *bool,
-                    commonStatePool nodeIndexPool.NodeIndexPool) SingleConf{
-    return newSingleConfImp(fsRootDir,conf,nodeList,autoCommit,commonStatePool)
+                    commonStatePool nodeIndexPool.NodeIndexPool,
+                    commonMetadata clustermetadata.ClusterMetadata) SingleConf{
+    return newSingleConfImp(fsRootDir,conf,oldEntries, nodeList,commonStatePool,commonMetadata)
 }
 
