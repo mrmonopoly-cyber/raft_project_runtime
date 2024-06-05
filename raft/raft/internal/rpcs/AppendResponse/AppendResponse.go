@@ -2,9 +2,9 @@ package AppendResponse
 
 import (
 	"log"
-	"raft/internal/node"
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
+	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strconv"
@@ -34,24 +34,24 @@ func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError in
 func (this *AppendResponse) Execute( 
             intLog raft_log.LogEntry,
             metadata clustermetadata.ClusterMetadata,
-            sender node.Node)rpcs.Rpc {
+            senderState nodestate.NodeState)rpcs.Rpc {
     var resp rpcs.Rpc = nil
     var term uint64 = this.pMex.GetTerm()
+    var errorIndex = this.pMex.GetLogIndexError()
 
     if !this.pMex.GetSuccess() {
         if term > metadata.GetTerm() {
             metadata.SetTerm(term)
             metadata.SetRole(clustermetadata.FOLLOWER)
         } else {
-            log.Println("consistency fail")
-            //log.Println(this.pMex.GetLogIndexError())
-            // sender.SetNextIndex(int(this.pMex.GetLogIndexError()))
-            //log.Println((*senderState).GetNextIndex())
+            log.Println("consistency fail: ", errorIndex)
+            senderState.UpdateNodeState(nodestate.NEXTT,int(errorIndex))
+            log.Println("setting next index to: ",senderState.FetchData(nodestate.NEXTT))
         }
     } else {
         log.Printf("response ok increasing match and next index of node: %v\n", *this.pMex.Id)
-        // sender.SetNextIndex(int(this.pMex.GetLogIndexError())+1)
-        // sender.SetMatchIndex(int(this.pMex.GetLogIndexError()))
+        senderState.UpdateNodeState(nodestate.NEXTT,int(errorIndex)+1)
+        senderState.UpdateNodeState(nodestate.MATCH,int(errorIndex))
     }
 
     return resp

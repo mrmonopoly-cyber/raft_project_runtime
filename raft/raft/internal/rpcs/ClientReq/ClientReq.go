@@ -2,9 +2,9 @@ package ClientReq
 
 import (
 	"log"
-	"raft/internal/node"
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
+	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -20,7 +20,7 @@ type ClientReq struct {
 func (this *ClientReq) Execute(
             intLog raft_log.LogEntry,
             metadata clustermetadata.ClusterMetadata,
-            sender node.Node) rpcs.Rpc {
+            senderState nodestate.NodeState) rpcs.Rpc {
     var operation protobuf.Operation = (*this).pMex.Op
     var newEntries []*protobuf.LogEntry =make([]*protobuf.LogEntry, 1)
     var newLogEntry protobuf.LogEntry = protobuf.LogEntry{}

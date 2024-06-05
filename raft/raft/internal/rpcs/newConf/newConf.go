@@ -2,10 +2,10 @@ package newConf
 
 import (
 	"log"
-	"raft/internal/node"
 	"raft/internal/raft_log"
-	"raft/internal/rpcs"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
+	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
+	"raft/internal/rpcs"
 	ClientReturnValue "raft/internal/rpcs/clientReturnValue"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -28,7 +28,9 @@ func NewnewConfRPC(op protobuf.AdminOp, conf []string) rpcs.Rpc {
 }
 
 // Manage implements rpcs.Rpc.
-func (this* NewConf) Execute(intLog raft_log.LogEntry,metadata clustermetadata.ClusterMetadata, sender node.Node) rpcs.Rpc{
+func (this* NewConf) Execute(   intLog raft_log.LogEntry,
+                                metadata clustermetadata.ClusterMetadata, 
+                                senderState nodestate.NodeState) rpcs.Rpc{
     var exitSucess rpcs.Rpc = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,"")
     var myPrivateIp = metadata.GetMyIp(clustermetadata.PRI)
 

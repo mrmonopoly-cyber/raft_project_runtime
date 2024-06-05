@@ -10,9 +10,8 @@ const (
 
 type NodeIndexPool interface{
     UpdateStatusList(op OP, ip string)
-    UpdateNodeInfo(info nodestate.INFO, ip string, val int) 
-    FetchNodeInfo(info nodestate.INFO, ip string) (int,error)
-
+    FetchNodeInfo(ip string) (nodestate.NodeState,error)
+    
 }
 
 func NewLeaederCommonIdx() NodeIndexPool{

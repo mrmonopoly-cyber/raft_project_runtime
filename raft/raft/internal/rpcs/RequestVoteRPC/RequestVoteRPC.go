@@ -2,9 +2,9 @@ package RequestVoteRPC
 
 import (
 	"log"
-	"raft/internal/node"
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
+	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/RequestVoteResponse"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -79,7 +79,7 @@ func (this *RequestVoteRPC) GetLastLogTerm() uint64 {
 
 func (this *RequestVoteRPC) Execute(intLog raft_log.LogEntry,
             metadata clustermetadata.ClusterMetadata,
-            sender node.Node) rpcs.Rpc{
+            senderState nodestate.NodeState) rpcs.Rpc{
 	var myVote string = metadata.GetVoteFor()
 	var senderIp = this.pMex.GetCandidateId()
 

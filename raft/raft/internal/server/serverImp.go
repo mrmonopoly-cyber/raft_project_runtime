@@ -9,6 +9,7 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	confpool "raft/internal/raftstate/confPool"
+	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/redirection"
 	"strings"
@@ -200,6 +201,7 @@ func (s *server) newMessageReceived(mess pairMex){
             var byEnc []byte
             var errEn error
             var senderNode node.Node 
+            var senderState nodestate.NodeState
 
             senderNode,errEn = s.GetNode(mess.sender)
             if errEn != nil {
@@ -210,10 +212,14 @@ func (s *server) newMessageReceived(mess pairMex){
                 }
                 senderNode = v.(node.Node)
             }
+            senderState,errEn = s.FetchNodeInfo(mess.sender)
+            if errEn != nil{
+                log.Panicf("nodestate for node %v not exist\n",mess.sender)
+            }
             log.Println("node founded: ", senderNode.GetIp())
             oldRole = s.GetRole()
             rpcCall = mess.payload
-            resp = rpcCall.Execute(s.ConfPool, s.ClusterMetadata, senderNode)
+            resp = rpcCall.Execute(s.ConfPool, s.ClusterMetadata, senderState)
             log.Println("finih executing rpc: ",rpcCall.ToString())
 
             if resp != nil {
