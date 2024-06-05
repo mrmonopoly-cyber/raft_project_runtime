@@ -168,7 +168,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 			&c.nodeList,
 			c.NodeIndexPool,
             c.commonMetadata)
-		log.Println("checking conf is the same: ", newConf, c.newConf)
+		log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
 		//WARN: DANGEROUS
 		if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
 			c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
