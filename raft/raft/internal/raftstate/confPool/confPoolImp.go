@@ -157,7 +157,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		var confUnfiltered string = string(entry.Entry.Payload)
 		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
 		for i := range confFiltered {
-			// confFiltered[i] = strings.Trim(confFiltered[i], " ")
+            log.Println("inserting in conf: ",confFiltered[i])
 			c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, confFiltered[i])
 		}
 		confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
