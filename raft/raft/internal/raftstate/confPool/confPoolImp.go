@@ -163,7 +163,9 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
             }
 			c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, ip)
 		}
-		confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
+        if len(c.mainConf.GetConfig()) > 0{
+            confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
+        }
         log.Println("new conf: ", confFiltered,len(confFiltered))
 		var newConf = singleconf.NewSingleConf(
 			c.fsRootDir,
