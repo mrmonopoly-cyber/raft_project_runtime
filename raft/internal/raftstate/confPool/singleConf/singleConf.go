@@ -16,15 +16,15 @@ const(
 
 type SingleConf interface{
     GetConfig() []string
+    CommiEntryC() <- chan int
     raft_log.LogEntry
 }
 
-func NewSingleConf( fsRootDir string, 
-                    conf []string,  
+func NewSingleConf( conf []string,  
                     oldEntries []*protobuf.LogEntry,
                     nodeList *sync.Map,
                     commonStatePool nodeIndexPool.NodeIndexPool,
                     commonMetadata clustermetadata.ClusterMetadata) SingleConf{
-    return newSingleConfImp(fsRootDir,conf,oldEntries, nodeList,commonStatePool,commonMetadata)
+    return newSingleConfImp(conf,oldEntries, nodeList,commonStatePool,commonMetadata)
 }
 
