@@ -4,6 +4,7 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"sync"
 )
 
@@ -20,7 +21,7 @@ type SingleConf interface{
 
 func NewSingleConf( fsRootDir string, 
                     conf []string,  
-                    oldEntries []raft_log.LogInstance,
+                    oldEntries []*protobuf.LogEntry,
                     nodeList *sync.Map,
                     commonStatePool nodeIndexPool.NodeIndexPool,
                     commonMetadata clustermetadata.ClusterMetadata) SingleConf{

@@ -86,7 +86,7 @@ func (c *confPool) GetEntriAt(index int64) (*raft_log.LogInstance, error) {
 }
 
 // GetEntries implements ConfPool.
-func (c *confPool) GetEntries() []raft_log.LogInstance {
+func (c *confPool) GetEntries() []*protobuf.LogEntry{
 	panic("unimplemented")
 }
 
