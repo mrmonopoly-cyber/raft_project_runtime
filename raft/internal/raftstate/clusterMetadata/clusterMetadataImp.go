@@ -69,11 +69,6 @@ func (c *clusterMetadataImp) GetVoteFor() string {
     return c.voteFor
 }
 
-// IncrementTerm implements ClusterMetadata.
-func (c *clusterMetadataImp) IncrementTerm() {
-    c.term++
-}
-
 // ResetElection implements ClusterMetadata.
 func (c *clusterMetadataImp) ResetElection() {
     c.nNotSupporting = 0
@@ -112,7 +107,6 @@ func (c *clusterMetadataImp) SetRole(newRole Role) {
 
 // SetTerm implements ClusterMetadata.
 func (c *clusterMetadataImp) SetTerm(newTerm uint64) {
-    //HACK: to remove legacy code
 	c.term = newTerm
 }
 
