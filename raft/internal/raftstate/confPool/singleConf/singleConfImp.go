@@ -43,7 +43,7 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 
         if !f{
             log.Println("node not yet connected or crashes or it's myself, skipping send: ",key)
-            return false
+            return true
         }
         fNode = v.(node.Node)
         
