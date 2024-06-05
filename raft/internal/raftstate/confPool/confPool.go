@@ -4,6 +4,7 @@ import (
 	"raft/internal/node"
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
+	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	"sync"
 )
 
@@ -20,6 +21,7 @@ type ConfPool interface {
 	GetNodeList() *sync.Map
 	GetNode(ip string) (node.Node, error)
 	raft_log.LogEntry
+	nodeIndexPool.NodeIndexPool
 }
 
 func NewConfPoll(rootDirFs string,commonMetadata clustermetadata.ClusterMetadata) ConfPool {

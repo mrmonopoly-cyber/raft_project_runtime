@@ -4,7 +4,7 @@ import (
 	"log"
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
-	"raft/internal/node"
+	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -35,7 +35,7 @@ func (this *RequestVoteResponse) GetId() string {
 func (this *RequestVoteResponse) Execute(
                     intLog raft_log.LogEntry,
                     metadata clustermetadata.ClusterMetadata,
-                    sender node.Node) rpcs.Rpc{
+                    senderState nodestate.NodeState) rpcs.Rpc{
     if this.pMex.Term > metadata.GetTerm(){
         metadata.SetRole(clustermetadata.FOLLOWER)
         return nil

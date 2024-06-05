@@ -2,9 +2,9 @@ package Redirection
 
 import (
 	"log"
-	"raft/internal/node"
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
+	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -27,7 +27,7 @@ func NewredirectionRPC(leaderIp string) rpcs.Rpc {
 func (this *Redirection) Execute( 
             intLog raft_log.LogEntry,
             metadata clustermetadata.ClusterMetadata,
-            sender node.Node)rpcs.Rpc {
+            senderState nodestate.NodeState)rpcs.Rpc {
     panic("dummy implementation")
 }
 

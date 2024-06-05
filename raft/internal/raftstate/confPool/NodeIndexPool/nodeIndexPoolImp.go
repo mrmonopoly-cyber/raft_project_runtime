@@ -12,26 +12,13 @@ type nodeIndexPoolImpl struct {
 }
 
 // FetchNodeInfo implements NodeIndexPool.
-func (n *nodeIndexPoolImpl) FetchNodeInfo(info nodestate.INFO, ip string) (int, error) {
-    var state,err = n.getNode(ip)
-    var res int
-
-    if err != nil{
-        return -99,err
-    }
-    res = state.FetchData(info)
-    return res,nil
-}
-
-// UpdateNodeInfo implements NodeIndexPool.
-func (n *nodeIndexPoolImpl) UpdateNodeInfo(info nodestate.INFO, ip string, val int) {
+func (n *nodeIndexPoolImpl) FetchNodeInfo(ip string) (nodestate.NodeState, error) {
     var state,err = n.getNode(ip)
 
     if err != nil{
-        return 
+        return nil,err
     }
-
-    state.UpdateNodeState(info,val)
+    return state,nil
 }
 
 // UpdateStatusList implements NodeIndexPool.
