@@ -158,7 +158,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
         for i := range confFiltered {
             var ip = strings.TrimSuffix(confFiltered[i]," ")
-            if ip == ""{
+            if ip == "" || ip == " "{
                 continue
             }
 	        log.Println("adding node in new conf: ", ip)
