@@ -47,14 +47,7 @@ func (this* NewConf) Execute(   intLog raft_log.LogEntry,
                 newEntryBaseEntry.Payload = append(newEntryBaseEntry.Payload, raft_log.SEPARATOR...)
             }
 
-            var newConfLog = intLog.NewLogInstance(&newEntryBaseEntry,func() {
-                var commit = protobuf.LogEntry{
-                    Term: metadata.GetTerm(),
-                    OpType: protobuf.Operation_COMMIT_CONFIG_ADD,
-                }
-
-                intLog.AppendEntry(intLog.NewLogInstance(&commit,nil))
-            }) 
+            var newConfLog = intLog.NewLogInstance(&newEntryBaseEntry,nil)
             log.Println("appending log entry: ",newConfLog)
 
             metadata.SetRole(clustermetadata.LEADER)

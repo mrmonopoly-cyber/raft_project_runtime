@@ -3,13 +3,11 @@ package raft_log
 import (
 	"errors"
 	l "log"
-	localfs "raft/internal/localFs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
-	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"sync"
 )
 
-type log struct {
+type logEntryImp struct {
 	lock            sync.RWMutex
 	newEntryToApply chan int
 
@@ -17,29 +15,32 @@ type log struct {
 	logSize     uint
 	commitIndex int64
 	lastApplied int
-
-    localfs.LocalFs
 }
 
 // AppendEntry implements LogEntry.
-func (this *log) AppendEntry(newEntrie *LogInstance) {
-    l.Println("adding new entrie to the log: ",*newEntrie)
+func (this *logEntryImp) AppendEntry(newEntrie *LogInstance) {
+    l.Println("adding new entrie to the logEntryImp: ",*newEntrie)
     this.entries = append(this.entries, *newEntrie)
     this.logSize++
+
+    go func ()  {
+       <- newEntrie.Committed 
+       this.commitIndex++
+    }()
 }
 
-// log
+// logEntryImp
 // GetCommittedEntries implements LogEntry.
-func (this *log) GetCommittedEntries() []LogInstance {
+func (this *logEntryImp) GetCommittedEntries() []LogInstance {
 	return this.getEntries(0)
 }
 
 // GetCommittedEntriesRange implements LogEntry.
-func (this *log) GetCommittedEntriesRange(startIndex int) []LogInstance {
+func (this *logEntryImp) GetCommittedEntriesRange(startIndex int) []LogInstance {
 	return this.getEntries(startIndex)
 }
 
-func (this *log) GetEntries() []*protobuf.LogEntry{
+func (this *logEntryImp) GetEntries() []*protobuf.LogEntry{
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
@@ -54,15 +55,15 @@ func (this *log) GetEntries() []*protobuf.LogEntry{
 }
 
 // GetEntriAt implements LogEntry.
-func (this *log) GetEntriAt(index int64) (*LogInstance, error) {
-	if (this.logSize == 1 && index == 0) || (index < int64(this.logSize)) {
+func (this *logEntryImp) GetEntriAt(index int64) (*LogInstance, error) {
+	if (index < int64(this.logSize)) {
 		return &this.entries[index], nil
 	}
 	return nil, errors.New("invalid index: " + string(rune(index)))
 }
 
 // DeleteFromEntry implements LogEntry.
-func (this *log) DeleteFromEntry(entryIndex uint) {
+func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
 	for i := int(entryIndex); i < len(this.entries); i++ {
 		this.entries[i] = LogInstance{
 			Entry:        nil,
@@ -72,25 +73,14 @@ func (this *log) DeleteFromEntry(entryIndex uint) {
 	}
 }
 
-func (this *log) GetCommitIndex() int64 {
+func (this *logEntryImp) GetCommitIndex() int64 {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.commitIndex
 }
 
-// IncreaseCommitIndex implements LogEntry.
-func (this *log) IncreaseCommitIndex() {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	if this.commitIndex < int64(this.logSize)-1 {
-        l.Println("ok to increase commitIndex")
-		this.commitIndex++
-		this.newEntryToApply <- 1
-	}
-}
-
 // MinimumCommitIndex implements LogEntry.
-func (this *log) MinimumCommitIndex(val uint) {
+func (this *logEntryImp) MinimumCommitIndex(val uint) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -104,7 +94,7 @@ func (this *log) MinimumCommitIndex(val uint) {
 	}
 }
 
-func (this *log) LastLogIndex() int {
+func (this *logEntryImp) LastLogIndex() int {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
@@ -113,7 +103,7 @@ func (this *log) LastLogIndex() int {
 }
 
 // LastLogTerm implements LogEntry.
-func (this *log) LastLogTerm() uint {
+func (this *logEntryImp) LastLogTerm() uint {
 	var committedEntr = this.GetCommittedEntries()
 	var lasLogIdx = this.LastLogIndex()
 
@@ -124,31 +114,52 @@ func (this *log) LastLogTerm() uint {
 
 }
 
-// utility
-
-func (this *log) updateLastApplied() error {
-	for {
-        l.Println("waiting new entry to apply on ch: ", this.newEntryToApply)
-		<-this.newEntryToApply
-        this.lastApplied++
-        var entry *LogInstance = &this.entries[this.lastApplied]
-
-        l.Printf("updating entry: %v", entry)
-        switch entry.Entry.OpType {
-            case p.Operation_JOIN_CONF_ADD, p.Operation_JOIN_CONF_DEL,
-            p.Operation_COMMIT_CONFIG_REM, p.Operation_COMMIT_CONFIG_ADD:
-        default:
-            (*this).ApplyLogEntry(entry.Entry)
-        }
-        l.Println("notifing completion: ",entry.Entry)
-        go func ()  {
-            entry.Committed <- 1
-        }()
-	}
+func (this *logEntryImp) NewLogInstance(entry *protobuf.LogEntry, post func()) *LogInstance{
+    return &LogInstance{
+        Entry: entry,
+        AtCompletion: post,
+        Committed: make(chan int),
+    }
 }
 
+func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []func()) []*LogInstance{
+    var res []*LogInstance = make([]*LogInstance, len(entry))
 
-func (this *log) getEntries(startIndex int) []LogInstance {
+    for i, v := range entry {
+        res[i] = &LogInstance{
+            Entry: v,
+            Committed: make(chan int),
+        }
+        if post != nil && i < len(post) {
+            res[i].AtCompletion = post[i]
+        }
+    }
+
+    return res
+}
+
+func NewLogImp(oldEntries []*protobuf.LogEntry) *logEntryImp{
+    var oldEntrLen = len(oldEntries)
+    var oldInstance []LogInstance = make([]LogInstance, oldEntrLen)
+
+    for i := 0; i < oldEntrLen; i++ {
+        oldInstance[i].Entry = oldEntries[i]
+    }
+
+	var l = &logEntryImp{
+        commitIndex: -1,
+        lastApplied: -1,
+        logSize: 0,
+        entries: oldInstance,
+        newEntryToApply: make(chan int),
+        lock: sync.RWMutex{},
+    }
+
+	return l
+}
+
+// utility
+func (this *logEntryImp) getEntries(startIndex int) []LogInstance {
 	var committedEntries []LogInstance = nil
 
 	if startIndex == -1 {
@@ -160,3 +171,4 @@ func (this *log) getEntries(startIndex int) []LogInstance {
 	}
 	return committedEntries
 }
+

@@ -3,6 +3,7 @@ package confpool
 import (
 	"errors"
 	"log"
+	localfs "raft/internal/localFs"
 	"raft/internal/node"
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
@@ -22,14 +23,20 @@ type tuple struct {
 
 type confPool struct {
 	fsRootDir    string
-	mainConf     singleconf.SingleConf
-	newConf      singleconf.SingleConf
+    mainConf    singleconf.SingleConf
+    newConf     singleconf.SingleConf
 	confQueue    queue.Queue[tuple]
 	emptyNewConf chan int
 	nodeList     sync.Map
 	numNodes     uint
 	nodeIndexPool.NodeIndexPool
-    commonMetadata clustermetadata.ClusterMetadata
+	commonMetadata clustermetadata.ClusterMetadata
+
+    globalCommiIndex int
+    lastApplied int
+    applyNewC chan int
+
+    localFs localfs.LocalFs
 }
 
 // GetNode implements ConfPool.
@@ -63,14 +70,14 @@ func (c *confPool) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []func()
 // DeleteFromEntry implements ConfPool.
 func (c *confPool) DeleteFromEntry(entryIndex uint) {
 	c.mainConf.DeleteFromEntry(entryIndex)
-    if c.newConf != nil{
-        c.newConf.DeleteFromEntry(entryIndex)
-    }
+	if c.newConf != nil {
+		c.newConf.DeleteFromEntry(entryIndex)
+	}
 }
 
 // GetCommitIndex implements ConfPool.
 func (c *confPool) GetCommitIndex() int64 {
-    return c.mainConf.GetCommitIndex()
+	return c.mainConf.GetCommitIndex()
 }
 
 // GetCommittedEntries implements ConfPool.
@@ -85,17 +92,12 @@ func (c *confPool) GetCommittedEntriesRange(startIndex int) []raft_log.LogInstan
 
 // GetEntriAt implements ConfPool.
 func (c *confPool) GetEntriAt(index int64) (*raft_log.LogInstance, error) {
-	panic("unimplemented")
+	return c.mainConf.GetEntriAt(index)
 }
 
 // GetEntries implements ConfPool.
-func (c *confPool) GetEntries() []*protobuf.LogEntry{
-    return c.mainConf.GetEntries()
-}
-
-// IncreaseCommitIndex implements ConfPool.
-func (c *confPool) IncreaseCommitIndex() {
-	panic("unimplemented")
+func (c *confPool) GetEntries() []*protobuf.LogEntry {
+	return c.mainConf.GetEntries()
 }
 
 // LastLogIndex implements ConfPool.
@@ -105,19 +107,18 @@ func (c *confPool) LastLogIndex() int {
 
 // LastLogTerm implements ConfPool.
 func (c *confPool) LastLogTerm() uint {
-    return c.mainConf.LastLogTerm()
+	return c.mainConf.LastLogTerm()
 }
 
 // MinimumCommitIndex implements ConfPool.
 func (c *confPool) MinimumCommitIndex(val uint) {
-    c.mainConf.MinimumCommitIndex(val)
+	c.mainConf.MinimumCommitIndex(val)
 }
 
 // NewLogInstance implements ConfPool.
 func (c *confPool) NewLogInstance(entry *protobuf.LogEntry, post func()) *raft_log.LogInstance {
 	var res = &raft_log.LogInstance{
 		Entry:        entry,
-		Committed:    make(chan int),
 		AtCompletion: post,
 	}
 	return res
@@ -152,75 +153,116 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 }
 
 func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
-	var joinConf bool = false
-
 	log.Println("appending entry, general pool: ", entry)
 	switch entry.Entry.OpType {
 	case protobuf.Operation_JOIN_CONF_ADD:
-		var confUnfiltered string = string(entry.Entry.Payload)
-		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
-        confFiltered = confFiltered[0:len(confFiltered)-1]
-        for i := range confFiltered {
-            confFiltered[i] ,_ = strings.CutSuffix(confFiltered[i]," ")
-            var ip *string = &confFiltered[i]
-            if *ip == "" || *ip == " "{
-                continue
-            }
-			c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, *ip)
-		}
-
-        confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
-
-		var newConf = singleconf.NewSingleConf(
-			c.fsRootDir,
-			confFiltered,
-            c.mainConf.GetEntries(),
-			&c.nodeList,
-			c.NodeIndexPool,
-            c.commonMetadata)
-        if c.newConf != nil {
-            log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
-        }
-		//WARN: DANGEROUS
-		if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
-			c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
-			return
-		}
+        c.appendJoinConfADD(entry)
 	case protobuf.Operation_JOIN_CONF_DEL:
-		panic("not implemented")
+        c.appendJoinConfDEL(entry)
 	}
 
 	log.Println("append entry main conf: ", entry)
 	c.mainConf.AppendEntry(entry)
 	if c.newConf != nil {
 		log.Println("append entry new conf: ", entry)
-		c.newConf.AppendEntry(entry)
-		joinConf = true
+        var entryCopy raft_log.LogInstance = raft_log.LogInstance{
+            Entry: entry.Entry,
+            Committed: make(chan int),
+            AtCompletion: entry.AtCompletion,
+        }
+		c.newConf.AppendEntry(&entryCopy)
 	}
+}
 
-	go func() {
-		log.Println("waiting main conf commit of entry: ", entry)
-		<-entry.Committed
-		if joinConf {
-			log.Println("waiting new conf commit of entry: ", entry)
-			<-entry.Committed
+//utility
+func (c *confPool) appendJoinConfDEL(entry *raft_log.LogInstance){
+	panic("not implemented")
+}
+
+func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance){
+		var confUnfiltered string = string(entry.Entry.Payload)
+		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
+		confFiltered = confFiltered[0 : len(confFiltered)-1]
+		for i := range confFiltered {
+			confFiltered[i], _ = strings.CutSuffix(confFiltered[i], " ")
+			var ip *string = &confFiltered[i]
+			if *ip == "" || *ip == " " {
+				continue
+			}
+			c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, *ip)
 		}
-		log.Println("entry committed: ", entry)
-		switch {
-		case entry.Entry.OpType == protobuf.Operation_COMMIT_CONFIG_ADD:
+
+		confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
+
+		var newConf = singleconf.NewSingleConf(
+			confFiltered,
+			c.mainConf.GetEntries(),
+			&c.nodeList,
+			c.NodeIndexPool,
+			c.commonMetadata)
+		if c.newConf != nil {
+			log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
+		}
+		//WARN: DANGEROUS
+		if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
+			c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
+			return
+		}
+}
+
+
+// daemon
+func (c *confPool) increaseCommitIndex(){
+    for {
+        log.Println("waiting commit of main conf")
+        <- c.mainConf.CommiEntryC()
+        if c.newConf != nil{
+            log.Println("waiting commit of new conf")
+            <- c.newConf.CommiEntryC()
+        }
+        c.globalCommiIndex++
+        c.applyNewC <- 1
+    }
+}
+
+func (c *confPool) updateLastApplied(){
+    for{
+        <- c.applyNewC
+        c.lastApplied++
+        var entr,err = c.GetEntriAt(int64(c.lastApplied))
+        if err != nil{
+            log.Panicln(err)
+        }
+
+		switch entr.Entry.OpType{
+		case protobuf.Operation_COMMIT_CONFIG_ADD:
 			c.mainConf = c.newConf
 			c.newConf = nil
 			c.emptyNewConf <- 1
 			log.Println("commit config applied [main,new]: ", c.mainConf, c.newConf)
-		}
-		if entry.AtCompletion != nil {
-			entry.AtCompletion()
-		}
-	}()
+        case protobuf.Operation_COMMIT_CONFIG_REM:
+            panic("Not implemented")
+        case protobuf.Operation_JOIN_CONF_ADD, protobuf.Operation_JOIN_CONF_DEL:
+                var commit = protobuf.LogEntry{
+                    Term: c.commonMetadata.GetTerm(),
+                    OpType: protobuf.Operation_COMMIT_CONFIG_ADD,
+                }
 
+                if entr.Entry.OpType == protobuf.Operation_JOIN_CONF_DEL{
+                    commit.OpType = protobuf.Operation_COMMIT_CONFIG_REM
+                }
+
+                c.AppendEntry(c.NewLogInstance(&commit,nil))
+        default:
+            c.localFs.ApplyLogEntry(entr.Entry)
+		}
+		if entr.AtCompletion != nil {
+			entr.AtCompletion()
+		}
+
+    }
 }
 
-// daemon
 func (c *confPool) joinNextConf() {
 	go func() {
 		c.emptyNewConf <- 1
@@ -238,25 +280,32 @@ func (c *confPool) joinNextConf() {
 
 func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata) *confPool {
 	var res = &confPool{
-		mainConf:      nil,
-		newConf:       nil,
-		confQueue:     queue.NewQueue[tuple](),
-		emptyNewConf:  make(chan int),
-		nodeList:      sync.Map{},
-		numNodes:      0,
-		fsRootDir:     rootDir,
-		NodeIndexPool: nodeIndexPool.NewLeaederCommonIdx(),
-        commonMetadata: commonMetadata,
+		mainConf:       nil,
+		newConf:        nil,
+		confQueue:      queue.NewQueue[tuple](),
+		emptyNewConf:   make(chan int),
+		nodeList:       sync.Map{},
+		numNodes:       0,
+		fsRootDir:      rootDir,
+		NodeIndexPool:  nodeIndexPool.NewLeaederCommonIdx(),
+		commonMetadata: commonMetadata,
+        globalCommiIndex: -1,
+        lastApplied: -1,
+        applyNewC: make(chan int),
+        localFs: localfs.NewFs(rootDir),
 	}
-	res.mainConf = singleconf.NewSingleConf(
-		rootDir,
+    var mainConf = singleconf.NewSingleConf(
 		nil,
-        nil,
+		nil,
 		&res.nodeList,
 		res.NodeIndexPool,
-        res.commonMetadata)
+		res.commonMetadata)
+
+    res.mainConf = mainConf
 
 	go res.joinNextConf()
+    go res.increaseCommitIndex()
+    go res.updateLastApplied()
 
 	return res
 }
