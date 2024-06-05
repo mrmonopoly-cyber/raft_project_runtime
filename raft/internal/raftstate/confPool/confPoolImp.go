@@ -158,7 +158,8 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
         log.Printf("debug unfiltered conf: %vEND\n",confUnfiltered)
 		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
         for i := range confFiltered {
-            var ip = strings.TrimSuffix(confFiltered[i]," ")
+            // var ip = strings.TrimSuffix(confFiltered[i]," ")
+            var ip,_ = strings.CutSuffix(confFiltered[i]," ")
             if ip == "" || ip == " "{
                 continue
             }
