@@ -61,7 +61,6 @@ type voteMetadata interface{
 
 type termMetadata interface{
     GetTerm() uint64
-    IncrementTerm()
     SetTerm(newTerm uint64)
 }
 
