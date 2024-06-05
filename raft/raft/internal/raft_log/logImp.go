@@ -98,7 +98,7 @@ func (this *logEntryImp) LastLogIndex() int {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
-	var committedEntr = this.GetCommittedEntries()
+	var committedEntr = this.GetEntries()
 	return len(committedEntr) - 1
 }
 
