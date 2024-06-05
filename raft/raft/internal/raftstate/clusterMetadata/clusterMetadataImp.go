@@ -139,6 +139,12 @@ func newClusterMetadataImp(idPrivate string, idPublic string) *clusterMetadataIm
             public: idPublic,
             private: idPrivate,
         },
+        role: FOLLOWER,
+        term: 0,
+        voteFor: "",
+        voting: true,
+        nSupporting: 0,
+        nNotSupporting: 0,
         TimeoutPool: timeout.NewTimeoutPool(),
     }
 
