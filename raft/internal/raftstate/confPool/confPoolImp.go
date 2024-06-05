@@ -156,9 +156,12 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	case protobuf.Operation_JOIN_CONF_ADD:
 		var confUnfiltered string = string(entry.Entry.Payload)
 		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
-		for i := range confFiltered {
-            log.Println("inserting in conf: ",confFiltered[i])
-			c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, confFiltered[i])
+        for i := range confFiltered {
+            var ip = confFiltered[i]
+            if ip == ""{
+                continue
+            }
+			c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, ip)
 		}
 		confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
         log.Println("new conf: ", confFiltered,len(confFiltered))
