@@ -163,7 +163,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
             if *ip == "" || *ip == " "{
                 continue
             }
-	        log.Printf("adding node in new conf: %vEND\n", ip)
+	        log.Printf("adding node in new conf: %vEND\n", *ip)
 			c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, *ip)
 		}
         if c.mainConf.GetConfig() != nil {
