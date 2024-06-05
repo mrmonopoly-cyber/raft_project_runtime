@@ -214,7 +214,7 @@ func (s *server) newMessageReceived(mess pairMex){
                 }
                 senderNode = v.(node.Node)
             }
-            if strings.Contains(mess.sender,"10.0.0"){
+            if strings.Contains(mess.sender,"10.0.0") && s.GetRole() == clustermetadata.LEADER{
                 senderState,errEn = s.FetchNodeInfo(mess.sender)
                 if errEn != nil{
                     log.Panicf("nodestate for node %v not exist\n",mess.sender)
