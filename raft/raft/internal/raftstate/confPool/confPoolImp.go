@@ -156,6 +156,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	case protobuf.Operation_JOIN_CONF_ADD:
 		var confUnfiltered string = string(entry.Entry.Payload)
 		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
+        confFiltered = confFiltered[0:len(confFiltered)-1]
         for i := range confFiltered {
             confFiltered[i] ,_ = strings.CutSuffix(confFiltered[i]," ")
             var ip *string = &confFiltered[i]
