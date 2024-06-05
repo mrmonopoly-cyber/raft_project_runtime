@@ -9,6 +9,7 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	confpool "raft/internal/raftstate/confPool"
+	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/redirection"
@@ -95,6 +96,7 @@ func (s *server) acceptIncomingConn() {
 func (s* server) handleConnection(workingNode node.Node){
     if strings.Contains(workingNode.GetIp(), "10.0.0") {
         s.UpdateNodeList(confpool.ADD,workingNode)
+        s.UpdateStatusList(nodeIndexPool.ADD,workingNode.GetIp())
         s.internalNodeConnection(workingNode)
         return
     }
