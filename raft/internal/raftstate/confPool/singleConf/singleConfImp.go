@@ -20,7 +20,9 @@ type singleConfImp struct {
 
 func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
     s.LogEntry.AppendEntry(entry)
-    if s.GetRole() == clustermetadata.FOLLOWER { //INFO: FOLLOWER
+    if  s.GetRole() == clustermetadata.FOLLOWER ||
+        s.numNodes <= 1{ 
+        //INFO: FOLLOWER or THE ONLY NODE IN THE CONF
         s.LogEntry.IncreaseCommitIndex()
         return
     }
