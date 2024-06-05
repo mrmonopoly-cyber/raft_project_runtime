@@ -154,12 +154,20 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 
 func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	log.Println("appending entry, general pool: ", entry)
+    var newConf singleconf.SingleConf
+
 	switch entry.Entry.OpType {
 	case protobuf.Operation_JOIN_CONF_ADD:
-        c.appendJoinConfADD(entry)
+        newConf = c.appendJoinConfADD(entry)
 	case protobuf.Operation_JOIN_CONF_DEL:
-        c.appendJoinConfDEL(entry)
+        newConf = c.appendJoinConfDEL(entry)
 	}
+
+    //WARN: DANGEROUS
+    if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
+        c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
+        return 
+    }
 
 	log.Println("append entry main conf: ", entry)
 	c.mainConf.AppendEntry(entry)
@@ -175,11 +183,11 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 }
 
 //utility
-func (c *confPool) appendJoinConfDEL(entry *raft_log.LogInstance){
+func (c *confPool) appendJoinConfDEL(entry *raft_log.LogInstance) singleconf.SingleConf{
 	panic("not implemented")
 }
 
-func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance){
+func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.SingleConf{
 		var confUnfiltered string = string(entry.Entry.Payload)
 		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
 		confFiltered = confFiltered[0 : len(confFiltered)-1]
@@ -203,11 +211,7 @@ func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance){
 		if c.newConf != nil {
 			log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
 		}
-		//WARN: DANGEROUS
-		if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
-			c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
-			return
-		}
+        return newConf
 }
 
 
