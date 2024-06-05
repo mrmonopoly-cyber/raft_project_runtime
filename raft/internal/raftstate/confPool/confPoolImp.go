@@ -165,7 +165,9 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
             }
 			c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, *ip)
 		}
-        log.Printf("new conf: %vEND %v\n", confFiltered,len(confFiltered))
+
+        confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
+
 		var newConf = singleconf.NewSingleConf(
 			c.fsRootDir,
 			confFiltered,
@@ -176,7 +178,6 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
         if c.newConf != nil {
             log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf)
         }
-		// log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
 		//WARN: DANGEROUS
 		if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
 			c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
