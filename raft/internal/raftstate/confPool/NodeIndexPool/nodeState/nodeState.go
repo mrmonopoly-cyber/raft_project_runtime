@@ -9,9 +9,9 @@ const (
 type NodeState interface{
     UpdateNodeState(info INFO, val int)
     FetchData(info INFO) int
-    Substribe() <- chan int
+    Subscribe(info INFO) <- chan int
 }
 
-func NewNodeState() NodeState{
-    return newNodeStateImpl()
+func NewNodeState(nodeIp string) NodeState{
+    return newNodeStateImpl(nodeIp)
 }

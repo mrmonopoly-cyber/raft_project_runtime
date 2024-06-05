@@ -7,6 +7,8 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
+	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
+	commonmatch "raft/internal/raftstate/confPool/singleConf/commonMatch"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -20,6 +22,7 @@ type singleConfImp struct {
 	raft_log.LogEntry
     nodeIndexPool.NodeIndexPool
     clustermetadata.ClusterMetadata
+    commonmatch.CommonMatch
 }
 
 func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
@@ -81,6 +84,16 @@ func (s *singleConfImp) GetConfig() []string {
 	return res
 }
 
+//utility
+
+func (s *singleConfImp) updateEntryCommit()  {
+    for{
+        <- s.CommonMatch.CommitNewEntryC()
+        s.IncreaseCommitIndex()
+        //TODO: every time the common match is updated commit an entry
+    }
+}
+
 func newSingleConfImp(  fsRootDir string, 
                         conf []string, 
                         oldEntries []*protobuf.LogEntry,
@@ -94,12 +107,24 @@ func newSingleConfImp(  fsRootDir string,
         LogEntry: raft_log.NewLogEntry(fsRootDir,oldEntries),
         NodeIndexPool: commonStatePool,
         ClusterMetadata: commonMetadata,
+        CommonMatch: nil,
     }
+    var nodeStates []nodestate.NodeState = nil
 
     for _, v := range conf {
         res.conf.Store(v,v)
+        var st, err = commonStatePool.FetchNodeInfo(v)
+        if err != nil{
+            log.Panicln("state for node not found: ",v)
+        }
+        nodeStates = append(nodeStates, st)
         res.numNodes++
     }
+
+    res.CommonMatch = commonmatch.NewCommonMatch(nodeStates)
+
+    go res.updateEntryCommit()
+
     return res
     
 }

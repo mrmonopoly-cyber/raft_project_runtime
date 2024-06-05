@@ -27,7 +27,7 @@ func (n *nodeIndexPoolImpl) UpdateStatusList(op OP, ip string) {
 	case ADD:
 		var _, f = n.nodeStateList.Load(ip)
 		if !f {
-			var newState = nodestate.NewNodeState()
+			var newState = nodestate.NewNodeState(ip)
 			n.nodeStateList.Store(ip, newState)
 		}
         return

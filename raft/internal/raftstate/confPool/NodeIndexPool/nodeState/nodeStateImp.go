@@ -7,7 +7,9 @@ import (
 
 type nodeStateImpl struct {
     counter uint
-    subs sync.Map
+    subsNxt sync.Map
+    subsMtc sync.Map
+    nodeIp string
 	mathcIndex int
 	nextIndex  int
 }
@@ -30,34 +32,50 @@ func (n *nodeStateImpl) UpdateNodeState(info INFO, val int) {
 	switch info {
 	case MATCH:
 		n.mathcIndex = val
+        log.Println("notifing all subscribers of the change in match index")
+        go n.subsMtc.Range(func(key, value any) bool {
+            var C chan int = value.(chan int)
+            C <- val
+            return true
+        })
 	case NEXTT:
 		n.nextIndex = val
+        log.Println("notifing all subscribers of the change in next index")
+        go n.subsNxt.Range(func(key, value any) bool {
+            var C chan int = value.(chan int)
+            C <- val
+            return true
+        })
     default:
         log.Panicln("case not managed: ", info)
 	}
-    log.Println("notifing all subscribers of the change")
-    n.subs.Range(func(key, value any) bool {
-        var C chan int = value.(chan int)
-        C <- val
-        return true
-    })
+
 }
 
 // Substribe implements NodeState.
-func (n *nodeStateImpl) Substribe() <-chan int {
+func (n *nodeStateImpl) Subscribe(info INFO) <-chan int {
     var notifC chan int = make(chan int)
 
-    n.subs.Store(n.counter,notifC)
+    switch info{
+    case MATCH:
+        n.subsMtc.Store(n.counter,notifC)
+    case NEXTT:
+        n.subsNxt.Store(n.counter,notifC)
+    default:
+        log.Panicln("unmanaged case: ",info)
+    }
     n.counter++
 
     return notifC
 }
 
-func newNodeStateImpl() *nodeStateImpl {
+func newNodeStateImpl(nodeIp string) *nodeStateImpl {
 	return &nodeStateImpl{
 		mathcIndex: -1,
 		nextIndex:  -1,
-        subs: sync.Map{},
+        subsNxt: sync.Map{},
+        subsMtc: sync.Map{},
         counter: 0,
+        nodeIp: nodeIp,
 	}
 }
