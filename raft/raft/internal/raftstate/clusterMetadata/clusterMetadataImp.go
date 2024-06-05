@@ -99,8 +99,10 @@ func (c *clusterMetadataImp) SetRole(newRole Role) {
 	}
 	switch newRole {
 	case FOLLOWER:
+        log.Println("becomming follower")
 		c.StopTimeout(TIMER_HEARTHBIT)
 	case LEADER:
+        log.Println("becomming leader")
 		c.RestartTimeout(TIMER_HEARTHBIT)
 		c.leaderIp = c.myIp
 		c.ResetElection()
