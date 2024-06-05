@@ -203,7 +203,7 @@ func (s *server) newMessageReceived(mess pairMex){
             var byEnc []byte
             var errEn error
             var senderNode node.Node 
-            var senderState nodestate.NodeState
+            var senderState nodestate.NodeState = nil
 
             senderNode,errEn = s.GetNode(mess.sender)
             if errEn != nil {
@@ -214,9 +214,11 @@ func (s *server) newMessageReceived(mess pairMex){
                 }
                 senderNode = v.(node.Node)
             }
-            senderState,errEn = s.FetchNodeInfo(mess.sender)
-            if errEn != nil{
-                log.Panicf("nodestate for node %v not exist\n",mess.sender)
+            if strings.Contains(mess.sender,"10.0.0"){
+                senderState,errEn = s.FetchNodeInfo(mess.sender)
+                if errEn != nil{
+                    log.Panicf("nodestate for node %v not exist\n",mess.sender)
+                }
             }
             log.Println("node founded: ", senderNode.GetIp())
             oldRole = s.GetRole()
