@@ -144,5 +144,6 @@ func newClusterMetadataImp(idPrivate string, idPublic string) *clusterMetadataIm
 
 	res.TimeoutPool.AddTimeout(TIMER_ELECTION, time.Duration(randelection))
 	res.TimeoutPool.AddTimeout(TIMER_HEARTHBIT, time.Duration(H_TIMEOUT))
+    res.SetRole(FOLLOWER)
     return res
 }
