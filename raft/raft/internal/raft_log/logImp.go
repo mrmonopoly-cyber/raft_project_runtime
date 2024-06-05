@@ -4,6 +4,7 @@ import (
 	"errors"
 	l "log"
 	localfs "raft/internal/localFs"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"sync"
 )
@@ -38,15 +39,15 @@ func (this *log) GetCommittedEntriesRange(startIndex int) []LogInstance {
 	return this.getEntries(startIndex)
 }
 
-func (this *log) GetEntries() []LogInstance {
+func (this *log) GetEntries() []*protobuf.LogEntry{
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
 	var lenEntries = len(this.entries)
-	var res []LogInstance = make([]LogInstance, lenEntries)
+	var res []*protobuf.LogEntry = make([]*protobuf.LogEntry, lenEntries)
 
 	for i, v := range this.entries {
-		res[i] = v
+		res[i] = v.Entry
 	}
 
 	return res

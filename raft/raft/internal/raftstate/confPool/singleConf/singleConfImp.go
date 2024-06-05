@@ -2,10 +2,14 @@ package singleconf
 
 import (
 	"log"
+	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
+	"raft/internal/rpcs"
+	"raft/internal/rpcs/AppendEntryRpc"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"sync"
 )
 
@@ -32,17 +36,34 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
     s.conf.Range(func(key, value any) bool {
         var v,f = s.nodeList.Load(key)
         var fNode node.Node
-
+        var appendRpc rpcs.Rpc
+        var enriesToSend []*protobuf.LogEntry
+        var rawMex []byte
+        var err error
 
         if !f{
-            log.Println("node not yet connected or crashes, skipping send")
+            log.Println("node not yet connected or crashes or it's myself, skipping send")
             return false
         }
         fNode = v.(node.Node)
-        fNode.GetIp() //INFO: just to remove the compiler error
+        
+        switch entry.Entry.OpType{
+        case protobuf.Operation_JOIN_CONF_DEL, protobuf.Operation_JOIN_CONF_ADD:
+            enriesToSend = s.GetEntries()
+            appendRpc = AppendEntryRpc.NewAppendEntryRPC(s.ClusterMetadata,s.LogEntry,-1,0,enriesToSend)
+        default:
+            panic("not implemented")
+        }
+            
+        rawMex,err = genericmessage.Encode(appendRpc)
+        if err != nil{
+            log.Panicln("error encoding: ", appendRpc, err)
+        }
 
-        //TODO: generate an AppendEntry for this specific node and send it
-        //The AppendEntry will contain all the missed entry + the new one
+        err = fNode.Send(rawMex)
+        if err != nil{
+            log.Panicln("error sending rpc to: ",appendRpc,err)
+        }
 
         return true
     })
@@ -62,7 +83,7 @@ func (s *singleConfImp) GetConfig() []string {
 
 func newSingleConfImp(  fsRootDir string, 
                         conf []string, 
-                        oldEntries []raft_log.LogInstance,
+                        oldEntries []*protobuf.LogEntry,
                         nodeList *sync.Map,
                         commonStatePool nodeIndexPool.NodeIndexPool,
                         commonMetadata clustermetadata.ClusterMetadata) *singleConfImp{
