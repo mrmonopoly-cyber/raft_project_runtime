@@ -60,6 +60,7 @@ func (s *singleConfImp) GetConfig() []string {
 
 func newSingleConfImp(  fsRootDir string, 
                         conf []string, 
+                        oldEntries []raft_log.LogInstance,
                         nodeList *sync.Map,
                         commonStatePool nodeIndexPool.NodeIndexPool,
                         commonMetadata clustermetadata.ClusterMetadata) *singleConfImp{
@@ -67,7 +68,7 @@ func newSingleConfImp(  fsRootDir string,
         nodeList: nodeList,
         conf: sync.Map{},
         numNodes: 0,
-        LogEntry: raft_log.NewLogEntry(fsRootDir),
+        LogEntry: raft_log.NewLogEntry(fsRootDir,oldEntries),
         NodeIndexPool: commonStatePool,
         ClusterMetadata: commonMetadata,
     }

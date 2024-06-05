@@ -20,9 +20,10 @@ type SingleConf interface{
 
 func NewSingleConf( fsRootDir string, 
                     conf []string,  
+                    oldEntries []raft_log.LogInstance,
                     nodeList *sync.Map,
                     commonStatePool nodeIndexPool.NodeIndexPool,
                     commonMetadata clustermetadata.ClusterMetadata) SingleConf{
-    return newSingleConfImp(fsRootDir,conf,nodeList,commonStatePool,commonMetadata)
+    return newSingleConfImp(fsRootDir,conf,oldEntries, nodeList,commonStatePool,commonMetadata)
 }
 

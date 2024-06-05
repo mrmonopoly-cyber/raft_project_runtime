@@ -164,6 +164,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		var newConf = singleconf.NewSingleConf(
 			c.fsRootDir,
 			confFiltered,
+            c.mainConf.GetEntries(),
 			&c.nodeList,
 			c.NodeIndexPool,
             c.commonMetadata)
@@ -238,6 +239,7 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 	res.mainConf = singleconf.NewSingleConf(
 		rootDir,
 		nil,
+        nil,
 		&res.nodeList,
 		res.NodeIndexPool,
         res.commonMetadata)
