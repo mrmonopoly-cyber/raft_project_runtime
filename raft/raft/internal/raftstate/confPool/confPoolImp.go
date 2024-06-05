@@ -157,18 +157,13 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		var confUnfiltered string = string(entry.Entry.Payload)
 		var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
         for i := range confFiltered {
-            // var ip = strings.TrimSuffix(confFiltered[i]," ")
             confFiltered[i] ,_ = strings.CutSuffix(confFiltered[i]," ")
             var ip *string = &confFiltered[i]
             if *ip == "" || *ip == " "{
                 continue
             }
-	        log.Printf("adding node in new conf: %vEND\n", *ip)
 			c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, *ip)
 		}
-        if c.mainConf.GetConfig() != nil {
-            confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
-        }
         log.Printf("new conf: %vEND %v\n", confFiltered,len(confFiltered))
 		var newConf = singleconf.NewSingleConf(
 			c.fsRootDir,
