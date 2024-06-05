@@ -2,7 +2,9 @@ package clustermetadata
 
 import (
 	"log"
+	"math/rand"
 	"raft/internal/raftstate/timeout"
+	"time"
 )
 
 type clusterMetadataImp struct {
@@ -128,11 +130,17 @@ type ipMetadata struct {
 }
 
 func newClusterMetadataImp(idPrivate string, idPublic string) *clusterMetadataImp {
-	return &clusterMetadataImp{
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	var randelection = rand.Intn((int(MAX_ELECTION_TIMEOUT) - int(MIN_ELECTION_TIMEOUT) + 1)) + int(MIN_ELECTION_TIMEOUT)
+	var res = &clusterMetadataImp{
         myIp: ipMetadata{
             public: idPublic,
             private: idPrivate,
         },
         TimeoutPool: timeout.NewTimeoutPool(),
     }
+
+	res.TimeoutPool.AddTimeout(TIMER_ELECTION, time.Duration(randelection))
+	res.TimeoutPool.AddTimeout(TIMER_HEARTHBIT, time.Duration(H_TIMEOUT))
+    return res
 }

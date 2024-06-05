@@ -2,6 +2,7 @@ package clustermetadata
 
 import (
 	"raft/internal/raftstate/timeout"
+	"time"
 )
 
 
@@ -19,6 +20,12 @@ type ClusterMetadata interface{
 const (
     TIMER_ELECTION = "election"
     TIMER_HEARTHBIT = "hearthbit"
+)
+
+const (
+	MIN_ELECTION_TIMEOUT time.Duration = 10000000000
+	MAX_ELECTION_TIMEOUT time.Duration = 15000000000
+	H_TIMEOUT            time.Duration = 3000000000
 )
 
 type Role uint
