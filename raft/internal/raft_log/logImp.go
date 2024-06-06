@@ -133,7 +133,7 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 }
 
 
-func newLogImp(oldEntries []*protobuf.LogEntry) *logEntryImp {
+func newLogImp(oldEntries []*protobuf.LogEntry, applicationC bool) *logEntryImp {
 	var oldEntrLen = len(oldEntries)
 	var oldInstance []LogInstance = make([]LogInstance, oldEntrLen)
 
@@ -146,8 +146,12 @@ func newLogImp(oldEntries []*protobuf.LogEntry) *logEntryImp {
 		logSize:     0,
 		entries:     oldInstance,
 		lock:        sync.RWMutex{},
-		applyC:      make(chan int),
+		applyC:      nil,
 	}
+
+    if applicationC{
+        l.applyC = make(chan int)
+    }
 
 	return l
 }

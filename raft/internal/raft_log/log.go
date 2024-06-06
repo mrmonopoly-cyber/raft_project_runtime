@@ -32,7 +32,7 @@ type LogEntry interface {
     NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogInstance
 }
 
-func NewLogEntry(oldEntries []*protobuf.LogEntry) LogEntry {
-    return newLogImp(oldEntries)
+func NewLogEntry(oldEntries []*protobuf.LogEntry, applicationC bool) LogEntry {
+    return newLogImp(oldEntries,applicationC)
 }
 

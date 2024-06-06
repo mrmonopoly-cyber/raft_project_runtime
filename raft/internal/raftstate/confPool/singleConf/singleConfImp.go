@@ -38,6 +38,7 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 		//INFO: FOLLOWER or THE ONLY NODE IN THE CONF
         log.Println("auto commit")
 		s.commitC <- 1
+        s.IncreaseCommitIndex()
 		return
 	}
 
@@ -99,6 +100,7 @@ func (s *singleConfImp) updateEntryCommit() {
 	for {
 		<-s.CommonMatch.CommitNewEntryC()
 		s.commitC <- int(s.GetCommitIndex()) + 1
+        s.IncreaseCommitIndex()
 		//TODO: every time the common match is updated commit an entry
 	}
 }
@@ -115,7 +117,7 @@ func newSingleConfImp(conf []string,
 		NodeIndexPool:   commonStatePool,
 		ClusterMetadata: commonMetadata,
 		CommonMatch:     nil,
-		LogEntry:        raft_log.NewLogEntry(oldEntries),
+		LogEntry:        raft_log.NewLogEntry(oldEntries,false),
 		commitC:         make(chan int),
 	}
 	var nodeStates []nodestate.NodeState = nil

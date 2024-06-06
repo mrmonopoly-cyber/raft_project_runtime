@@ -100,19 +100,19 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 
 func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	log.Println("appending entry, general pool: ", entry)
-	var newConf singleconf.SingleConf
+    var newConf singleconf.SingleConf
 
 	switch entry.Entry.OpType {
 	case protobuf.Operation_JOIN_CONF_ADD:
 		newConf = c.appendJoinConfADD(entry)
+        if c.pushJoinConf(entry,newConf){
+            return
+        }
 	case protobuf.Operation_JOIN_CONF_DEL:
 		newConf = c.appendJoinConfDEL(entry)
-	}
-
-	//WARN: DANGEROUS
-	if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
-		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
-		return
+        if c.pushJoinConf(entry,newConf){
+            return
+        }
 	}
 
 	log.Println("append entry main conf: ", entry)
@@ -125,6 +125,15 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		}
 		c.newConf.AppendEntry(&entryCopy)
 	}
+}
+
+func (c *confPool) pushJoinConf(entry *raft_log.LogInstance, newConf singleconf.SingleConf) bool{
+	//WARN: DANGEROUS
+	if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
+		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
+		return true
+	}
+    return false
 }
 
 // utility
@@ -159,9 +168,6 @@ func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.Sin
 	return newConf
 }
 
-func  applicationFunction(localFs localfs.LocalFs, entr raft_log.LogInstance){
-}
-
 // daemon
 func (c *confPool) increaseCommitIndex() {
 	for {
@@ -171,7 +177,7 @@ func (c *confPool) increaseCommitIndex() {
 			log.Println("waiting commit of new conf")
 			<-c.newConf.CommiEntryC()
 		}
-		c.increaseCommitIndex()
+        c.IncreaseCommitIndex()
 	}
 }
 
@@ -251,7 +257,7 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 		res.commonMetadata)
 
 	res.mainConf = mainConf
-    res.LogEntry =  raft_log.NewLogEntry(nil)
+    res.LogEntry =  raft_log.NewLogEntry(nil,true)
 
 	go res.joinNextConf()
 	go res.increaseCommitIndex()
