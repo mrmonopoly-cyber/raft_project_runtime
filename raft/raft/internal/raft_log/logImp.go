@@ -32,7 +32,9 @@ func (this *logEntryImp) ApplyEntryC() <-chan int {
 func (this *logEntryImp) IncreaseCommitIndex() {
     log.Println("increasing commit Index, log imp")
 	this.commitIndex++
-	this.applyC <- int(this.commitIndex)
+    if this.applyC != nil{
+        this.applyC <- int(this.commitIndex)
+    }
     log.Println("increasing commit Index done, log imp")
 }
 
