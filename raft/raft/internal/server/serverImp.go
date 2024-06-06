@@ -12,7 +12,6 @@ import (
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/rpcs"
-	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/redirection"
 	"strings"
 	"sync"
