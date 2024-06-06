@@ -28,10 +28,12 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
     for _,v  := range c.subs {
         go func(){
             for{
+                log.Println("wait new match index for node: ",v.Fst)
                 <- v.Snd
                 var halfNodeNum = c.numNodes/2
                 c.lock.Lock()
                 var newMatch = v.Fst.FetchData(nodestate.MATCH)
+                log.Println("new match index for node: ",v.Fst, newMatch)
                 if newMatch >= c.commonMatchIndex && v.Trd < c.commonMatchIndex {
                     c.numStable++
                     for c.numStable > uint(halfNodeNum){
