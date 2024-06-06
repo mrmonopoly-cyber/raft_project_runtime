@@ -64,6 +64,7 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
         new_node = node.NewNode(serversIp[i], port, nodeConn)
         log.Printf("connected to new node, storing it: %v\n", new_node.GetIp())
         this.UpdateNodeList(confpool.ADD,new_node)
+        this.UpdateStatusList(nodeIndexPool.ADD,new_node.GetIp())
         go (*this).internalNodeConnection(new_node)
 	}
 
