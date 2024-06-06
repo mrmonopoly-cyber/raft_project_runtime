@@ -44,7 +44,7 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 
 	//INFO:LEADER
 	//Propagate to all nodes in this conf
-    log.Panicln("propagate to all follower: ",entry.Entry)
+    log.Println("propagate to all follower: ",entry.Entry)
 	s.conf.Range(func(key, value any) bool {
 		var v, f = s.nodeList.Load(key)
 		var fNode node.Node
