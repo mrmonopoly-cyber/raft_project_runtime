@@ -32,14 +32,12 @@ type confPool struct {
 	emptyNewConf chan int
 	nodeList     sync.Map
 	numNodes     uint
+
 	nodeIndexPool.NodeIndexPool
 	commonMetadata clustermetadata.ClusterMetadata
 
-	globalCommitIndex int
-	lastApplied      int
-	applyNewC        chan int
-
-	localFs localfs.LocalFs
+    raft_log.LogEntry
+    localfs.LocalFs
 }
 
 
@@ -72,88 +70,6 @@ func (c *confPool) GetNode(ip string) (node.Node, error) {
 	return v.(node.Node), nil
 }
 
-// NewLogInstanceBatch implements ConfPool.
-func (c *confPool) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []func()) []*raft_log.LogInstance {
-	var res []*raft_log.LogInstance = nil
-	var postLen = len(post)
-
-	for i, v := range entry {
-		var inst = raft_log.LogInstance{
-			Entry: v,
-            Committed: make(chan int),
-		}
-		if i < postLen {
-			inst.AtCompletion = post[i]
-		}
-
-		res = append(res, &inst)
-	}
-
-	return res
-}
-
-// DeleteFromEntry implements ConfPool.
-func (c *confPool) DeleteFromEntry(entryIndex uint) {
-	c.mainConf.DeleteFromEntry(entryIndex)
-	if c.newConf != nil {
-		c.newConf.DeleteFromEntry(entryIndex)
-	}
-}
-
-// GetCommitIndex implements ConfPool.
-func (c *confPool) GetCommitIndex() int64 {
-	return int64(c.globalCommitIndex)
-}
-
-// GetCommittedEntries implements ConfPool.
-func (c *confPool) GetCommittedEntries() []raft_log.LogInstance {
-	panic("unimplemented")
-}
-
-// GetCommittedEntriesRange implements ConfPool.
-func (c *confPool) GetCommittedEntriesRange(startIndex int) []raft_log.LogInstance {
-	panic("unimplemented")
-}
-
-// GetEntriAt implements ConfPool.
-func (c *confPool) GetEntriAt(index int64) (*raft_log.LogInstance, error) {
-	return c.mainConf.GetEntriAt(index)
-}
-
-// GetEntries implements ConfPool.
-func (c *confPool) GetEntries() []*protobuf.LogEntry {
-	return c.mainConf.GetEntries()
-}
-
-// LastLogIndex implements ConfPool.
-func (c *confPool) LastLogIndex() int {
-    var res = len(c.mainConf.GetEntries())-1
-    if res < -1 {
-        return res
-    }
-    return -1
-}
-
-// LastLogTerm implements ConfPool.
-func (c *confPool) LastLogTerm() uint {
-	return c.mainConf.LastLogTerm()
-}
-
-// MinimumCommitIndex implements ConfPool.
-func (c *confPool) MinimumCommitIndex(val uint) {
-	c.mainConf.MinimumCommitIndex(val)
-}
-
-// NewLogInstance implements ConfPool.
-func (c *confPool) NewLogInstance(entry *protobuf.LogEntry, post func()) *raft_log.LogInstance {
-	var res = &raft_log.LogInstance{
-		Entry:        entry,
-		AtCompletion: post,
-		Committed:    make(chan int),
-	}
-	return res
-}
-
 func (c *confPool) GetNodeList() *sync.Map {
 	return &c.nodeList
 }
@@ -184,19 +100,19 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 
 func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	log.Println("appending entry, general pool: ", entry)
-	var newConf singleconf.SingleConf
+    var newConf singleconf.SingleConf
 
 	switch entry.Entry.OpType {
 	case protobuf.Operation_JOIN_CONF_ADD:
 		newConf = c.appendJoinConfADD(entry)
+        if c.pushJoinConf(entry,newConf){
+            return
+        }
 	case protobuf.Operation_JOIN_CONF_DEL:
 		newConf = c.appendJoinConfDEL(entry)
-	}
-
-	//WARN: DANGEROUS
-	if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
-		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
-		return
+        if c.pushJoinConf(entry,newConf){
+            return
+        }
 	}
 
 	log.Println("append entry main conf: ", entry)
@@ -205,11 +121,19 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		log.Println("append entry new conf: ", entry)
 		var entryCopy raft_log.LogInstance = raft_log.LogInstance{
 			Entry:        entry.Entry,
-			Committed:    make(chan int),
 			AtCompletion: entry.AtCompletion,
 		}
 		c.newConf.AppendEntry(&entryCopy)
 	}
+}
+
+func (c *confPool) pushJoinConf(entry *raft_log.LogInstance, newConf singleconf.SingleConf) bool{
+	//WARN: DANGEROUS
+	if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
+		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
+		return true
+	}
+    return false
 }
 
 // utility
@@ -253,47 +177,45 @@ func (c *confPool) increaseCommitIndex() {
 			log.Println("waiting commit of new conf")
 			<-c.newConf.CommiEntryC()
 		}
-		c.globalCommitIndex++
-		c.applyNewC <- 1
+        c.IncreaseCommitIndex()
 	}
 }
 
 func (c *confPool) updateLastApplied() {
 	for {
-		<-c.applyNewC
-		c.lastApplied++
-		var entr, err = c.GetEntriAt(int64(c.lastApplied))
+        var toApplyIdx = <- c.ApplyEntryC()
+		var entr, err = c.GetEntriAt(int64(toApplyIdx))
 		if err != nil {
 			log.Panicln(err)
 		}
 
-		switch entr.Entry.OpType {
-		case protobuf.Operation_COMMIT_CONFIG_ADD:
-			c.mainConf = c.newConf
-			c.newConf = nil
-			c.emptyNewConf <- 1
-			log.Println("commit config applied [main,new]: ", c.mainConf, c.newConf)
-		case protobuf.Operation_COMMIT_CONFIG_REM:
-			panic("Not implemented")
-		case protobuf.Operation_JOIN_CONF_ADD, protobuf.Operation_JOIN_CONF_DEL:
+        switch entr.Entry.OpType {
+        case protobuf.Operation_COMMIT_CONFIG_ADD:
+            c.mainConf = c.newConf
+            c.newConf = nil
+            c.emptyNewConf <- 1
+            log.Println("commit config applied [main,new]: ", c.mainConf, c.newConf)
+        case protobuf.Operation_COMMIT_CONFIG_REM:
+            panic("Not implemented")
+        case protobuf.Operation_JOIN_CONF_ADD, protobuf.Operation_JOIN_CONF_DEL:
             if c.commonMetadata.GetRole() == clustermetadata.LEADER{
                 var commit = protobuf.LogEntry{
                     Term:   c.commonMetadata.GetTerm(),
                     OpType: protobuf.Operation_COMMIT_CONFIG_ADD,
                 }
-
-                if entr.Entry.OpType == protobuf.Operation_JOIN_CONF_DEL {
-                    commit.OpType = protobuf.Operation_COMMIT_CONFIG_REM
-                }
-
                 c.AppendEntry(c.NewLogInstance(&commit, nil))
             }
-		default:
-			c.localFs.ApplyLogEntry(entr.Entry)
-		}
-		if entr.AtCompletion != nil {
-			entr.AtCompletion()
-		}
+        case protobuf.Operation_READ,protobuf.Operation_WRITE,protobuf.Operation_DELETE,
+             protobuf.Operation_CREATE, protobuf.Operation_RENAME:
+
+            c.LocalFs.ApplyLogEntry(entr.Entry)
+        default:
+            log.Panicln("unrecognized opration: ",entr.Entry.OpType)
+        }
+
+        if entr.AtCompletion != nil {
+            entr.AtCompletion()
+        }
 
 	}
 }
@@ -324,10 +246,8 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 		fsRootDir:        rootDir,
 		NodeIndexPool:    nodeIndexPool.NewLeaederCommonIdx(),
 		commonMetadata:   commonMetadata,
-		globalCommitIndex: -1,
-		lastApplied:      -1,
-		applyNewC:        make(chan int),
-		localFs:          localfs.NewFs(rootDir),
+        LogEntry: nil,
+        LocalFs: localfs.NewFs(rootDir),
 	}
 	var mainConf = singleconf.NewSingleConf(
 		nil,
@@ -337,6 +257,7 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 		res.commonMetadata)
 
 	res.mainConf = mainConf
+    res.LogEntry =  raft_log.NewLogEntry(nil,true)
 
 	go res.joinNextConf()
 	go res.increaseCommitIndex()
