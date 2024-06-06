@@ -1,6 +1,7 @@
 package commonmatch
 
 import (
+	"log"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/utiliy"
 	"sync"
@@ -70,6 +71,7 @@ func NewCommonMatchImp(nodeSubs []nodestate.NodeState) *commonMatchImp {
         res.subs[i].Snd = nodeSubs[i].Subscribe(nodestate.MATCH)
         res.subs[i].Trd = nodeSubs[i].FetchData(nodestate.MATCH)
     }
+    log.Println("list subs commmon Match: ", res.subs)
 
     go res.updateCommonMatchIndex()
     
