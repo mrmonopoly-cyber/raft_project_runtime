@@ -228,7 +228,7 @@ func (c *confPool) joinNextConf() {
 		log.Println("waiting new conf to join")
 		<-c.confQueue.WaitEl()
 		var co = c.confQueue.Pop()
-        log.Println("new conf to join: ",co.SingleConf)
+        log.Println("new conf to join: ",co.SingleConf.GetConfig())
 		c.newConf = co.SingleConf
 		c.AppendEntry(co.LogInstance)
 	}
