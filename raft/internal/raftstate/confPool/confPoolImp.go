@@ -33,7 +33,6 @@ type confPool struct {
 	nodeIndexPool.NodeIndexPool
 	commonMetadata clustermetadata.ClusterMetadata
 
-    entryToCommiC chan int
     raft_log.LogEntry
     localfs.LocalFs
 }
@@ -74,16 +73,7 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 
 func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	log.Println("appending entry, general pool: ", entry)
-    c.LogEntry.AppendEntry(entry)
-    c.entryToCommiC <- 1
-}
-
-func (c *confPool) appendEntryToConf(){
     var newConf singleconf.SingleConf
-    var entry,err = c.GetEntriAt(c.GetCommitIndex()+1)
-    if err != nil{
-        log.Panicln(err)
-    }
 
 	switch entry.Entry.OpType {
 	case protobuf.Operation_JOIN_CONF_ADD:
@@ -98,6 +88,7 @@ func (c *confPool) appendEntryToConf(){
         }
 	}
 
+    c.LogEntry.AppendEntry(entry)
 	log.Println("append entry main conf: ", entry)
 	c.mainConf.AppendEntry(entry)
 	if c.newConf != nil {
@@ -231,8 +222,7 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 		fsRootDir:        rootDir,
 		NodeIndexPool:    nodeIndexPool.NewLeaederCommonIdx(),
 		commonMetadata:   commonMetadata,
-        entryToCommiC: make(chan int),
-        LogEntry: raft_log.NewLogEntry(nil,true),
+        LogEntry: nil,
         LocalFs: localfs.NewFs(rootDir),
 	}
 	var mainConf = singleconf.NewSingleConf(
@@ -243,6 +233,7 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 		res.commonMetadata)
 
 	res.mainConf = mainConf
+    res.LogEntry =  raft_log.NewLogEntry(nil,true)
 
 	go res.joinNextConf()
 	go res.increaseCommitIndex()
