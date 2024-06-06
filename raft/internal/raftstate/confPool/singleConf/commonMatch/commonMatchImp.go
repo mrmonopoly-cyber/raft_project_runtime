@@ -24,19 +24,20 @@ func (c *commonMatchImp) CommitNewEntryC() <-chan int {
 
 //utility
 func (c *commonMatchImp) updateCommonMatchIndex()  {
+    var halfNodeNum = c.numNodes/2
     
     for _,v  := range c.subs {
         go func(){
             for{
                 log.Println("wait new match index for node: ",v.Fst)
                 <- v.Snd
-                var halfNodeNum = c.numNodes/2
                 c.lock.Lock()
                 var newMatch = v.Fst.FetchData(nodestate.MATCH)
                 log.Println("new match index for node: ",v.Fst, newMatch)
                 if newMatch >= c.commonMatchIndex && v.Trd < c.commonMatchIndex {
                     c.numStable++
                     for c.numStable > uint(halfNodeNum){
+                        log.Println("stable achived commit on ch: ",c.commitEntryC)
                         c.commitEntryC <- 1
                         c.numStable=1
                         //INFO: it's possible that a node has a mach greater match index 
