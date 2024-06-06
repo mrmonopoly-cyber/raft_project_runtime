@@ -75,9 +75,7 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	log.Println("appending entry, general pool: ", entry)
     c.LogEntry.AppendEntry(entry)
-    go func(){
-        c.entryToCommiC <- 1
-    }()
+    c.entryToCommiC <- 1
 }
 
 func (c *confPool) appendEntryToConf(){
