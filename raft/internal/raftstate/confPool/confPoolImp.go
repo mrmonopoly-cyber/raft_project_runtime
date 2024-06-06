@@ -22,7 +22,6 @@ type tuple struct {
 }
 
 type confPool struct {
-    lock sync.RWMutex
 	fsRootDir    string
 	mainConf     singleconf.SingleConf
 	newConf      singleconf.SingleConf
@@ -62,9 +61,6 @@ func (c *confPool) GetNodeList() *sync.Map {
 
 // GetConf implements ConfPool.
 func (c *confPool) GetConf() []string {
-    c.lock.RLock()
-    defer c.lock.RUnlock()
-
 	if c.mainConf.GetConfig() == nil {
 		return nil
 	}
@@ -77,9 +73,6 @@ func (c *confPool) GetConf() []string {
 
 // UpdateNodeList implements ConfPool.
 func (c *confPool) UpdateNodeList(op OP, node node.Node) {
-    c.lock.Lock()
-    defer c.lock.Unlock()
-
 	switch op {
 	case ADD:
 		c.nodeList.Store(node.GetIp(), node)
@@ -91,9 +84,6 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 }
 
 func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
-    c.lock.Lock()
-    defer c.lock.Unlock()
-
 	log.Println("appending entry, general pool: ", entry)
     var newConf singleconf.SingleConf
 
@@ -232,7 +222,6 @@ func (c *confPool) joinNextConf() {
 
 func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata) *confPool {
 	var res = &confPool{
-        lock: sync.RWMutex{},
 		mainConf:         nil,
 		newConf:          nil,
 		confQueue:        queue.NewQueue[tuple](),
