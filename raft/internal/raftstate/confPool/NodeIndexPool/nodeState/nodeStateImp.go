@@ -32,7 +32,6 @@ func (n *nodeStateImpl) UpdateNodeState(info INFO, val int) {
 	switch info {
 	case MATCH:
 		n.mathcIndex = val
-        log.Println("notifing all subscribers of the change in match index: ",val)
         go n.subsMtc.Range(func(key, value any) bool {
             var C chan int = value.(chan int)
             C <- val
@@ -40,7 +39,6 @@ func (n *nodeStateImpl) UpdateNodeState(info INFO, val int) {
         })
 	case NEXTT:
 		n.nextIndex = val
-        log.Println("notifing all subscribers of the change in next index: ",val)
         go n.subsNxt.Range(func(key, value any) bool {
             var C chan int = value.(chan int)
             C <- val
