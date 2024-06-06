@@ -31,29 +31,13 @@ func NewnewConfRPC(op protobuf.AdminOp, conf []string) rpcs.Rpc {
 func (this* NewConf) Execute(   intLog raft_log.LogEntry,
                                 metadata clustermetadata.ClusterMetadata, 
                                 senderState nodestate.NodeState) rpcs.Rpc{
-    var exitSucess rpcs.Rpc = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,"")
     var myPrivateIp = metadata.GetMyIp(clustermetadata.PRI)
 
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
         if metadata.GetLeaderIp(clustermetadata.PRI) == "" && myPrivateIp == *this.pMex.Conf.Leader{
-            var newEntryBaseEntry = protobuf.LogEntry{
-                Term: metadata.GetTerm(),
-                OpType: protobuf.Operation_JOIN_CONF_ADD,
-            }
-
-            for _, v := range this.pMex.Conf.Conf {
-                newEntryBaseEntry.Payload = append(newEntryBaseEntry.Payload, v...)
-                newEntryBaseEntry.Payload = append(newEntryBaseEntry.Payload, raft_log.SEPARATOR...)
-            }
-
-            var newConfLog = intLog.NewLogInstance(&newEntryBaseEntry,nil)
-            log.Println("appending log entry: ",newConfLog)
-
             metadata.SetRole(clustermetadata.LEADER)
-            intLog.AppendEntry(newConfLog)
-
-            return exitSucess
+            return this.joinConfAddExecute(intLog,metadata)
         }
         var failureDescr = `cluster already created and settend, New conf can only be applied 
         when the cluster is still yet to be configured in the first place,
@@ -63,8 +47,7 @@ func (this* NewConf) Execute(   intLog raft_log.LogEntry,
         return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureDescr)
     case protobuf.AdminOp_CHANGE_CONF_ADD:
         if metadata.GetRole() == clustermetadata.LEADER{
-            panic("not implemented")
-            // return exitSucess
+            return this.joinConfAddExecute(intLog,metadata)
         }
         var failureMex = "i'm not leader, i cannot change conf"
         log.Println(failureMex)
@@ -106,4 +89,29 @@ func (this *NewConf) Decode(b []byte) error {
         log.Panicln("error in Encoding Request Vote: ", err)
     }
 	return err
+}
+
+//utility
+func (this *NewConf) joinConfAddExecute(
+                        intLog raft_log.LogEntry,
+                        metadata clustermetadata.ClusterMetadata) rpcs.Rpc{
+
+    var exitSucess rpcs.Rpc = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,"")
+    var newEntryBaseEntry = protobuf.LogEntry{
+        Term: metadata.GetTerm(),
+        OpType: protobuf.Operation_JOIN_CONF_ADD,
+    }
+
+    for _, v := range this.pMex.Conf.Conf {
+        newEntryBaseEntry.Payload = append(newEntryBaseEntry.Payload, v...)
+        newEntryBaseEntry.Payload = append(newEntryBaseEntry.Payload, raft_log.SEPARATOR...)
+    }
+
+    var newConfLog = intLog.NewLogInstance(&newEntryBaseEntry,nil)
+    log.Println("appending log entry: ",newConfLog)
+
+    metadata.SetRole(clustermetadata.LEADER)
+    intLog.AppendEntry(newConfLog)
+
+    return exitSucess
 }
