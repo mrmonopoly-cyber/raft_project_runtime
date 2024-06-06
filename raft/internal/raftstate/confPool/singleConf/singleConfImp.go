@@ -62,11 +62,12 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 		switch entry.Entry.OpType {
 		case protobuf.Operation_JOIN_CONF_DEL, protobuf.Operation_JOIN_CONF_ADD:
 			enriesToSend = s.GetEntries()
-			appendRpc = AppendEntryRpc.NewAppendEntryRPC(
-				s.ClusterMetadata, s.LogEntry, -1, 0, enriesToSend)
 		default:
-			panic("not implemented")
+            enriesToSend = append(enriesToSend, entry.Entry)
 		}
+
+        appendRpc = AppendEntryRpc.NewAppendEntryRPC(
+            s.ClusterMetadata, s.LogEntry, -1, 0, enriesToSend)
 
 		rawMex, err = genericmessage.Encode(appendRpc)
 		if err != nil {
