@@ -29,7 +29,6 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
     for _,v  := range c.subs {
         go func(){
             for{
-                log.Println("wait new match index for node: ",v.Fst)
                 <- v.Snd
                 c.lock.Lock()
                 var newMatch = v.Fst.FetchData(nodestate.MATCH)
