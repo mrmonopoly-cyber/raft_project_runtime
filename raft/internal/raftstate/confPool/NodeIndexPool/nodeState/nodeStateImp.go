@@ -72,7 +72,7 @@ func (n *nodeStateImpl) Subscribe(info INFO) <-chan int {
 func newNodeStateImpl(nodeIp string) *nodeStateImpl {
 	return &nodeStateImpl{
 		mathcIndex: -1,
-		nextIndex:  -1,
+		nextIndex:  0,
         subsNxt: sync.Map{},
         subsMtc: sync.Map{},
         counter: 0,
