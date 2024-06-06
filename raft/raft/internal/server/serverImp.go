@@ -191,7 +191,7 @@ func (s *server) run() {
         case <- timeoutElection:
             log.Println("election not implemented")
         case <- timeoutHearthbit:
-            go s.SendHearthBit()
+            // go s.SendHearthBit()
         }
     }
 }
