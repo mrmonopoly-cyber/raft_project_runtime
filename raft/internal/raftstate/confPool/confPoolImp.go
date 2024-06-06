@@ -121,7 +121,6 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 		log.Println("append entry new conf: ", entry)
 		var entryCopy raft_log.LogInstance = raft_log.LogInstance{
 			Entry:        entry.Entry,
-			Committed:    make(chan int),
 			AtCompletion: entry.AtCompletion,
 		}
 		c.newConf.AppendEntry(&entryCopy)

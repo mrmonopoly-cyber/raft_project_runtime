@@ -38,7 +38,6 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 		//INFO: FOLLOWER or THE ONLY NODE IN THE CONF
         log.Println("auto commit")
 		s.commitC <- 1
-		entry.Committed <- 1
 		return
 	}
 
@@ -99,12 +98,7 @@ func (s *singleConfImp) GetConfig() []string {
 func (s *singleConfImp) updateEntryCommit() {
 	for {
 		<-s.CommonMatch.CommitNewEntryC()
-		var committedEntry, err = s.LogEntry.GetEntriAt(s.GetCommitIndex() + 1)
-		if err != nil {
-			log.Panicln(err)
-		}
-		committedEntry.Committed <- 1
-		s.commitC <- 1
+		s.commitC <- int(s.GetCommitIndex()) + 1
 		//TODO: every time the common match is updated commit an entry
 	}
 }

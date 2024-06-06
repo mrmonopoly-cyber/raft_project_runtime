@@ -114,7 +114,6 @@ func (this *logEntryImp) NewLogInstance(entry *protobuf.LogEntry, post func()) *
 	return &LogInstance{
 		Entry:        entry,
 		AtCompletion: post,
-		Committed:    make(chan int),
 	}
 }
 
@@ -124,7 +123,6 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 	for i, v := range entry {
 		res[i] = &LogInstance{
 			Entry:     v,
-			Committed: make(chan int),
 		}
 		if post != nil && i < len(post) {
 			res[i].AtCompletion = post[i]

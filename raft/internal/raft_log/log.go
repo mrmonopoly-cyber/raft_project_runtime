@@ -9,7 +9,6 @@ const SEPARATOR = "K"
 
 type LogInstance struct {
 	Entry             *p.LogEntry
-    Committed       chan int
     AtCompletion    func() 
 }
 
