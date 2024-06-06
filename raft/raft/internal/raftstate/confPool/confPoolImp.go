@@ -127,9 +127,9 @@ func (c *confPool) GetEntries() []*protobuf.LogEntry {
 
 // LastLogIndex implements ConfPool.
 func (c *confPool) LastLogIndex() int {
-    //WARN: not sure is correct
-    if c.globalCommitIndex >= 0 {
-        return c.globalCommitIndex-1
+    var res = len(c.mainConf.GetEntries())-1
+    if res < -1 {
+        return res
     }
     return -1
 }
