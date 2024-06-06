@@ -33,11 +33,9 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
                 <- v.Snd
                 c.lock.Lock()
                 var newMatch = v.Fst.FetchData(nodestate.MATCH)
-                log.Println("new match index for node: ",v.Fst, newMatch)
                 if newMatch >= c.commonMatchIndex && v.Trd < newMatch{
                     c.numStable++
                     for c.numStable > uint(halfNodeNum){
-                        log.Println("stable achived commit on ch: ",c.commitEntryC)
                         c.commitEntryC <- 1
                         c.numStable=1
                         //INFO: it's possible that a node has a mach greater match index 

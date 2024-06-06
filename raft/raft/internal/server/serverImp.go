@@ -222,11 +222,9 @@ func (s *server) newMessageReceived(mess pairMex){
                     log.Panicf("nodestate for node %v not exist\n",mess.sender)
                 }
             }
-            log.Println("node founded: ", senderNode.GetIp())
             oldRole = s.GetRole()
             rpcCall = mess.payload
             resp = rpcCall.Execute(s.ConfPool, s.ClusterMetadata, senderState)
-            log.Println("finih executing rpc: ",rpcCall.ToString())
 
             if resp != nil {
                 log.Println("sending resp to caller RPC: ", resp.ToString())
