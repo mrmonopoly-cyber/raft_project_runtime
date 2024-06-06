@@ -115,6 +115,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
         }
 	}
 
+    c.LogEntry.AppendEntry(entry)
 	log.Println("append entry main conf: ", entry)
 	c.mainConf.AppendEntry(entry)
 	if c.newConf != nil {
