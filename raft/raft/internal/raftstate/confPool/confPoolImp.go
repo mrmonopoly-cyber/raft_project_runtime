@@ -129,6 +129,10 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 
 func (c *confPool) pushJoinConf(entry *raft_log.LogInstance, newConf singleconf.SingleConf) bool{
 	//WARN: DANGEROUS
+
+	if c.newConf != nil {
+		log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
+	}
 	if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
 		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
 		return true
@@ -162,9 +166,6 @@ func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.Sin
 		&c.nodeList,
 		c.NodeIndexPool,
 		c.commonMetadata)
-	if c.newConf != nil {
-		log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
-	}
 	return newConf
 }
 
@@ -221,15 +222,13 @@ func (c *confPool) updateLastApplied() {
 }
 
 func (c *confPool) joinNextConf() {
-	go func() {
-		c.emptyNewConf <- 1
-	}()
 	for {
 		log.Println("waiting commiting of new conf")
 		<-c.emptyNewConf
 		log.Println("waiting new conf to join")
 		<-c.confQueue.WaitEl()
 		var co = c.confQueue.Pop()
+        log.Println("new conf to join: ",co)
 		c.newConf = co.SingleConf
 		c.AppendEntry(co.LogInstance)
 	}
@@ -262,6 +261,8 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 	go res.joinNextConf()
 	go res.increaseCommitIndex()
 	go res.updateLastApplied()
+
+    res.emptyNewConf <- 1
 
 	return res
 }
