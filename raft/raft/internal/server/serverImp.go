@@ -63,6 +63,8 @@ func (this *server) connectToNodes(serversIp []string, port string) ([]string,er
         }
         new_node = node.NewNode(serversIp[i], port, nodeConn)
         log.Printf("connected to new node, storing it: %v\n", new_node.GetIp())
+        this.UpdateNodeList(confpool.ADD,new_node)
+        this.UpdateStatusList(nodeIndexPool.ADD,new_node.GetIp())
         go (*this).internalNodeConnection(new_node)
 	}
 
@@ -94,6 +96,8 @@ func (s *server) acceptIncomingConn() {
 
 func (s* server) handleConnection(workingNode node.Node){
     if strings.Contains(workingNode.GetIp(), "10.0.0") {
+        s.UpdateNodeList(confpool.ADD,workingNode)
+        s.UpdateStatusList(nodeIndexPool.ADD,workingNode.GetIp())
         s.internalNodeConnection(workingNode)
         return
     }
@@ -144,9 +148,6 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
     var rpcMex rpcs.Rpc
     var nodeReq pairMex = pairMex{}
 
-
-    s.UpdateNodeList(confpool.ADD,workingNode)
-    s.UpdateStatusList(nodeIndexPool.ADD,workingNode.GetIp())
 
     for{
         message, errMes = workingNode.Recv()

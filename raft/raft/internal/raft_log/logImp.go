@@ -1,6 +1,7 @@
 package raft_log
 
 import (
+	"errors"
 	"log"
 	l "log"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -60,11 +61,14 @@ func (this *logEntryImp) GetEntries() []*protobuf.LogEntry {
 
 // GetEntriAt implements LogEntry.
 func (this *logEntryImp) GetEntriAt(index int64) (*LogInstance, error) {
+    if index < 0{
+        index = 0
+    }
+
 	if index < int64(this.logSize) {
 		return &this.entries[index], nil
 	}
-    log.Panicln("invalid index: ",index)
-    return nil,nil
+	return nil, errors.New("invalid index: " + string(rune(index)))
 }
 
 // DeleteFromEntry implements LogEntry.
