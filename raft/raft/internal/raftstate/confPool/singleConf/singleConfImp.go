@@ -47,7 +47,7 @@ func (s *singleConfImp) SendHearthbit(){
 
         nextIndex = state.FetchData(nodestate.NEXTT)
 
-        if nextIndex <= int(s.GetCommitIndex()){
+        if nextIndex <= len(s.GetEntries())-1{
             var entries = s.GetEntriesRange(nextIndex)
             prevEntr,err := s.GetEntriAt(int64(nextIndex)-1)
             if err != nil{
