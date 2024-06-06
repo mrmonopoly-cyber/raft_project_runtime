@@ -54,7 +54,11 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 		var err error
 
 		if !f {
-			log.Println("node not yet connected or crashes or it's myself, skipping send: ", key)
+            if key == s.ClusterMetadata.GetMyIp(clustermetadata.PRI){
+                log.Println("skiping myself from propagation: ", key)
+                return true
+            }
+			log.Println("node not yet connected or crashes, skipping send: ", key)
 			return true
 		}
 		fNode = v.(node.Node)
