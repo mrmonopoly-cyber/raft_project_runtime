@@ -118,6 +118,8 @@ func (c *confPool) pushJoinConf(entry *raft_log.LogInstance, newConf singleconf.
 
 	if c.newConf != nil {
 		log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
+		log.Println("checking conf is the same comp: ", 
+            !reflect.DeepEqual(c.newConf.GetConfig(),newConf.GetConfig()))
 	}
 	if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
 		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
