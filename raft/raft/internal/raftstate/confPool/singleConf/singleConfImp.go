@@ -100,6 +100,7 @@ func (s *singleConfImp) GetConfig() []string {
 func (s *singleConfImp) updateEntryCommit() {
 	for {
 		<-s.CommonMatch.CommitNewEntryC()
+        log.Println("new entry to commit")
 		s.commitC <- int(s.GetCommitIndex()) + 1
         s.IncreaseCommitIndex()
 		//TODO: every time the common match is updated commit an entry
@@ -133,6 +134,7 @@ func newSingleConfImp(conf []string,
 		res.numNodes++
 	}
 
+    log.Println("node to subs: ",nodeStates)
 	res.CommonMatch = commonmatch.NewCommonMatch(nodeStates)
 
 	go res.updateEntryCommit()
