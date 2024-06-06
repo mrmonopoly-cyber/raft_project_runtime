@@ -80,6 +80,7 @@ func (c *confPool) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []func()
 	for i, v := range entry {
 		var inst = raft_log.LogInstance{
 			Entry: v,
+            Committed: make(chan int),
 		}
 		if i < postLen {
 			inst.AtCompletion = post[i]
