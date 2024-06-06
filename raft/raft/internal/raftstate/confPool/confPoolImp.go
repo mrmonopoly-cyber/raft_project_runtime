@@ -273,16 +273,18 @@ func (c *confPool) updateLastApplied() {
 		case protobuf.Operation_COMMIT_CONFIG_REM:
 			panic("Not implemented")
 		case protobuf.Operation_JOIN_CONF_ADD, protobuf.Operation_JOIN_CONF_DEL:
-			var commit = protobuf.LogEntry{
-				Term:   c.commonMetadata.GetTerm(),
-				OpType: protobuf.Operation_COMMIT_CONFIG_ADD,
-			}
+            if c.commonMetadata.GetRole() == clustermetadata.LEADER{
+                var commit = protobuf.LogEntry{
+                    Term:   c.commonMetadata.GetTerm(),
+                    OpType: protobuf.Operation_COMMIT_CONFIG_ADD,
+                }
 
-			if entr.Entry.OpType == protobuf.Operation_JOIN_CONF_DEL {
-				commit.OpType = protobuf.Operation_COMMIT_CONFIG_REM
-			}
+                if entr.Entry.OpType == protobuf.Operation_JOIN_CONF_DEL {
+                    commit.OpType = protobuf.Operation_COMMIT_CONFIG_REM
+                }
 
-			c.AppendEntry(c.NewLogInstance(&commit, nil))
+                c.AppendEntry(c.NewLogInstance(&commit, nil))
+            }
 		default:
 			c.localFs.ApplyLogEntry(entr.Entry)
 		}
