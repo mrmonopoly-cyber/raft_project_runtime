@@ -3,7 +3,6 @@ package confpool
 import (
 	"errors"
 	"log"
-	genericmessage "raft/internal/genericMessage"
 	localfs "raft/internal/localFs"
 	"raft/internal/node"
 	"raft/internal/raft_log"
@@ -11,8 +10,6 @@ import (
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	"raft/internal/raftstate/confPool/queue"
 	singleconf "raft/internal/raftstate/confPool/singleConf"
-	"raft/internal/rpcs"
-	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"reflect"
 	"strings"
@@ -43,22 +40,10 @@ type confPool struct {
 
 // SendHearthBit implements ConfPool.
 func (c *confPool) SendHearthBit() {
-    c.nodeList.Range(func(key, value any) bool {
-        var nNode = value.(node.Node)
-        var appendRpc rpcs.Rpc
-        var rawMex []byte
-        var err error
-
-        appendRpc = AppendEntryRpc.GenerateHearthbeat(c,c.commonMetadata)
-        rawMex,err = genericmessage.Encode(appendRpc)
-
-        if err != nil {
-            log.Panicln(err)
-        }
-
-        nNode.Send(rawMex)
-        return true
-    })
+    c.mainConf.SendHearthbit()
+    if c.newConf != nil{
+        c.newConf.SendHearthbit()
+    }
 }
 
 // GetNode implements ConfPool.

@@ -16,6 +16,7 @@ const(
 
 type SingleConf interface{
     GetConfig() []string
+    SendHearthbit()
     CommiEntryC() <- chan int
     raft_log.LogEntry
 }
