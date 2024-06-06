@@ -24,31 +24,33 @@ func (c *commonMatchImp) CommitNewEntryC() <-chan int {
 
 //utility
 func (c *commonMatchImp) updateCommonMatchIndex()  {
-    var halfNodeNum = c.numNodes/2
     
     for _,v  := range c.subs {
         go func(){
-            <- v.Snd
-            c.lock.Lock()
-            var newMatch = v.Fst.FetchData(nodestate.MATCH)
-            if newMatch >= c.commonMatchIndex && v.Trd < c.commonMatchIndex {
-                c.numStable++
-                for c.numStable > uint(halfNodeNum){
-                    c.commitEntryC <- 1
-                    c.numStable=1
-                    //INFO: it's possible that a node has a mach greater match index 
-                    //and so every time i increment the current common i have to check if
-                    //the other nodes has already a greater common match index
-                    for _, v := range c.subs {
-                        if v.Trd >= c.commonMatchIndex{
-                            c.numStable++
+            for{
+                <- v.Snd
+                var halfNodeNum = c.numNodes/2
+                c.lock.Lock()
+                var newMatch = v.Fst.FetchData(nodestate.MATCH)
+                if newMatch >= c.commonMatchIndex && v.Trd < c.commonMatchIndex {
+                    c.numStable++
+                    for c.numStable > uint(halfNodeNum){
+                        c.commitEntryC <- 1
+                        c.numStable=1
+                        //INFO: it's possible that a node has a mach greater match index 
+                        //and so every time i increment the current common i have to check if
+                        //the other nodes has already a greater common match index
+                        for _, v := range c.subs {
+                            if v.Trd >= c.commonMatchIndex{
+                                c.numStable++
+                            }
+
                         }
-                        
                     }
                 }
+                v.Trd = newMatch
+                c.lock.Unlock()
             }
-            v.Trd = newMatch
-            c.lock.Unlock()
         }()
     }
 }
