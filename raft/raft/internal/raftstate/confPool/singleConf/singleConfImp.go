@@ -24,12 +24,12 @@ type singleConfImp struct {
 	commonmatch.CommonMatch
 
 	raft_log.LogEntry
-    commitC chan int
+	commitC chan int
 }
 
 // CommiEntryC implements SingleConf.
 func (s *singleConfImp) CommiEntryC() <-chan int {
-    return s.commitC
+	return s.commitC
 }
 
 func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
@@ -37,8 +37,8 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 	if s.GetRole() == clustermetadata.FOLLOWER ||
 		s.numNodes <= 1 {
 		//INFO: FOLLOWER or THE ONLY NODE IN THE CONF
-        s.commitC <- 1
-        entry.Committed <- 1
+		s.commitC <- 1
+		entry.Committed <- 1
 		return
 	}
 
@@ -98,21 +98,21 @@ func (s *singleConfImp) GetConfig() []string {
 func (s *singleConfImp) updateEntryCommit() {
 	for {
 		<-s.CommonMatch.CommitNewEntryC()
-        var committedEntry,err = s.LogEntry.GetEntriAt(s.GetCommitIndex()+1)
-        if err != nil{
-            log.Panicln(err)
-        }
-        committedEntry.Committed <- 1
-        s.commitC <- 1
+		var committedEntry, err = s.LogEntry.GetEntriAt(s.GetCommitIndex() + 1)
+		if err != nil {
+			log.Panicln(err)
+		}
+		committedEntry.Committed <- 1
+		s.commitC <- 1
 		//TODO: every time the common match is updated commit an entry
 	}
 }
 
-func newSingleConfImp(  conf []string,
-                        oldEntries []*protobuf.LogEntry,
-                        nodeList *sync.Map,
-                        commonStatePool nodeIndexPool.NodeIndexPool,
-                        commonMetadata clustermetadata.ClusterMetadata) *singleConfImp {
+func newSingleConfImp(conf []string,
+	oldEntries []*protobuf.LogEntry,
+	nodeList *sync.Map,
+	commonStatePool nodeIndexPool.NodeIndexPool,
+	commonMetadata clustermetadata.ClusterMetadata) *singleConfImp {
 	var res = &singleConfImp{
 		nodeList:        nodeList,
 		conf:            sync.Map{},
@@ -120,8 +120,8 @@ func newSingleConfImp(  conf []string,
 		NodeIndexPool:   commonStatePool,
 		ClusterMetadata: commonMetadata,
 		CommonMatch:     nil,
-        LogEntry: raft_log.NewLogEntry(oldEntries),
-        commitC: make(chan int),
+		LogEntry:        raft_log.NewLogEntry(oldEntries),
+		commitC:         make(chan int),
 	}
 	var nodeStates []nodestate.NodeState = nil
 

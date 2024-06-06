@@ -20,6 +20,7 @@ type ConfPool interface {
 	GetConf() []string
 	GetNodeList() *sync.Map
 	GetNode(ip string) (node.Node, error)
+    SendHearthBit()
 	raft_log.LogEntry
 	nodeIndexPool.NodeIndexPool
 }

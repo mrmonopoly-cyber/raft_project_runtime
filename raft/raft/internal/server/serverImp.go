@@ -12,6 +12,7 @@ import (
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/rpcs"
+	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/internal/rpcs/redirection"
 	"strings"
 	"sync"
@@ -191,10 +192,11 @@ func (s *server) run() {
         case <- timeoutElection:
             log.Println("election not implemented")
         case <- timeoutHearthbit:
-            log.Println("sending hearthbit")
+            go s.SendHearthBit()
         }
     }
 }
+
 
 func (s *server) newMessageReceived(mess pairMex){
             var rpcCall rpcs.Rpc
