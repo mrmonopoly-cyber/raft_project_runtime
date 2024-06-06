@@ -2,6 +2,7 @@ package raft_log
 
 import (
 	"errors"
+	"log"
 	l "log"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"sync"
@@ -29,8 +30,10 @@ func (this *logEntryImp) ApplyEntryC() <-chan int {
 
 // IncreaseCommitIndex implements LogEntry.
 func (this *logEntryImp) IncreaseCommitIndex() {
+    log.Println("increasing commit Index, log imp")
 	this.commitIndex++
 	this.applyC <- int(this.commitIndex)
+    log.Println("increasing commit Index done, log imp")
 }
 
 // AppendEntry implements LogEntry.
