@@ -219,7 +219,7 @@ func (c *confPool) joinNextConf() {
 		var co = c.confQueue.Pop()
         log.Println("new conf to join: ",co.SingleConf.GetConfig())
 		c.newConf = co.SingleConf
-		c.AppendEntry(co.LogInstance)
+        c.entryToCommiC <- 1
 	}
 }
 
