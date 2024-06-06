@@ -47,7 +47,9 @@ func (s *singleConfImp) SendHearthbit(){
 
         nextIndex = state.FetchData(nodestate.NEXTT)
 
-        if nextIndex <= len(s.GetEntries())-1{
+        log.Println("sending hearthbit to: ",nNode.GetIp())
+
+        if nextIndex < len(s.GetEntries()){
             var entries = s.GetEntriesRange(nextIndex)
             prevEntr,err := s.GetEntriAt(int64(nextIndex)-1)
             if err != nil{
@@ -106,8 +108,7 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 		var err error
 
 		if !f {
-            s.nodeNotFound(key)
-			return true
+            return s.nodeNotFound(key)
 		}
 		fNode = v.(node.Node)
 
@@ -150,11 +151,13 @@ func (s *singleConfImp) GetConfig() []string {
 
 //utility
 
-func (s *singleConfImp) nodeNotFound(key any){
+func (s *singleConfImp) nodeNotFound(key any) bool {
     if key == s.ClusterMetadata.GetMyIp(clustermetadata.PRI){
         log.Println("skiping myself from propagation: ", key)
+        return true
     }
     log.Println("node not yet connected or crashes, skipping send: ", key)
+    return true
 }
 
 func (s *singleConfImp) updateEntryCommit() {
