@@ -72,6 +72,7 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 			log.Panicln("error encoding: ", appendRpc, err)
 		}
 
+        log.Println("sending rpc to node: ",appendRpc.ToString(),fNode.GetIp())
 		err = fNode.Send(rawMex)
 		if err != nil {
 			log.Panicln("error sending rpc to: ", appendRpc, err)
