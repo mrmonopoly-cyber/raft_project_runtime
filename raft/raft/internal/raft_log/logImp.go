@@ -64,7 +64,8 @@ func (this *logEntryImp) GetEntriAt(index int64) (*LogInstance, error) {
 	if index < int64(this.logSize) {
 		return &this.entries[index], nil
 	}
-	return nil, errors.New("invalid index: " + string(rune(index)))
+    log.Panicln("invalid index: ",index)
+    return nil,nil
 }
 
 // DeleteFromEntry implements LogEntry.
