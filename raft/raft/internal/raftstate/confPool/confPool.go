@@ -17,7 +17,6 @@ const (
 
 type ConfPool interface {
 	UpdateNodeList(op OP, node node.Node)
-	GetConf() []string
 	GetNodeList() *sync.Map
 	GetNode(ip string) (node.Node, error)
     SendHearthBit()

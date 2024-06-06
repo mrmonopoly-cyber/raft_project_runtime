@@ -59,18 +59,6 @@ func (c *confPool) GetNodeList() *sync.Map {
 	return &c.nodeList
 }
 
-// GetConf implements ConfPool.
-func (c *confPool) GetConf() []string {
-	if c.mainConf.GetConfig() == nil {
-		return nil
-	}
-	var mainConf = c.mainConf.GetConfig()
-	if c.newConf != nil {
-		mainConf = append(mainConf, c.newConf.GetConfig()...)
-	}
-	return mainConf
-}
-
 // UpdateNodeList implements ConfPool.
 func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 	switch op {
@@ -118,8 +106,6 @@ func (c *confPool) pushJoinConf(entry *raft_log.LogInstance, newConf singleconf.
 
 	if c.newConf != nil {
 		log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
-		log.Println("checking conf is the same comp: ", 
-            !reflect.DeepEqual(c.newConf.GetConfig(),newConf.GetConfig()))
 	}
 	if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
 		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
@@ -128,7 +114,6 @@ func (c *confPool) pushJoinConf(entry *raft_log.LogInstance, newConf singleconf.
     return false
 }
 
-// utility
 func (c *confPool) appendJoinConfDEL(entry *raft_log.LogInstance) singleconf.SingleConf {
 	panic("not implemented")
 }
@@ -136,6 +121,8 @@ func (c *confPool) appendJoinConfDEL(entry *raft_log.LogInstance) singleconf.Sin
 func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.SingleConf {
 	var confUnfiltered string = string(entry.Entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
+    var mainConf = c.mainConf.GetConfig()
+
 	confFiltered = confFiltered[0 : len(confFiltered)-1]
 	for i := range confFiltered {
 		confFiltered[i], _ = strings.CutSuffix(confFiltered[i], " ")
@@ -146,7 +133,9 @@ func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.Sin
 		c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, *ip)
 	}
 
-	confFiltered = append(confFiltered, c.mainConf.GetConfig()...)
+    for _,v := range mainConf {
+        confFiltered = append(confFiltered, v)
+    }
 
 	var newConf = singleconf.NewSingleConf(
 		confFiltered,
