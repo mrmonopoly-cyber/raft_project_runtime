@@ -1,6 +1,7 @@
 package raft_log
 
 import (
+	"errors"
 	"log"
 	l "log"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
