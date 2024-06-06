@@ -34,10 +34,9 @@ func (s *singleConfImp) CommiEntryC() <-chan int {
 
 func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 	s.LogEntry.AppendEntry(entry)
-    log.Println("debug: i'm follower: ", s.GetRole(), clustermetadata.FOLLOWER)
-	if s.GetRole() == clustermetadata.FOLLOWER ||
-		s.numNodes <= 1 {
+	if s.GetRole() == clustermetadata.FOLLOWER || s.numNodes <= 1 {
 		//INFO: FOLLOWER or THE ONLY NODE IN THE CONF
+        log.Println("auto commit")
 		s.commitC <- 1
 		entry.Committed <- 1
 		return
