@@ -139,7 +139,7 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 
 // GetConfig implements SingleConf.
 func (s *singleConfImp) GetConfig() map[string]string{
-	var res map[string]string= nil
+	var res map[string]string= map[string]string{}
 
 	s.conf.Range(func(key, value any) bool {
         var ip = value.(string)
