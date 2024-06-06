@@ -37,6 +37,7 @@ func (s *singleConfImp) SendHearthbit(){
 
         if !f{
             s.nodeNotFound(key)
+            return true
         }
         nNode = v.(node.Node)
         var state,err = s.FetchNodeInfo(nNode.GetIp())
