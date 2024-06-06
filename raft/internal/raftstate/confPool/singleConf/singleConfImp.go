@@ -27,6 +27,57 @@ type singleConfImp struct {
 	commitC chan int
 }
 
+func (s *singleConfImp) SendHearthbit(){
+    s.conf.Range(func(key, value any) bool {
+        var v,f = s.nodeList.Load(key)
+        var nNode node.Node
+        var nextIndex int
+        var hearthbit rpcs.Rpc
+        var rawMex []byte
+
+        if !f{
+            s.nodeNotFound(key)
+        }
+        nNode = v.(node.Node)
+        var state,err = s.FetchNodeInfo(nNode.GetIp())
+        if err != nil{
+            log.Panicln(err)
+        }
+
+        nextIndex = state.FetchData(nodestate.NEXTT)
+
+        if nextIndex <= int(s.GetCommitIndex()){
+            var entries = s.GetEntriesRange(nextIndex)
+            prevEntr,err := s.GetEntriAt(int64(nextIndex)-1)
+            if err != nil{
+                log.Panicln(err)
+            }
+            hearthbit = AppendEntryRpc.NewAppendEntryRPC(
+                s.ClusterMetadata,
+                s.LogEntry,
+                int64(nextIndex)-1,
+                prevEntr.Entry.Term,
+                entries)
+        }else {
+            hearthbit = AppendEntryRpc.GenerateHearthbeat(s.LogEntry,s.ClusterMetadata)
+        }
+
+        rawMex,err = genericmessage.Encode(hearthbit)
+        if err != nil{
+            log.Panicln(err)
+        }
+
+        err = nNode.Send(rawMex)
+        if err != nil {
+            log.Println(err)
+        }
+        
+
+
+        return true
+    })
+}
+
 // CommiEntryC implements SingleConf.
 func (s *singleConfImp) CommiEntryC() <-chan int {
 	return s.commitC
@@ -54,11 +105,7 @@ func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
 		var err error
 
 		if !f {
-            if key == s.ClusterMetadata.GetMyIp(clustermetadata.PRI){
-                log.Println("skiping myself from propagation: ", key)
-                return true
-            }
-			log.Println("node not yet connected or crashes, skipping send: ", key)
+            s.nodeNotFound(key)
 			return true
 		}
 		fNode = v.(node.Node)
@@ -101,6 +148,13 @@ func (s *singleConfImp) GetConfig() []string {
 }
 
 //utility
+
+func (s *singleConfImp) nodeNotFound(key any){
+    if key == s.ClusterMetadata.GetMyIp(clustermetadata.PRI){
+        log.Println("skiping myself from propagation: ", key)
+    }
+    log.Println("node not yet connected or crashes, skipping send: ", key)
+}
 
 func (s *singleConfImp) updateEntryCommit() {
 	for {
