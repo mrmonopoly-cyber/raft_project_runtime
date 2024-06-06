@@ -79,35 +79,38 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 }
 
 func (c *confPool) appendEntryToConf(){
-    var newConf singleconf.SingleConf
-    var entry,err = c.GetEntriAt(c.GetCommitIndex()+1)
-    if err != nil{
-        log.Panicln(err)
+    for {
+        <- c.entryToCommiC
+        var newConf singleconf.SingleConf
+        var entry,err = c.GetEntriAt(c.GetCommitIndex()+1)
+        if err != nil{
+            log.Panicln(err)
+        }
+
+        switch entry.Entry.OpType {
+        case protobuf.Operation_JOIN_CONF_ADD:
+            newConf = c.appendJoinConfADD(entry)
+            if c.pushJoinConf(entry,newConf){
+                return
+            }
+        case protobuf.Operation_JOIN_CONF_DEL:
+            newConf = c.appendJoinConfDEL(entry)
+            if c.pushJoinConf(entry,newConf){
+                return
+            }
+        }
+
+        log.Println("append entry main conf: ", entry)
+        c.mainConf.AppendEntry(entry)
+        if c.newConf != nil {
+            log.Println("append entry new conf: ", entry)
+            var entryCopy raft_log.LogInstance = raft_log.LogInstance{
+                Entry:        entry.Entry,
+                AtCompletion: entry.AtCompletion,
+            }
+            c.newConf.AppendEntry(&entryCopy)
+        }
     }
-
-	switch entry.Entry.OpType {
-	case protobuf.Operation_JOIN_CONF_ADD:
-		newConf = c.appendJoinConfADD(entry)
-        if c.pushJoinConf(entry,newConf){
-            return
-        }
-	case protobuf.Operation_JOIN_CONF_DEL:
-		newConf = c.appendJoinConfDEL(entry)
-        if c.pushJoinConf(entry,newConf){
-            return
-        }
-	}
-
-	log.Println("append entry main conf: ", entry)
-	c.mainConf.AppendEntry(entry)
-	if c.newConf != nil {
-		log.Println("append entry new conf: ", entry)
-		var entryCopy raft_log.LogInstance = raft_log.LogInstance{
-			Entry:        entry.Entry,
-			AtCompletion: entry.AtCompletion,
-		}
-		c.newConf.AppendEntry(&entryCopy)
-	}
 }
 
 func (c *confPool) pushJoinConf(entry *raft_log.LogInstance, newConf singleconf.SingleConf) bool{
@@ -247,6 +250,7 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 	go res.joinNextConf()
 	go res.increaseCommitIndex()
 	go res.updateLastApplied()
+    go res.appendEntryToConf()
 
     res.emptyNewConf <- 1
 
