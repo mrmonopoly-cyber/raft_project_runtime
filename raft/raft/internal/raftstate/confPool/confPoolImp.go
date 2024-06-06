@@ -33,6 +33,7 @@ type confPool struct {
 	nodeIndexPool.NodeIndexPool
 	commonMetadata clustermetadata.ClusterMetadata
 
+    entryToCommiC chan int
     raft_log.LogEntry
     localfs.LocalFs
 }
@@ -73,32 +74,43 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 
 func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	log.Println("appending entry, general pool: ", entry)
-    var newConf singleconf.SingleConf
-
-	switch entry.Entry.OpType {
-	case protobuf.Operation_JOIN_CONF_ADD:
-		newConf = c.appendJoinConfADD(entry)
-        if c.pushJoinConf(entry,newConf){
-            return
-        }
-	case protobuf.Operation_JOIN_CONF_DEL:
-		newConf = c.appendJoinConfDEL(entry)
-        if c.pushJoinConf(entry,newConf){
-            return
-        }
-	}
-
     c.LogEntry.AppendEntry(entry)
-	log.Println("append entry main conf: ", entry)
-	c.mainConf.AppendEntry(entry)
-	if c.newConf != nil {
-		log.Println("append entry new conf: ", entry)
-		var entryCopy raft_log.LogInstance = raft_log.LogInstance{
-			Entry:        entry.Entry,
-			AtCompletion: entry.AtCompletion,
-		}
-		c.newConf.AppendEntry(&entryCopy)
-	}
+    c.entryToCommiC <- 1
+}
+
+func (c *confPool) appendEntryToConf(){
+    for {
+        <- c.entryToCommiC
+        var newConf singleconf.SingleConf
+        var entry,err = c.GetEntriAt(c.GetCommitIndex()+1)
+        if err != nil{
+            log.Panicln(err)
+        }
+
+        switch entry.Entry.OpType {
+        case protobuf.Operation_JOIN_CONF_ADD:
+            newConf = c.appendJoinConfADD(entry)
+            if c.pushJoinConf(entry,newConf){
+                return
+            }
+        case protobuf.Operation_JOIN_CONF_DEL:
+            newConf = c.appendJoinConfDEL(entry)
+            if c.pushJoinConf(entry,newConf){
+                return
+            }
+        }
+
+        log.Println("append entry main conf: ", entry)
+        c.mainConf.AppendEntry(entry)
+        if c.newConf != nil {
+            log.Println("append entry new conf: ", entry)
+            var entryCopy raft_log.LogInstance = raft_log.LogInstance{
+                Entry:        entry.Entry,
+                AtCompletion: entry.AtCompletion,
+            }
+            c.newConf.AppendEntry(&entryCopy)
+        }
+    }
 }
 
 func (c *confPool) pushJoinConf(entry *raft_log.LogInstance, newConf singleconf.SingleConf) bool{
@@ -207,7 +219,7 @@ func (c *confPool) joinNextConf() {
 		var co = c.confQueue.Pop()
         log.Println("new conf to join: ",co.SingleConf.GetConfig())
 		c.newConf = co.SingleConf
-		c.AppendEntry(co.LogInstance)
+        c.entryToCommiC <- 1
 	}
 }
 
@@ -222,7 +234,8 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 		fsRootDir:        rootDir,
 		NodeIndexPool:    nodeIndexPool.NewLeaederCommonIdx(),
 		commonMetadata:   commonMetadata,
-        LogEntry: nil,
+        entryToCommiC: make(chan int),
+        LogEntry: raft_log.NewLogEntry(nil,true),
         LocalFs: localfs.NewFs(rootDir),
 	}
 	var mainConf = singleconf.NewSingleConf(
@@ -233,11 +246,11 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 		res.commonMetadata)
 
 	res.mainConf = mainConf
-    res.LogEntry =  raft_log.NewLogEntry(nil,true)
 
 	go res.joinNextConf()
 	go res.increaseCommitIndex()
 	go res.updateLastApplied()
+    go res.appendEntryToConf()
 
     res.emptyNewConf <- 1
 
