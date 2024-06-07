@@ -90,7 +90,7 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
             color.Cyan("appending entry, general pool done\n")
             appendedTot++
             if prevLogIndex < -1{
-                c.entryToCommiC <- int(c.GetLogSize()) + int(appendedTot)
+                c.entryToCommiC <- int(c.GetLogSize()-1) + int(appendedTot)
             }else{
                 c.entryToCommiC <- prevLogIndex + int(appendedTot)
             }
