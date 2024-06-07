@@ -6,6 +6,8 @@ import (
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"reflect"
 	"sync"
+
+	"github.com/fatih/color"
 )
 
 type logEntryImp struct {
@@ -34,6 +36,7 @@ func (this *logEntryImp) AppendEntry(newEntrie []*LogInstance, prevLogIndex int)
 
     for _,v  := range newEntrie {
         prevLogIndex++
+        color.HiRed("trying adding entry: %v\n",v)
         if this.isInLog(v.Entry,prevLogIndex){
             continue
         }
