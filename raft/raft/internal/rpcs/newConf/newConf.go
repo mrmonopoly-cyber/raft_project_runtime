@@ -111,7 +111,7 @@ func (this *NewConf) joinConfAddExecute(
     log.Println("appending log entry: ",newConfLog)
 
     metadata.SetRole(clustermetadata.LEADER)
-    intLog.AppendEntry(newConfLog)
+    intLog.AppendEntry([]*raft_log.LogInstance{newConfLog},-2)
 
     return exitSucess
 }
