@@ -49,6 +49,7 @@ func (this *AppendResponse) Execute(
             log.Println("setting next index to: ",senderState.FetchData(nodestate.NEXTT))
         }
     } else {
+        log.Printf("response ok increasing match and next index of node: %v\n", *this.pMex.Id)
         senderState.UpdateNodeState(nodestate.NEXTT,int(errorIndex)+1)
         senderState.UpdateNodeState(nodestate.MATCH,int(errorIndex))
     }
