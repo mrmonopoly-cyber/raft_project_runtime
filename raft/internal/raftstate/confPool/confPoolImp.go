@@ -145,11 +145,6 @@ func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.Sin
         confFiltered = append(confFiltered, v)
     }
 
-    log.Println("new Conf giving all the nodes")
-    c.nodeList.Range(func(key, value any) bool {
-        log.Println("nodeip: ",key)
-        return true
-    })
 	var newConf = singleconf.NewSingleConf(
 		confFiltered,
         c.LogEntry,
