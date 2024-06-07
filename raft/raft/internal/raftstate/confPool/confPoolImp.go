@@ -181,9 +181,11 @@ func (c *confPool) increaseCommitIndex() {
 }
 
 func (c *confPool) updateLastApplied() {
+    var chanAp = c.ApplyEntryC()
+
 	for {
         color.Cyan("waiting to apply new entry")
-        var toApplyIdx = <- c.ApplyEntryC()
+        var toApplyIdx = <- chanAp
 		var entr = c.GetEntriAt(int64(toApplyIdx))
 
         color.Cyan("applying new entry: %v",entr)
