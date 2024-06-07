@@ -137,6 +137,7 @@ func (this *AppendEntryRpc) Execute(
                 resp = respondeAppend(id, false, myTerm, nextIdx)
             default:
                 intLog.AppendEntry(newEntriesWrapper, int(prevLogIndex))
+                //FIX: check if the entry are already in the log
                 leaderCommit = this.pMex.GetLeaderCommit()
 
                 if leaderCommit > intLog.GetCommitIndex() {
