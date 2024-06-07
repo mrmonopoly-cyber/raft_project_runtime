@@ -28,11 +28,10 @@ func (this *logEntryImp) GetEntriesRange(startIndex int) []*protobuf.LogEntry {
 
 func (this *logEntryImp) AppendEntryLast(newEntrie *LogInstance) {
     this.lock.RLock()
-    var index = this.logSize-1
-    this.lock.RUnlock()
+    defer this.lock.RUnlock()
     
     log.Println("adding at the end of the queue: ",newEntrie)
-    this.AppendEntry(newEntrie,int(index))
+    this.AppendEntry(newEntrie,int(this.logSize)-1)
 }
 
 // AppendEntry implements LogEntry.
