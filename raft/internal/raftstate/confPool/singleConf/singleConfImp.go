@@ -125,6 +125,13 @@ func (s *singleConfImp) executeAppendEntry() {
         //INFO:LEADER
         //Propagate to all nodes in this conf
         log.Println("propagate to all follower: ",entry.Entry)
+        log.Println("nodelist")
+
+        s.nodeList.Range(func(key, value any) bool {
+            log.Println("nodeip: ",key)
+            return true
+        })
+
         s.conf.Range(func(key, value any) bool {
             var v, f = s.nodeList.Load(key)
             var fNode node.Node
