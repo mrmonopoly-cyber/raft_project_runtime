@@ -181,11 +181,9 @@ func (c *confPool) increaseCommitIndex() {
 }
 
 func (c *confPool) updateLastApplied() {
-    var chanAp = c.ApplyEntryC()
-
 	for {
         color.Cyan("waiting to apply new entry")
-        var toApplyIdx = <- chanAp
+        var toApplyIdx = <- c.ApplyEntryC()
 		var entr = c.GetEntriAt(int64(toApplyIdx))
 
         color.Cyan("applying new entry: %v",entr)
@@ -205,6 +203,7 @@ func (c *confPool) updateLastApplied() {
                 }
                 c.AppendEntry([]*raft_log.LogInstance{c.NewLogInstance(&commit, nil)},-2)
             }
+            color.Green("join conf applied")
         case protobuf.Operation_READ,protobuf.Operation_WRITE,protobuf.Operation_DELETE,
              protobuf.Operation_CREATE, protobuf.Operation_RENAME:
 
