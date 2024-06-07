@@ -97,8 +97,6 @@ func (c *confPool) appendEntryToConf(){
         log.Println("appendEntryToConf: waiting signal")
         <- c.entryToCommiC
         var newConf singleconf.SingleConf
-
-        color.Red("explode3")
         var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
         switch entry.Entry.OpType {
@@ -185,7 +183,6 @@ func (c *confPool) increaseCommitIndex() {
 func (c *confPool) updateLastApplied() {
 	for {
         var toApplyIdx = <- c.ApplyEntryC()
-        color.Red("explode3")
 		var entr = c.GetEntriAt(int64(toApplyIdx))
 
         switch entr.Entry.OpType {

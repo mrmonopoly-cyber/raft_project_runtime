@@ -53,7 +53,6 @@ func (s *singleConfImp) SendHearthbit(){
 
         if nextIndex < len(s.GetEntries()){
             var entries = s.GetEntriesRange(nextIndex)
-            color.Red("explode1")
             var prevEntr = s.GetEntriAt(int64(nextIndex)-1)
 
             hearthbit = AppendEntryRpc.NewAppendEntryRPC(
@@ -157,7 +156,6 @@ func (s *singleConfImp) executeAppendEntry() {
             default:
                 enriesToSend = append(enriesToSend, entry.Entry)
                 prevLogIndex = state.FetchData(nodestate.NEXTT)-1
-                color.Red("explode2")
                 prevLogTerm = uint(s.GetEntriAt(int64(prevLogIndex)).Entry.Term)
             }
 
