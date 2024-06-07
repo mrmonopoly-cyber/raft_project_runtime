@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package protobuf;
+
+option go_package = "protobuf/";
+
+message UpdateNode{
+    bool Votante = 1;
+}
+
+message UpdateNodeResp{
+    bool ack = 1;
+};
