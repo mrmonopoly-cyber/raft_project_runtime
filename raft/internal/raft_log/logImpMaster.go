@@ -7,7 +7,6 @@ import (
 
 type LogEntryMasterImp struct {
 	logEntryImp
-	applyC chan int
 }
 
 // ApplyEntryC implements LogEntry.
@@ -34,8 +33,8 @@ func newLogImpMaster() *LogEntryMasterImp {
 			logSize:     0,
 			entries:     &masterEntries,
 			lock:        sync.RWMutex{},
+            applyC: make(chan int),
 		},
-		applyC: make(chan int),
 	}
 
 	return l
