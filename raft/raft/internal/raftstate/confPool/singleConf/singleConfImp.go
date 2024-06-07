@@ -115,6 +115,7 @@ func (s *singleConfImp) executeAppendEntry() {
         <- s.LogEntrySlave.NotifyAppendEntryC()
         var entry = s.GetEntriAt(s.GetCommitIndex()+1)
 
+        log.Println("singleconf: new entry to commit: ",entry.Entry)
         if s.GetRole() == clustermetadata.FOLLOWER || s.numNodes <= 1 {
             //INFO: FOLLOWER or THE ONLY NODE IN THE CONF
             log.Println("auto commit")
