@@ -115,7 +115,6 @@ func (s *singleConfImp) nodeNotFound(key any) bool {
 func (s *singleConfImp) executeAppendEntry() {
     for{
         <- s.LogEntrySlave.NotifyAppendEntryC()
-        color.Red("explode")
         var entry = s.GetEntriAt(s.GetCommitIndex()+1)
 
         log.Println("singleconf: new entry to commit: ",entry.Entry)
