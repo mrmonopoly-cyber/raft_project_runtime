@@ -82,10 +82,7 @@ func (c *confPool) appendEntryToConf(){
     for {
         <- c.entryToCommiC
         var newConf singleconf.SingleConf
-        var entry,err = c.GetEntriAt(c.GetCommitIndex()+1)
-        if err != nil{
-            log.Panicln(err)
-        }
+        var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
         switch entry.Entry.OpType {
         case protobuf.Operation_JOIN_CONF_ADD:
@@ -100,16 +97,13 @@ func (c *confPool) appendEntryToConf(){
             }
         }
 
-        log.Println("append entry main conf: ", entry)
-        c.mainConf.AppendEntry(entry)
-        if c.newConf != nil {
-            log.Println("append entry new conf: ", entry)
-            var entryCopy raft_log.LogInstance = raft_log.LogInstance{
-                Entry:        entry.Entry,
-                AtCompletion: entry.AtCompletion,
-            }
-            c.newConf.AppendEntry(&entryCopy)
+        log.Println("notifying main conf to commit a new entry")
+        c.mainConf.NotifyAppendEntryC() <- 1
+        if c.newConf != nil{
+            log.Println("notifying new conf to commit a new entry")
+            c.newConf.NotifyAppendEntryC() <- 1
         }
+
     }
 }
 
@@ -151,7 +145,7 @@ func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.Sin
 
 	var newConf = singleconf.NewSingleConf(
 		confFiltered,
-		c.mainConf.GetEntries(),
+        c.LogEntry,
 		&c.nodeList,
 		c.NodeIndexPool,
 		c.commonMetadata)
@@ -174,10 +168,7 @@ func (c *confPool) increaseCommitIndex() {
 func (c *confPool) updateLastApplied() {
 	for {
         var toApplyIdx = <- c.ApplyEntryC()
-		var entr, err = c.GetEntriAt(int64(toApplyIdx))
-		if err != nil {
-			log.Panicln(err)
-		}
+		var entr = c.GetEntriAt(int64(toApplyIdx))
 
         switch entr.Entry.OpType {
         case protobuf.Operation_COMMIT_CONFIG_ADD:
@@ -240,7 +231,7 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 	}
 	var mainConf = singleconf.NewSingleConf(
 		nil,
-		nil,
+		res.LogEntry,
 		&res.nodeList,
 		res.NodeIndexPool,
 		res.commonMetadata)

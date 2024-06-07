@@ -25,7 +25,7 @@ type AppendEntryRpc struct {
     pMex protobuf.AppendEntriesRequest
 }
 
-func GenerateHearthbeat(intLog raft_log.LogEntry, state clustermetadata.ClusterMetadata) rpcs.Rpc {
+func GenerateHearthbeat(intLog raft_log.LogEntryRead, state clustermetadata.ClusterMetadata) rpcs.Rpc {
     var prevLogIndex = intLog.LastLogIndex()
     var prevLogTerm uint64 = uint64(intLog.LastLogTerm())
 
@@ -47,7 +47,7 @@ func GenerateHearthbeat(intLog raft_log.LogEntry, state clustermetadata.ClusterM
 }
 
 func NewAppendEntryRPC( state clustermetadata.ClusterMetadata, 
-                        intLog raft_log.LogEntry,
+                        intLog raft_log.LogEntryRead,
                         prevLogIndex int64, 
                         prevLogTerm uint64, 
     entries []*protobuf.LogEntry) rpcs.Rpc {

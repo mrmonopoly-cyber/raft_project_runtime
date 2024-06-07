@@ -23,7 +23,7 @@ type singleConfImp struct {
 	clustermetadata.ClusterMetadata
 	commonmatch.CommonMatch
 
-	raft_log.LogEntry
+	raft_log.LogEntrySlave
 	commitC chan int
 }
 
@@ -51,18 +51,16 @@ func (s *singleConfImp) SendHearthbit(){
 
         if nextIndex < len(s.GetEntries()){
             var entries = s.GetEntriesRange(nextIndex)
-            prevEntr,err := s.GetEntriAt(int64(nextIndex)-1)
-            if err != nil{
-                log.Panicln(err)
-            }
+            var prevEntr = s.GetEntriAt(int64(nextIndex)-1)
+
             hearthbit = AppendEntryRpc.NewAppendEntryRPC(
                 s.ClusterMetadata,
-                s.LogEntry,
+                s.LogEntrySlave,
                 int64(nextIndex)-1,
                 prevEntr.Entry.Term,
                 entries)
         }else {
-            hearthbit = AppendEntryRpc.GenerateHearthbeat(s.LogEntry,s.ClusterMetadata)
+            hearthbit = AppendEntryRpc.GenerateHearthbeat(s.LogEntrySlave,s.ClusterMetadata)
         }
 
         rawMex,err = genericmessage.Encode(hearthbit)
@@ -86,56 +84,6 @@ func (s *singleConfImp) CommiEntryC() <-chan int {
 	return s.commitC
 }
 
-func (s *singleConfImp) AppendEntry(entry *raft_log.LogInstance) {
-	s.LogEntry.AppendEntry(entry)
-	if s.GetRole() == clustermetadata.FOLLOWER || s.numNodes <= 1 {
-		//INFO: FOLLOWER or THE ONLY NODE IN THE CONF
-        log.Println("auto commit")
-		s.commitC <- 1
-        s.IncreaseCommitIndex()
-		return
-	}
-
-	//INFO:LEADER
-	//Propagate to all nodes in this conf
-    log.Println("propagate to all follower: ",entry.Entry)
-	s.conf.Range(func(key, value any) bool {
-		var v, f = s.nodeList.Load(key)
-		var fNode node.Node
-		var appendRpc rpcs.Rpc
-		var enriesToSend []*protobuf.LogEntry
-		var rawMex []byte
-		var err error
-
-		if !f {
-            return s.nodeNotFound(key)
-		}
-		fNode = v.(node.Node)
-
-		switch entry.Entry.OpType {
-		case protobuf.Operation_JOIN_CONF_DEL, protobuf.Operation_JOIN_CONF_ADD:
-			enriesToSend = s.GetEntries()
-		default:
-            enriesToSend = append(enriesToSend, entry.Entry)
-		}
-
-        appendRpc = AppendEntryRpc.NewAppendEntryRPC(
-            s.ClusterMetadata, s.LogEntry, -1, 0, enriesToSend)
-
-		rawMex, err = genericmessage.Encode(appendRpc)
-		if err != nil {
-			log.Panicln("error encoding: ", appendRpc, err)
-		}
-
-        log.Println("sending rpc to node: ",appendRpc.ToString(),fNode.GetIp())
-		err = fNode.Send(rawMex)
-		if err != nil {
-			log.Panicln("error sending rpc to: ", appendRpc, err)
-		}
-
-		return true
-	})
-}
 
 // GetConfig implements SingleConf.
 func (s *singleConfImp) GetConfig() map[string]string{
@@ -161,18 +109,83 @@ func (s *singleConfImp) nodeNotFound(key any) bool {
     return true
 }
 
+//daemon
+func (s *singleConfImp) executeAppendEntry() {
+    for{
+        <- s.LogEntrySlave.NotifyAppendEntryC()
+        var entry = s.GetEntriAt(s.GetCommitIndex()+1)
+
+        if s.GetRole() == clustermetadata.FOLLOWER || s.numNodes <= 1 {
+            //INFO: FOLLOWER or THE ONLY NODE IN THE CONF
+            log.Println("auto commit")
+            s.commitC <- 1
+            return
+        }
+
+        //INFO:LEADER
+        //Propagate to all nodes in this conf
+        log.Println("propagate to all follower: ",entry.Entry)
+        s.conf.Range(func(key, value any) bool {
+            var v, f = s.nodeList.Load(key)
+            var fNode node.Node
+            var appendRpc rpcs.Rpc
+            var enriesToSend []*protobuf.LogEntry = nil
+            var prevLogIndex int = -1
+            var prevLogTerm uint = 0
+            var rawMex []byte
+            var err error
+            var state nodestate.NodeState
+
+            if !f {
+                return s.nodeNotFound(key)
+            }
+            fNode = v.(node.Node)
+
+            state,err = s.FetchNodeInfo(fNode.GetIp())
+            if err != nil{
+                log.Panicln(err)
+            }
+
+            switch entry.Entry.OpType {
+            case protobuf.Operation_JOIN_CONF_DEL, protobuf.Operation_JOIN_CONF_ADD:
+                enriesToSend = s.GetEntries()
+            default:
+                enriesToSend = append(enriesToSend, entry.Entry)
+                prevLogIndex = state.FetchData(nodestate.NEXTT)
+                prevLogTerm = uint(s.GetEntriAt(int64(prevLogIndex)).Entry.Term)
+            }
+
+            appendRpc = AppendEntryRpc.NewAppendEntryRPC(
+                s.ClusterMetadata, s.LogEntrySlave, 
+                int64(prevLogIndex), uint64(prevLogTerm), enriesToSend)
+
+            rawMex, err = genericmessage.Encode(appendRpc)
+            if err != nil {
+                log.Panicln("error encoding: ", appendRpc, err)
+            }
+
+            log.Println("sending rpc to node: ",appendRpc.ToString(),fNode.GetIp())
+            err = fNode.Send(rawMex)
+            if err != nil {
+                log.Panicln("error sending rpc to: ", appendRpc, err)
+            }
+
+            return true
+            })
+    }
+}
+
 func (s *singleConfImp) updateEntryCommit() {
 	for {
+        //INFO: every time the common match is updated commit an entry
 		<-s.CommonMatch.CommitNewEntryC()
         log.Println("new entry to commit")
 		s.commitC <- int(s.GetCommitIndex()) + 1
-        s.IncreaseCommitIndex()
-		//TODO: every time the common match is updated commit an entry
 	}
 }
 
 func newSingleConfImp(conf []string,
-	oldEntries []*protobuf.LogEntry,
+    masterLog raft_log.LogEntry,
 	nodeList *sync.Map,
 	commonStatePool nodeIndexPool.NodeIndexPool,
 	commonMetadata clustermetadata.ClusterMetadata) *singleConfImp {
@@ -183,7 +196,7 @@ func newSingleConfImp(conf []string,
 		NodeIndexPool:   commonStatePool,
 		ClusterMetadata: commonMetadata,
 		CommonMatch:     nil,
-		LogEntry:        raft_log.NewLogEntry(oldEntries,false),
+		LogEntrySlave:   raft_log.NewLogEntrySlave(masterLog),
 		commitC:         make(chan int),
 	}
 	var nodeStates []nodestate.NodeState = nil
@@ -201,6 +214,7 @@ func newSingleConfImp(conf []string,
     log.Println("node to subs: ",nodeStates)
 	res.CommonMatch = commonmatch.NewCommonMatch(nodeStates)
 
+    go res.executeAppendEntry()
 	go res.updateEntryCommit()
 
 	return res

@@ -12,27 +12,49 @@ type LogInstance struct {
     AtCompletion    func() 
 }
 
-type LogEntry interface {
-	GetEntries() []*protobuf.LogEntry
-    GetEntriAt(index int64) (*LogInstance,error)
-    GetEntriesRange(startIndex int) []*protobuf.LogEntry
+type logEntryWrite interface {
     AppendEntry(newEntrie *LogInstance)
     DeleteFromEntry(entryIndex uint)
 
-    GetCommitIndex() int64
     MinimumCommitIndex(val uint)
     IncreaseCommitIndex()
 
     ApplyEntryC() <- chan int
+}
+
+type LogEntryRead interface {
+	GetEntries() []*protobuf.LogEntry
+    GetEntriAt(index int64) *LogInstance
+    GetEntriesRange(startIndex int) []*protobuf.LogEntry
+
+    GetCommitIndex() int64
 
 	LastLogIndex() int
 	LastLogTerm() uint
 
     NewLogInstance(entry *p.LogEntry, post func()) *LogInstance
     NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogInstance
+
+}
+
+type LogEntrySlave interface{
+    LogEntryRead
+    NotifyAppendEntryC() chan int
+
+}
+
+type LogEntry interface {
+    LogEntryRead
+    logEntryWrite
+    getEntriesRaw() *[]LogInstance
+    getLogSize() uint
 }
 
 func NewLogEntry(oldEntries []*protobuf.LogEntry, applicationC bool) LogEntry {
-    return newLogImp(oldEntries,applicationC)
+    return newLogImpMaster()
+}
+
+func NewLogEntrySlave(masterLog LogEntry) LogEntrySlave{
+    return newLogImpSlave(masterLog)
 }
 

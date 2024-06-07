@@ -13,29 +13,25 @@ type logEntryImp struct {
 	entries     []LogInstance
 	logSize     uint
 	commitIndex int64
-	applyC      chan int
+}
+
+// getLogSize implements LogEntry.
+func (this *logEntryImp) getLogSize() uint {
+	return this.logSize
+}
+
+// getEntriesRaw implements LogEntry.
+func (this *logEntryImp) getEntriesRaw() *[]LogInstance {
+	return &this.entries
 }
 
 // GetEntriesRange implements LogEntry.
 func (this *logEntryImp) GetEntriesRange(startIndex int) []*protobuf.LogEntry {
-    var entrs = this.GetEntries()
-    return entrs[startIndex:]
+	var entrs = this.GetEntries()
+	return entrs[startIndex:]
 }
 
-// ApplyEntryC implements LogEntry.
-func (this *logEntryImp) ApplyEntryC() <-chan int {
-	return this.applyC
-}
 
-// IncreaseCommitIndex implements LogEntry.
-func (this *logEntryImp) IncreaseCommitIndex() {
-    log.Println("increasing commit Index, log imp")
-	this.commitIndex++
-    if this.applyC != nil{
-        this.applyC <- int(this.commitIndex)
-    }
-    log.Println("increasing commit Index done, log imp")
-}
 
 // AppendEntry implements LogEntry.
 func (this *logEntryImp) AppendEntry(newEntrie *LogInstance) {
@@ -59,16 +55,16 @@ func (this *logEntryImp) GetEntries() []*protobuf.LogEntry {
 }
 
 // GetEntriAt implements LogEntry.
-func (this *logEntryImp) GetEntriAt(index int64) (*LogInstance, error) {
-    if index < 0{
-        index = 0
-    }
+func (this *logEntryImp) GetEntriAt(index int64) *LogInstance {
+	if index < 0 {
+		index = 0
+	}
 
 	if index < int64(this.logSize) {
-		return &this.entries[index], nil
+		return &this.entries[index]
 	}
-    log.Panicln("invald index GetEntrieAt: ",index)
-    return nil,nil
+	log.Panicln("invald index GetEntrieAt: ", index)
+	return nil
 }
 
 // DeleteFromEntry implements LogEntry.
@@ -131,7 +127,7 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 
 	for i, v := range entry {
 		res[i] = &LogInstance{
-			Entry:     v,
+			Entry: v,
 		}
 		if post != nil && i < len(post) {
 			res[i].AtCompletion = post[i]
@@ -139,28 +135,4 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 	}
 
 	return res
-}
-
-
-func newLogImp(oldEntries []*protobuf.LogEntry, applicationC bool) *logEntryImp {
-	var oldEntrLen = len(oldEntries)
-	var oldInstance []LogInstance = make([]LogInstance, oldEntrLen)
-
-	for i := 0; i < oldEntrLen; i++ {
-		oldInstance[i].Entry = oldEntries[i]
-	}
-
-	var l = &logEntryImp{
-		commitIndex: -1,
-		logSize:     0,
-		entries:     oldInstance,
-		lock:        sync.RWMutex{},
-		applyC:      nil,
-	}
-
-    if applicationC{
-        l.applyC = make(chan int)
-    }
-
-	return l
 }
