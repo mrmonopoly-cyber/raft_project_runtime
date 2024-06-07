@@ -34,7 +34,7 @@ func (this *ClientReq) Execute(
     newLogEntry.Description = "new " + string(operation) + " operation on file" + string((*this).pMex.Others)
 
     for _,v := range newLogEntryWrp {
-        intLog.AppendEntry(v)
+        intLog.AppendEntryLast(v)
     }
 
     return nil

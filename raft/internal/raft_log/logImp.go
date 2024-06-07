@@ -26,19 +26,30 @@ func (this *logEntryImp) GetEntriesRange(startIndex int) []*protobuf.LogEntry {
 }
 
 
+func (this *logEntryImp) AppendEntryLast(newEntrie *LogInstance) {
+    this.lock.RLock()
+    defer this.lock.RUnlock()
+    
+    log.Println("adding at the end of the queue: ",newEntrie)
+    this.AppendEntry(newEntrie,int(this.logSize)-1)
+
+
+}
 
 // AppendEntry implements LogEntry.
-func (this *logEntryImp) AppendEntry(newEntrie *LogInstance) {
+func (this *logEntryImp) AppendEntry(newEntrie *LogInstance, index int) {
     this.lock.RLock()
     defer this.lock.RUnlock()
 
-    if this.isInLog(newEntrie.Entry,int(this.logSize)-1){
+    log.Println("adding queue at: ",newEntrie, index)
+    if this.isInLog(newEntrie.Entry,index){
         log.Println("skipping already insert: ",newEntrie.Entry)
         return
     }
 
     this.lock.Lock()
     defer this.lock.Unlock()
+
 	l.Println("adding new entrie to the logEntryImp: ", *newEntrie)
 	*this.entries = append(*this.entries, *newEntrie)
 	this.logSize++
