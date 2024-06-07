@@ -81,7 +81,7 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
     c.lock.Lock()
     defer c.lock.Unlock()
 
-	log.Println("appending entry, general pool: ", entry, prevLogIndex)
+    color.Yellow("appending entry, general pool: %v %v\n", entry, prevLogIndex)
     var appended = c.LogEntry.AppendEntry(entry,prevLogIndex)
     //FIX: committing one even if you are appending an array
     for i := 0; i < int(appended); i++ {
