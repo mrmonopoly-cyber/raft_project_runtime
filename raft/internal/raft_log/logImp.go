@@ -26,6 +26,14 @@ func (this *logEntryImp) GetEntriesRange(startIndex int) []*protobuf.LogEntry {
 
 // AppendEntry implements LogEntry.
 func (this *logEntryImp) AppendEntry(newEntrie *LogInstance) {
+    this.lock.Lock()
+    defer this.lock.Unlock()
+
+    if this.IsInLog(newEntrie.Entry,int(this.logSize)-1){
+        log.Println("skipping already insert: ",newEntrie.Entry)
+        return
+    }
+
 	l.Println("adding new entrie to the logEntryImp: ", *newEntrie)
 	*this.entries = append(*this.entries, *newEntrie)
 	this.logSize++
