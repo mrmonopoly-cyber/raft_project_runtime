@@ -4,7 +4,6 @@ import (
 	"log"
 	l "log"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
-	"reflect"
 	"sync"
 )
 
@@ -18,34 +17,14 @@ type logEntryImp struct {
 
 // GetEntriesRange implements LogEntry.
 func (this *logEntryImp) GetEntriesRange(startIndex int) []*protobuf.LogEntry {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
-
 	var entrs = this.GetEntries()
 	return entrs[startIndex:]
 }
 
 
-func (this *logEntryImp) AppendEntryLast(newEntrie *LogInstance) {
-    this.lock.RLock()
-    var index = this.logSize-1
-    this.lock.RUnlock()
-    
-    log.Println("adding at the end of the queue: ",newEntrie)
-    this.AppendEntry(newEntrie,int(index))
-}
 
 // AppendEntry implements LogEntry.
-func (this *logEntryImp) AppendEntry(newEntrie *LogInstance, index int) {
-    this.lock.Lock()
-    defer this.lock.Unlock()
-
-    log.Println("adding queue at: ",newEntrie, index)
-    if this.isInLog(newEntrie.Entry,index){
-        log.Println("skipping already insert: ",newEntrie.Entry)
-        return
-    }
-
+func (this *logEntryImp) AppendEntry(newEntrie *LogInstance) {
 	l.Println("adding new entrie to the logEntryImp: ", *newEntrie)
 	*this.entries = append(*this.entries, *newEntrie)
 	this.logSize++
@@ -67,9 +46,6 @@ func (this *logEntryImp) GetEntries() []*protobuf.LogEntry {
 
 // GetEntriAt implements LogEntry.
 func (this *logEntryImp) GetEntriAt(index int64) *LogInstance {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
-
 	if index < 0 {
 		index = 0
 	}
@@ -84,9 +60,6 @@ func (this *logEntryImp) GetEntriAt(index int64) *LogInstance {
 
 // DeleteFromEntry implements LogEntry.
 func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
-    this.lock.Lock()
-    defer this.lock.Unlock()
-
 	for i := int(entryIndex); i < len(*this.entries); i++ {
 		(*this.entries)[i] = LogInstance{
 			Entry:        nil,
@@ -95,8 +68,6 @@ func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
 		this.logSize--
 	}
 }
-
-
 
 func (this *logEntryImp) GetCommitIndex() int64 {
 	this.lock.RLock()
@@ -125,9 +96,6 @@ func (this *logEntryImp) LastLogIndex() int {
 
 // LastLogTerm implements LogEntry.
 func (this *logEntryImp) LastLogTerm() uint {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
-
 	var committedEntr = this.GetEntries()
 	var lasLogIdx = this.LastLogIndex()
 
@@ -161,22 +129,6 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 }
 
 //utility
-
-func (this *logEntryImp) isInLog(entry *protobuf.LogEntry, index int) bool{
-    log.Println("check if entry is in log: ",entry,index)
-
-    if index >= int(this.logSize) || this.logSize == 0{
-        return false
-    }
-
-    var savedEntrie = this.GetEntriAt(int64(index)).Entry
-
-    return  savedEntrie.Term == entry.Term &&
-            savedEntrie.OpType == entry.OpType &&
-            savedEntrie.Description == entry.Description &&
-            reflect.DeepEqual(savedEntrie.Payload,entry.Payload)
-
-}
 
 func (this *logEntryImp) getLogState() *logEntryImp{
     return this

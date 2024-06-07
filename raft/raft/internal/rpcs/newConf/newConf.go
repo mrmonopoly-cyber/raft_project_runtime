@@ -111,7 +111,7 @@ func (this *NewConf) joinConfAddExecute(
     log.Println("appending log entry: ",newConfLog)
 
     metadata.SetRole(clustermetadata.LEADER)
-    intLog.AppendEntryLast(newConfLog)
+    intLog.AppendEntry(newConfLog)
 
     return exitSucess
 }

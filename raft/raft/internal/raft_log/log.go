@@ -13,8 +13,7 @@ type LogInstance struct {
 }
 
 type logEntryWrite interface {
-    AppendEntryLast(newEntrie *LogInstance)
-    AppendEntry(newEntrie *LogInstance, index int)
+    AppendEntry(newEntrie *LogInstance)
     DeleteFromEntry(entryIndex uint)
 
     MinimumCommitIndex(val uint)
