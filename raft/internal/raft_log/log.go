@@ -27,10 +27,11 @@ type LogEntryRead interface {
     GetEntriAt(index int64) *LogInstance
     GetEntriesRange(startIndex int) []*protobuf.LogEntry
 
-    GetCommitIndex() int64
 
 	LastLogIndex() int
 	LastLogTerm() uint
+
+    GetCommitIndex() int64
 
     NewLogInstance(entry *p.LogEntry, post func()) *LogInstance
     NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogInstance

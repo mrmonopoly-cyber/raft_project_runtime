@@ -12,7 +12,6 @@ type logEntryImp struct {
 
 	entries     *[]LogInstance
 	logSize     uint
-	commitIndex int64
 }
 
 // GetEntriesRange implements LogEntry.
@@ -69,23 +68,7 @@ func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
 	}
 }
 
-func (this *logEntryImp) GetCommitIndex() int64 {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	return this.commitIndex
-}
 
-// MinimumCommitIndex implements LogEntry.
-func (this *logEntryImp) MinimumCommitIndex(val uint) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
-	if val < this.logSize {
-		this.commitIndex = int64(val)
-		return
-	}
-	this.commitIndex = int64(this.logSize) - 1
-}
 
 func (this *logEntryImp) LastLogIndex() int {
 	this.lock.RLock()
