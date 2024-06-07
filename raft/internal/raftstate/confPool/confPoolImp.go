@@ -104,6 +104,8 @@ func (c *confPool) appendEntryToConf(){
         if c.newConf != nil{
             log.Println("notifying new conf to commit a new entry")
             c.newConf.NotifyAppendEntryC() <- 1
+        }else{
+            log.Println("new conf is empty")
         }
 
     }
