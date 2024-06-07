@@ -114,19 +114,14 @@ func (s *singleConfImp) nodeNotFound(key any) bool {
 //daemon
 func (s *singleConfImp) executeAppendEntry() {
     for{
-        var indexEntry = <- s.LogEntrySlave.NotifyAppendEntryC()
-        var entry = s.GetEntriAt(int64(indexEntry))
-
-        if indexEntry < int(s.GetCommitIndex()) {
-            color.Yellow("entry already committed: entryIdx %v, commitIndex %v",indexEntry,s.GetCommitIndex())
-            continue
-        }
+        <- s.LogEntrySlave.NotifyAppendEntryC()
+        var entry = s.GetEntriAt(s.GetCommitIndex()+1)
 
         log.Println("singleconf: new entry to commit: ",entry.Entry)
         if s.GetRole() == clustermetadata.FOLLOWER || s.numNodes <= 1 {
             //INFO: FOLLOWER or THE ONLY NODE IN THE CONF
             color.HiGreen("auto commi")
-            s.commitC <- indexEntry
+            s.commitC <- 1
             continue
         }
 

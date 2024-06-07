@@ -82,7 +82,6 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
     defer c.lock.Unlock()
 
     var appendedTot uint = 0
-    var currentCommitIndex int = int(c.GetCommitIndex())
 
     color.Yellow("appending entry, general pool: %v %v\n", entry, prevLogIndex)
     for _, v := range entry {
@@ -90,7 +89,7 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
         if appended > 0 {
             color.Cyan("appending entry, general pool done\n")
             appendedTot++
-            c.entryToCommiC <- currentCommitIndex + int(appendedTot)
+            c.entryToCommiC <- int(c.GetCommitIndex()) + 1
         }
     }
     return appendedTot
@@ -119,10 +118,10 @@ func (c *confPool) appendEntryToConf(){
         }
 
         log.Println("notifying main conf to commit a new entry")
-        c.mainConf.NotifyAppendEntryC() <- entryIndex
+        c.mainConf.NotifyAppendEntryC() <- 1
         if c.newConf != nil{
             log.Println("notifying new conf to commit a new entry")
-            c.newConf.NotifyAppendEntryC() <- entryIndex
+            c.newConf.NotifyAppendEntryC() <- 1
         }
 
     }
