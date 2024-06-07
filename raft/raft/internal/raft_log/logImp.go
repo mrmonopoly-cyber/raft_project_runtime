@@ -10,7 +10,7 @@ import (
 type logEntryImp struct {
 	lock sync.RWMutex
 
-	entries     []LogInstance
+	entries     *[]LogInstance
 	logSize     uint
 	commitIndex int64
 }
@@ -22,7 +22,7 @@ func (this *logEntryImp) getLogSize() uint {
 
 // getEntriesRaw implements LogEntry.
 func (this *logEntryImp) getEntriesRaw() *[]LogInstance {
-	return &this.entries
+	return this.entries
 }
 
 // GetEntriesRange implements LogEntry.
@@ -36,7 +36,7 @@ func (this *logEntryImp) GetEntriesRange(startIndex int) []*protobuf.LogEntry {
 // AppendEntry implements LogEntry.
 func (this *logEntryImp) AppendEntry(newEntrie *LogInstance) {
 	l.Println("adding new entrie to the logEntryImp: ", *newEntrie)
-	this.entries = append(this.entries, *newEntrie)
+	*this.entries = append(*this.entries, *newEntrie)
 	this.logSize++
 }
 
@@ -44,10 +44,10 @@ func (this *logEntryImp) GetEntries() []*protobuf.LogEntry {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
-	var lenEntries = len(this.entries)
+	var lenEntries = len(*this.entries)
 	var res []*protobuf.LogEntry = make([]*protobuf.LogEntry, lenEntries)
 
-	for i, v := range this.entries {
+	for i, v := range *this.entries {
 		res[i] = v.Entry
 	}
 
@@ -62,7 +62,7 @@ func (this *logEntryImp) GetEntriAt(index int64) *LogInstance {
 
     log.Println("GetEntriAt, full log and size: ",this.entries, this.logSize)
 	if index < int64(this.logSize) {
-		return &this.entries[index]
+		return &(*this.entries)[index]
 	}
 	log.Panicln("invald index GetEntrieAt: ", index)
 	return nil
@@ -70,8 +70,8 @@ func (this *logEntryImp) GetEntriAt(index int64) *LogInstance {
 
 // DeleteFromEntry implements LogEntry.
 func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
-	for i := int(entryIndex); i < len(this.entries); i++ {
-		this.entries[i] = LogInstance{
+	for i := int(entryIndex); i < len(*this.entries); i++ {
+		(*this.entries)[i] = LogInstance{
 			Entry:        nil,
 			AtCompletion: func() {},
 		}
