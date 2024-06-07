@@ -19,7 +19,7 @@ import (
 
 type tuple struct {
 	singleconf.SingleConf
-    indexEntry uint
+	*raft_log.LogInstance
 }
 
 type confPool struct {
@@ -108,12 +108,12 @@ func (c *confPool) appendEntryToConf(){
         switch entry.Entry.OpType {
         case protobuf.Operation_JOIN_CONF_ADD:
             newConf = c.appendJoinConfADD(entry)
-            if c.pushJoinConf(entry,uint(entryIndex), newConf){
+            if c.pushJoinConf(entry,newConf){
                 continue
             }
         case protobuf.Operation_JOIN_CONF_DEL:
             newConf = c.appendJoinConfDEL(entry)
-            if c.pushJoinConf(entry,uint(entryIndex), newConf){
+            if c.pushJoinConf(entry,newConf){
                continue 
             }
         }
@@ -128,14 +128,14 @@ func (c *confPool) appendEntryToConf(){
     }
 }
 
-func (c *confPool) pushJoinConf(entry *raft_log.LogInstance,indexEntry uint, newConf singleconf.SingleConf) bool{
+func (c *confPool) pushJoinConf(entry *raft_log.LogInstance, newConf singleconf.SingleConf) bool{
 	//WARN: DANGEROUS
 
 	if c.newConf != nil {
 		log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
 	}
 	if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
-		c.confQueue.Push(tuple{SingleConf: newConf, indexEntry: indexEntry})
+		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
 		return true
 	}
     return false
@@ -232,7 +232,7 @@ func (c *confPool) joinNextConf() {
 		var co = c.confQueue.Pop()
         log.Println("new conf to join: ",co.SingleConf.GetConfig())
 		c.newConf = co.SingleConf
-        c.entryToCommiC <- int(co.indexEntry)
+        c.entryToCommiC <- 1
 	}
 }
 
