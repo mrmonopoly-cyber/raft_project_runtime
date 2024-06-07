@@ -97,6 +97,8 @@ func (c *confPool) appendEntryToConf(){
         log.Println("appendEntryToConf: waiting signal")
         <- c.entryToCommiC
         var newConf singleconf.SingleConf
+        //FIX: explode
+        color.Red("explode with commit index: ",c.GetCommitIndex())
         var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
         switch entry.Entry.OpType {
