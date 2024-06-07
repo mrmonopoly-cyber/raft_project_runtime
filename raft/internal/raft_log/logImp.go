@@ -28,6 +28,10 @@ func (this *logEntryImp) GetEntriesRange(startIndex int) []*protobuf.LogEntry {
 func (this *logEntryImp) AppendEntry(newEntrie []*LogInstance, prevLogIndex int) uint{
     var appendedEntrie uint= 0
 
+    if prevLogIndex < -1 {
+        prevLogIndex = int(this.logSize)-1
+    }
+
     for _,v  := range newEntrie {
         prevLogIndex++
         if this.isInLog(v.Entry,prevLogIndex){
@@ -150,7 +154,7 @@ func (this *logEntryImp) isInLog(entrie *protobuf.LogEntry, index int) bool{
         index = int(this.logSize)-1
     }
 
-    if this.logSize == 0 {
+    if this.logSize == 0 || index >= int(this.logSize) {
         return false
     }
 
