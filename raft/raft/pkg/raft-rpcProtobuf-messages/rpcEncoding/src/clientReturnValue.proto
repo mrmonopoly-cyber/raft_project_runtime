@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package protobuf;
+
+option go_package = "protobuf/";
+
+enum STATUS{
+    SUCCESS = 0;
+    FAILURE =1;
+}
+
+message ClientReturnValue{
+    STATUS exitStatus =1;
+    string description =2;
+}
