@@ -182,6 +182,7 @@ func (c *confPool) updateLastApplied() {
 	for {
         color.Cyan("waiting to apply new entry")
         var toApplyIdx = <- c.ApplyEntryC()
+        color.Red("ready to apply new entry")
 		var entr = c.GetEntriAt(int64(toApplyIdx))
 
         color.Cyan("applying new entry: %v",entr)
