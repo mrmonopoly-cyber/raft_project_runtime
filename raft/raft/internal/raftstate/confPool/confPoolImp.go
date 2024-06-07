@@ -82,6 +82,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 
 func (c *confPool) appendEntryToConf(){
     for {
+        log.Println("appendEntryToConf: waiting signal")
         <- c.entryToCommiC
         var newConf singleconf.SingleConf
         var entry = c.GetEntriAt(c.GetCommitIndex()+1)
