@@ -18,9 +18,6 @@ type logEntryImp struct {
 
 // GetEntriesRange implements LogEntry.
 func (this *logEntryImp) GetEntriesRange(startIndex int) []*protobuf.LogEntry {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
-
 	var entrs = this.GetEntries()
 	return entrs[startIndex:]
 }
@@ -58,9 +55,6 @@ func (this *logEntryImp) GetEntries() []*protobuf.LogEntry {
 
 // GetEntriAt implements LogEntry.
 func (this *logEntryImp) GetEntriAt(index int64) *LogInstance {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
-
 	if index < 0 {
 		index = 0
 	}
@@ -116,9 +110,6 @@ func (this *logEntryImp) LastLogIndex() int {
 
 // LastLogTerm implements LogEntry.
 func (this *logEntryImp) LastLogTerm() uint {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
-
 	var committedEntr = this.GetEntries()
 	var lasLogIdx = this.LastLogIndex()
 
