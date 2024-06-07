@@ -6,8 +6,6 @@ import (
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"reflect"
 	"sync"
-
-	"github.com/fatih/color"
 )
 
 type logEntryImp struct {
@@ -16,8 +14,6 @@ type logEntryImp struct {
 	entries     *[]LogInstance
 	logSize     uint
 	commitIndex int64
-	applyC chan int
-
 }
 
 // GetEntriesRange implements LogEntry.
@@ -38,7 +34,6 @@ func (this *logEntryImp) AppendEntry(newEntrie []*LogInstance, prevLogIndex int)
 
     for _,v  := range newEntrie {
         prevLogIndex++
-        color.HiRed("trying adding entry: %v\n",v)
         if this.isInLog(v.Entry,prevLogIndex){
             continue
         }
@@ -103,19 +98,11 @@ func (this *logEntryImp) MinimumCommitIndex(val uint) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-    var oldCommitIndex = this.GetCommitIndex()
-
 	if val < this.logSize {
-        color.Yellow("increasing commitIndex min")
 		this.commitIndex = int64(val)
-	}else{
-        this.commitIndex = int64(this.logSize) - 1
-    }
-    
-    for i := oldCommitIndex; i < int64(this.commitIndex); i++ {
-        this.applyC <- int(oldCommitIndex) + int(i)
-    }
-
+		return
+	}
+	this.commitIndex = int64(this.logSize) - 1
 }
 
 func (this *logEntryImp) LastLogIndex() int {
@@ -157,11 +144,6 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 	}
 
 	return res
-}
-
-// ApplyEntryC implements LogEntry.
-func (this *logEntryImp) ApplyEntryC() <-chan int {
-	return this.applyC
 }
 
 //utility

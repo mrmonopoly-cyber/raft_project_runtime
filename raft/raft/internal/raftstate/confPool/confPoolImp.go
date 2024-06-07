@@ -19,7 +19,7 @@ import (
 
 type tuple struct {
 	singleconf.SingleConf
-    indexEntry uint
+	*raft_log.LogInstance
 }
 
 type confPool struct {
@@ -81,61 +81,55 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
     c.lock.Lock()
     defer c.lock.Unlock()
 
-    var appendedTot uint = 0
-    var currentCommitIndex int = int(c.GetCommitIndex())
-
     color.Yellow("appending entry, general pool: %v %v\n", entry, prevLogIndex)
-    for _, v := range entry {
-        var appended = c.LogEntry.AppendEntry([]*raft_log.LogInstance{v},prevLogIndex)
-        if appended > 0 {
-            color.Cyan("appending entry, general pool done\n")
-            appendedTot++
-            c.entryToCommiC <- currentCommitIndex + int(appendedTot)
-        }
+    var appended = c.LogEntry.AppendEntry(entry,prevLogIndex)
+    for i := 0; i < int(appended); i++ {
+        color.Cyan("appending entry, general pool done\n")
+        go func(){
+            c.entryToCommiC <- 1
+        }()
     }
-    return appendedTot
+    return appended
 }
 
 func (c *confPool) appendEntryToConf(){
     for {
         log.Println("appendEntryToConf: waiting signal")
-        var entryIndex = <- c.entryToCommiC
+        <- c.entryToCommiC
         var newConf singleconf.SingleConf
-        //FIX: explode
-        color.Red("explode with commit index: %v\n",c.GetCommitIndex())
-        var entry = c.GetEntriAt(int64(entryIndex))
+        var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
         switch entry.Entry.OpType {
         case protobuf.Operation_JOIN_CONF_ADD:
             newConf = c.appendJoinConfADD(entry)
-            if c.pushJoinConf(entry,uint(entryIndex), newConf){
+            if c.pushJoinConf(entry,newConf){
                 continue
             }
         case protobuf.Operation_JOIN_CONF_DEL:
             newConf = c.appendJoinConfDEL(entry)
-            if c.pushJoinConf(entry,uint(entryIndex), newConf){
+            if c.pushJoinConf(entry,newConf){
                continue 
             }
         }
 
         log.Println("notifying main conf to commit a new entry")
-        c.mainConf.NotifyAppendEntryC() <- entryIndex
+        c.mainConf.NotifyAppendEntryC() <- 1
         if c.newConf != nil{
             log.Println("notifying new conf to commit a new entry")
-            c.newConf.NotifyAppendEntryC() <- entryIndex
+            c.newConf.NotifyAppendEntryC() <- 1
         }
 
     }
 }
 
-func (c *confPool) pushJoinConf(entry *raft_log.LogInstance,indexEntry uint, newConf singleconf.SingleConf) bool{
+func (c *confPool) pushJoinConf(entry *raft_log.LogInstance, newConf singleconf.SingleConf) bool{
 	//WARN: DANGEROUS
 
 	if c.newConf != nil {
 		log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
 	}
 	if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
-		c.confQueue.Push(tuple{SingleConf: newConf, indexEntry: indexEntry})
+		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
 		return true
 	}
     return false
@@ -182,7 +176,6 @@ func (c *confPool) increaseCommitIndex() {
             log.Println("commit Index: waiting commit of new conf")
 			<-c.newConf.CommiEntryC()
 		}
-        color.Yellow("increasing commitIndex")
         c.IncreaseCommitIndex()
 	}
 }
@@ -232,7 +225,7 @@ func (c *confPool) joinNextConf() {
 		var co = c.confQueue.Pop()
         log.Println("new conf to join: ",co.SingleConf.GetConfig())
 		c.newConf = co.SingleConf
-        c.entryToCommiC <- int(co.indexEntry)
+        c.entryToCommiC <- 1
 	}
 }
 

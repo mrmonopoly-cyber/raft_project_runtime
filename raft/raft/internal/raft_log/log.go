@@ -19,6 +19,7 @@ type logEntryWrite interface {
     MinimumCommitIndex(val uint)
     IncreaseCommitIndex()
 
+    ApplyEntryC() <- chan int
 }
 
 type LogEntryRead interface {
@@ -34,7 +35,6 @@ type LogEntryRead interface {
     NewLogInstance(entry *p.LogEntry, post func()) *LogInstance
     NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogInstance
 
-    ApplyEntryC() <- chan int
 }
 
 type LogEntrySlave interface{
