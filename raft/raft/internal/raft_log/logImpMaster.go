@@ -26,11 +26,13 @@ func (this *LogEntryMasterImp) IncreaseCommitIndex() {
 }
 
 func newLogImpMaster() *LogEntryMasterImp {
+    var masterEntries []LogInstance = nil
+
 	var l = &LogEntryMasterImp{
 		logEntryImp: logEntryImp{
 			commitIndex: -1,
 			logSize:     0,
-			entries:     nil,
+			entries:     &masterEntries,
 			lock:        sync.RWMutex{},
 		},
 		applyC: make(chan int),
