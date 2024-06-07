@@ -120,7 +120,7 @@ func (s *singleConfImp) executeAppendEntry() {
             //INFO: FOLLOWER or THE ONLY NODE IN THE CONF
             log.Println("auto commit")
             s.commitC <- 1
-            return
+            continue
         }
 
         //INFO:LEADER
