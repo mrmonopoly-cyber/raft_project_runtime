@@ -29,7 +29,7 @@ func (this *logEntryImp) AppendEntry(newEntrie *LogInstance) {
     this.lock.Lock()
     defer this.lock.Unlock()
 
-    if this.IsInLog(newEntrie.Entry,int(this.logSize)-1){
+    if this.isInLog(newEntrie.Entry,int(this.logSize)-1){
         log.Println("skipping already insert: ",newEntrie.Entry)
         return
     }
@@ -81,22 +81,6 @@ func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
 	}
 }
 
-func (this *logEntryImp) IsInLog(entry *protobuf.LogEntry, index int) bool{
-    this.lock.RLock()
-    defer this.lock.RUnlock()
-
-    if index >= int(this.logSize){
-        return false
-    }
-
-    var savedEntrie = this.GetEntriAt(int64(index))
-
-    return  savedEntrie.Entry.Term == entry.Term &&
-            savedEntrie.Entry.OpType == entry.OpType &&
-            savedEntrie.Entry.Description == entry.Description &&
-            reflect.DeepEqual(savedEntrie.Entry.Payload,entry.Payload)
-
-}
 
 
 func (this *logEntryImp) GetCommitIndex() int64 {
@@ -159,6 +143,20 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 }
 
 //utility
+
+func (this *logEntryImp) isInLog(entry *protobuf.LogEntry, index int) bool{
+    if index >= int(this.logSize){
+        return false
+    }
+
+    var savedEntrie = this.GetEntriAt(int64(index))
+
+    return  savedEntrie.Entry.Term == entry.Term &&
+            savedEntrie.Entry.OpType == entry.OpType &&
+            savedEntrie.Entry.Description == entry.Description &&
+            reflect.DeepEqual(savedEntrie.Entry.Payload,entry.Payload)
+
+}
 
 func (this *logEntryImp) getLogState() *logEntryImp{
     return this

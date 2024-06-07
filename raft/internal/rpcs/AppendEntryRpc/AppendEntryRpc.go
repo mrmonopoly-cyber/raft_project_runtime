@@ -141,11 +141,8 @@ func (this *AppendEntryRpc) Execute(
                 intLog.DeleteFromEntry(uint(nextIdx))
                 resp = respondeAppend(id, false, myTerm, nextIdx)
             default:
-                var startIndex = this.pMex.PrevLogIndex + 1
                 for _,v := range newEntriesWrapper {
-                    if !intLog.IsInLog(v.Entry,int(startIndex)){
-                        intLog.AppendEntry(v)
-                    }
+                    intLog.AppendEntry(v)
                 }
                 leaderCommit = this.pMex.GetLeaderCommit()
 
