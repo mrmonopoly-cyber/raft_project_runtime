@@ -1,7 +1,6 @@
 package AppendEntryRpc
 
 import (
-	"fmt"
 	"log"
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
@@ -83,10 +82,6 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
         return C2, (logSize - 1)
     }
     entryState = entries[prevLogIndex]
-    fmt.Println("case 3")
-    log.Println(entries)
-    log.Printf("prevLogTerm: %d,, getTerm: %d, getDescr: %s,, getType: %o", prevLogTerm, entryState.GetTerm(), entryState.GetDescription(), entryState.GetOpType())
-    
     consistent := entryState.GetTerm() == prevLogTerm
 
     if consistent {
