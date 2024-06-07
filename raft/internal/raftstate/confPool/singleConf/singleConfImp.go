@@ -13,6 +13,8 @@ import (
 	"raft/internal/rpcs/AppendEntryRpc"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"sync"
+
+	"github.com/fatih/color"
 )
 
 type singleConfImp struct {
@@ -118,7 +120,7 @@ func (s *singleConfImp) executeAppendEntry() {
         log.Println("singleconf: new entry to commit: ",entry.Entry)
         if s.GetRole() == clustermetadata.FOLLOWER || s.numNodes <= 1 {
             //INFO: FOLLOWER or THE ONLY NODE IN THE CONF
-            log.Println("auto commit")
+            color.HiGreen("auto commi")
             s.commitC <- 1
             continue
         }
