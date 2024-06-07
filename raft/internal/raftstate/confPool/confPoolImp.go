@@ -88,8 +88,8 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
         var appended = c.LogEntry.AppendEntry([]*raft_log.LogInstance{v},prevLogIndex)
         if appended > 0 {
             color.Cyan("appending entry, general pool done\n")
+            c.entryToCommiC <- 1
             appendedTot++
-            c.entryToCommiC <- prevLogIndex + int(appendedTot)
         }
     }
     return appendedTot
@@ -98,11 +98,11 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
 func (c *confPool) appendEntryToConf(){
     for {
         log.Println("appendEntryToConf: waiting signal")
-        var entryIndex = <- c.entryToCommiC
+        <- c.entryToCommiC
         var newConf singleconf.SingleConf
         //FIX: explode
         color.Red("explode with commit index: %v\n",c.GetCommitIndex())
-        var entry = c.GetEntriAt(int64(entryIndex))
+        var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
         switch entry.Entry.OpType {
         case protobuf.Operation_JOIN_CONF_ADD:
