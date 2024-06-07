@@ -183,10 +183,10 @@ func (s *server) run() {
     for {
         select {
         case mess = <-s.messageChannel:
-            log.Println("message received: ", mess.payload.ToString())
+            log.Println("server: new mex received: ")
             go s.newMessageReceived(mess)
         case <- timeoutElection:
-            log.Println("election not implemented")
+            log.Println("server: election not implemented")
         case <- timeoutHearthbit:
             go s.SendHearthBit()
         }
