@@ -29,8 +29,7 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
     for _,v  := range c.subs {
         go func(){
             for{
-                <- v.Snd
-                var newMatch = v.Fst.FetchData(nodestate.MATCH)
+                var newMatch = <- v.Snd
                 color.Red("check if can increase commonMatchIdx: %v,%v,%v,%v",
                     c.numNodes,newMatch,c.commonMatchIndex, v.Trd)
                 if newMatch >= c.commonMatchIndex && v.Trd < newMatch{
