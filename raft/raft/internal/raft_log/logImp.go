@@ -101,7 +101,9 @@ func (this *logEntryImp) MinimumCommitIndex(val uint) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
+
 	if val < this.logSize {
+        color.Yellow("increasing commitIndex")
 		this.commitIndex = int64(val)
 		return
 	}
