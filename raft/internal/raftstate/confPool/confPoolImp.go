@@ -211,6 +211,10 @@ func (c *confPool) updateLastApplied() {
         }
 
         color.Red("finish switch")
+
+        if entr.AtCompletion != nil {
+            entr.AtCompletion()
+        }
 	}
 }
 

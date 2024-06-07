@@ -114,6 +114,7 @@ func (s *singleConfImp) nodeNotFound(key any) bool {
 //daemon
 func (s *singleConfImp) executeAppendEntry() {
     for{
+        color.Cyan("waiting to execute appendEntry")
         <- s.LogEntrySlave.NotifyAppendEntryC()
         var entry = s.GetEntriAt(s.GetCommitIndex()+1)
 
