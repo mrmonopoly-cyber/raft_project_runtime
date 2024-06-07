@@ -210,10 +210,7 @@ func (c *confPool) updateLastApplied() {
             log.Panicln("unrecognized opration: ",entr.Entry.OpType)
         }
 
-        if entr.AtCompletion != nil {
-            entr.AtCompletion()
-        }
-
+        color.Red("finish switch")
 	}
 }
 
