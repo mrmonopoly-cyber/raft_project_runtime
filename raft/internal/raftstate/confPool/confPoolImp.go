@@ -2,6 +2,7 @@ package confpool
 
 import (
 	"errors"
+    "github.com/fatih/color"
 	"log"
 	localfs "raft/internal/localFs"
 	"raft/internal/node"
@@ -80,7 +81,7 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
     c.lock.Lock()
     defer c.lock.Unlock()
 
-	log.Println("appending entry, general pool: ", entry)
+	log.Println("appending entry, general pool: ", entry, prevLogIndex)
     var appended = c.LogEntry.AppendEntry(entry,prevLogIndex)
     //FIX: committing one even if you are appending an array
     for i := 0; i < int(appended); i++ {
@@ -190,7 +191,7 @@ func (c *confPool) updateLastApplied() {
             c.mainConf = c.newConf
             c.newConf = nil
             c.emptyNewConf <- 1
-            log.Println("commit config applied [main,new]: ", c.mainConf, c.newConf)
+            color.Green("commit config applied [main,new]: ", c.mainConf, c.newConf)
         case protobuf.Operation_COMMIT_CONFIG_REM:
             panic("Not implemented")
         case protobuf.Operation_JOIN_CONF_ADD, protobuf.Operation_JOIN_CONF_DEL:
