@@ -178,7 +178,6 @@ func (c *confPool) increaseCommitIndex() {
             log.Println("commit Index: waiting commit of new conf")
 			<-c.newConf.CommiEntryC()
 		}
-        color.Yellow("increasing commitIndex")
         c.IncreaseCommitIndex()
 	}
 }
