@@ -141,7 +141,7 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 
 func (this *logEntryImp) isInLog(entrie *protobuf.LogEntry, index int) bool{
     if index < 0 {
-        index = int(this.logSize)
+        index = int(this.logSize)-1
     }
 
     if this.logSize == 0 {
