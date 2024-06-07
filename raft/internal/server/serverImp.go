@@ -179,7 +179,6 @@ func (s *server) run() {
         log.Panicln(err)
     }
 
-
     for {
         select {
         case mess = <-s.messageChannel:
