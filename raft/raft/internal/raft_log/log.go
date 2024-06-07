@@ -19,14 +19,12 @@ type logEntryWrite interface {
     MinimumCommitIndex(val uint)
     IncreaseCommitIndex()
 
-    ApplyEntryC() <- chan int
 }
 
 type LogEntryRead interface {
 	GetEntries() []*protobuf.LogEntry
     GetEntriAt(index int64) *LogInstance
     GetEntriesRange(startIndex int) []*protobuf.LogEntry
-    GetLogSize() uint
 
     GetCommitIndex() int64
 
@@ -36,6 +34,7 @@ type LogEntryRead interface {
     NewLogInstance(entry *p.LogEntry, post func()) *LogInstance
     NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogInstance
 
+    ApplyEntryC() <- chan int
 }
 
 type LogEntrySlave interface{

@@ -16,6 +16,8 @@ type logEntryImp struct {
 	entries     *[]LogInstance
 	logSize     uint
 	commitIndex int64
+	applyC chan int
+
 }
 
 // GetEntriesRange implements LogEntry.
@@ -79,10 +81,6 @@ func (this *logEntryImp) GetEntriAt(index int64) *LogInstance {
 	return nil
 }
 
-func (this *logEntryImp) GetLogSize() uint{
-    return this.logSize
-}
-
 // DeleteFromEntry implements LogEntry.
 func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
 	for i := int(entryIndex); i < len(*this.entries); i++ {
@@ -105,13 +103,19 @@ func (this *logEntryImp) MinimumCommitIndex(val uint) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
+    var oldCommitIndex = this.GetCommitIndex()
 
 	if val < this.logSize {
         color.Yellow("increasing commitIndex min")
 		this.commitIndex = int64(val)
-		return
-	}
-	this.commitIndex = int64(this.logSize) - 1
+	}else{
+        this.commitIndex = int64(this.logSize) - 1
+    }
+    
+    for i := oldCommitIndex; i < int64(this.commitIndex); i++ {
+        this.applyC <- int(oldCommitIndex) + int(i)
+    }
+
 }
 
 func (this *logEntryImp) LastLogIndex() int {
@@ -153,6 +157,11 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 	}
 
 	return res
+}
+
+// ApplyEntryC implements LogEntry.
+func (this *logEntryImp) ApplyEntryC() <-chan int {
+	return this.applyC
 }
 
 //utility
