@@ -76,16 +76,20 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 	}
 }
 
-func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) {
+func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) uint {
     c.lock.Lock()
     defer c.lock.Unlock()
 
 	log.Println("appending entry, general pool: ", entry)
-    c.LogEntry.AppendEntry(entry,prevLogIndex)
-    go func(){
-        c.entryToCommiC <- 1
-    }()
-	log.Println("appending entry, general pool done")
+    var appended = c.LogEntry.AppendEntry(entry,prevLogIndex)
+    //FIX: committing one even if you are appending an array
+    for i := 0; i < int(appended); i++ {
+        log.Println("appending entry, general pool done")
+        go func(){
+            c.entryToCommiC <- 1
+        }()
+    }
+    return appended
 }
 
 func (c *confPool) appendEntryToConf(){
