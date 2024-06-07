@@ -4,7 +4,6 @@ import (
 	"log"
 	l "log"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
-	"reflect"
 	"sync"
 )
 
@@ -69,21 +68,6 @@ func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
 		this.logSize--
 	}
 }
-
-func (this *logEntryImp) IsInLog(entry *protobuf.LogEntry, index int) bool{
-    if index >= int(this.logSize){
-        return false
-    }
-
-    var savedEntrie = this.GetEntriAt(int64(index))
-
-    return  savedEntrie.Entry.Term == entry.Term &&
-            savedEntrie.Entry.OpType == entry.OpType &&
-            savedEntrie.Entry.Description == entry.Description &&
-            reflect.DeepEqual(savedEntrie.Entry.Payload,entry.Payload)
-
-}
-
 
 func (this *logEntryImp) GetCommitIndex() int64 {
 	this.lock.RLock()
