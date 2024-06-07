@@ -1,1 +1,1 @@
-while true ; do ./fetch.sh ; done
+while true ; do ./fetch.sh $1; done
