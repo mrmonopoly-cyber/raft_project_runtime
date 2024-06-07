@@ -46,8 +46,7 @@ type LogEntrySlave interface{
 type LogEntry interface {
     LogEntryRead
     logEntryWrite
-    getEntriesRaw() *[]LogInstance
-    getLogSize() uint
+    getLogState() *logEntryImp
 }
 
 func NewLogEntry(oldEntries []*protobuf.LogEntry, applicationC bool) LogEntry {

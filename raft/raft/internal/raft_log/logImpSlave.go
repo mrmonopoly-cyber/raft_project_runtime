@@ -1,9 +1,7 @@
 package raft_log
 
-import "sync"
-
 type LogEntrySlaveImp struct {
-	logEntryImp
+	*logEntryImp
 	commitEntry chan int
 }
 
@@ -14,12 +12,7 @@ func (this *LogEntrySlaveImp) NotifyAppendEntryC() chan int{
 
 func newLogImpSlave(masterLog LogEntry) *LogEntrySlaveImp {
 	var l = &LogEntrySlaveImp{
-		logEntryImp: logEntryImp{
-			commitIndex: masterLog.GetCommitIndex(),
-			logSize:     masterLog.getLogSize(),
-			entries:     masterLog.getEntriesRaw(),
-			lock:        sync.RWMutex{},
-		},
+		logEntryImp: masterLog.getLogState(),
 		commitEntry: make(chan int),
 	}
 

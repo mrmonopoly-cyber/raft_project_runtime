@@ -15,16 +15,6 @@ type logEntryImp struct {
 	commitIndex int64
 }
 
-// getLogSize implements LogEntry.
-func (this *logEntryImp) getLogSize() uint {
-	return this.logSize
-}
-
-// getEntriesRaw implements LogEntry.
-func (this *logEntryImp) getEntriesRaw() *[]LogInstance {
-	return this.entries
-}
-
 // GetEntriesRange implements LogEntry.
 func (this *logEntryImp) GetEntriesRange(startIndex int) []*protobuf.LogEntry {
 	var entrs = this.GetEntries()
@@ -136,4 +126,10 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 	}
 
 	return res
+}
+
+//utility
+
+func (this *logEntryImp) getLogState() *logEntryImp{
+    return this
 }
