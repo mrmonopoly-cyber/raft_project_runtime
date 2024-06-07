@@ -5,6 +5,8 @@ import (
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/utiliy"
 	"sync"
+
+	"github.com/fatih/color"
 )
 
 
@@ -32,6 +34,8 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
                 <- v.Snd
                 c.lock.Lock()
                 var newMatch = v.Fst.FetchData(nodestate.MATCH)
+                color.Red("check if can increase commonMatchIdx: %v,%v,%v,%v",
+                    c.numNodes,newMatch,c.commonMatchIndex, v.Trd)
                 if newMatch >= c.commonMatchIndex && v.Trd < newMatch{
                     c.numStable++
                     for c.numStable > uint(halfNodeNum){
