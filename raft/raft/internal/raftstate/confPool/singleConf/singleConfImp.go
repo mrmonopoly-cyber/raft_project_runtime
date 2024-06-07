@@ -123,6 +123,7 @@ func (s *singleConfImp) executeAppendEntry() {
             //INFO: FOLLOWER or THE ONLY NODE IN THE CONF
             color.HiGreen("auto commit")
             s.commitC <- 1
+            color.Yellow("ok to chann to apply")
             continue
         }
 
