@@ -170,10 +170,13 @@ func (c *confPool) increaseCommitIndex() {
 	for {
         color.Cyan("commit Index: waiting commit of main conf")
 		<-c.mainConf.CommiEntryC()
+        color.Cyan("main conf committed")
 		if c.newConf != nil {
             color.Cyan("commit Index: waiting commit of new conf")
 			<-c.newConf.CommiEntryC()
+            color.Cyan("new conf committed")
 		}
+        color.Cyan("increasing commitIndex")
         c.IncreaseCommitIndex()
 	}
 }
