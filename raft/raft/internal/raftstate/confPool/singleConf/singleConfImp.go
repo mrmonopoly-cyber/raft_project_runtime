@@ -120,7 +120,7 @@ func (s *singleConfImp) executeAppendEntry() {
         log.Println("singleconf: new entry to commit: ",entry.Entry)
         if s.GetRole() == clustermetadata.FOLLOWER || s.numNodes <= 1 {
             //INFO: FOLLOWER or THE ONLY NODE IN THE CONF
-            color.HiGreen("auto commi")
+            color.HiGreen("auto commit")
             s.commitC <- 1
             continue
         }
