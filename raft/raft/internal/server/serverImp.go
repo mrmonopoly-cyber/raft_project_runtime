@@ -9,7 +9,6 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	confpool "raft/internal/raftstate/confPool"
-	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/redirection"
