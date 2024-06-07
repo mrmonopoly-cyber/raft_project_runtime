@@ -170,10 +170,10 @@ func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.Sin
 // daemon
 func (c *confPool) increaseCommitIndex() {
 	for {
-        log.Println("commit Index: waiting commit of main conf")
+        color.Cyan("commit Index: waiting commit of main conf")
 		<-c.mainConf.CommiEntryC()
 		if c.newConf != nil {
-            log.Println("commit Index: waiting commit of new conf")
+            color.Cyan("commit Index: waiting commit of new conf")
 			<-c.newConf.CommiEntryC()
 		}
         c.IncreaseCommitIndex()
