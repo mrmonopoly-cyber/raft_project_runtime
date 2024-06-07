@@ -145,6 +145,7 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 //utility
 
 func (this *logEntryImp) isInLog(entrie *protobuf.LogEntry, index int) bool{
+    log.Println("check if entry is in pos: ",*entrie,index)
     if index < 0 {
         index = int(this.logSize)-1
     }
