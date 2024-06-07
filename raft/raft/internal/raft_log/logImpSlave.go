@@ -17,7 +17,7 @@ func newLogImpSlave(masterLog LogEntry) *LogEntrySlaveImp {
 		logEntryImp: logEntryImp{
 			commitIndex: masterLog.GetCommitIndex(),
 			logSize:     masterLog.getLogSize(),
-			entries:     *masterLog.getEntriesRaw(),
+			entries:     masterLog.getEntriesRaw(),
 			lock:        sync.RWMutex{},
 		},
 		commitEntry: make(chan int),
