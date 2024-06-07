@@ -167,7 +167,7 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 //utility
 
 func (this *logEntryImp) isInLog(entry *protobuf.LogEntry, index int) bool{
-    if index >= int(this.logSize) || this.logSize == 0{
+    if index >= int(this.logSize){
         return false
     }
 
