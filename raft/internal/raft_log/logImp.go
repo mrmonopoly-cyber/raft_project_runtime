@@ -50,7 +50,6 @@ func (this *logEntryImp) GetEntriAt(index int64) *LogInstance {
 		index = 0
 	}
 
-    log.Println("GetEntriAt, full log and size: ",this.entries, this.logSize)
 	if index < int64(this.logSize) {
 		return &(*this.entries)[index]
 	}
