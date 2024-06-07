@@ -189,6 +189,7 @@ func newSingleConfImp(conf []string,
 	nodeList *sync.Map,
 	commonStatePool nodeIndexPool.NodeIndexPool,
 	commonMetadata clustermetadata.ClusterMetadata) *singleConfImp {
+
 	var res = &singleConfImp{
 		nodeList:        nodeList,
 		conf:            sync.Map{},

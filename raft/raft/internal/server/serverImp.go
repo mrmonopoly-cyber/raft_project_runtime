@@ -145,8 +145,6 @@ func (s *server) internalNodeConnection(workingNode node.Node) {
     var nodeReq pairMex = pairMex{}
 
     s.UpdateNodeList(confpool.ADD,workingNode)
-    s.UpdateStatusList(nodeIndexPool.ADD,workingNode.GetIp())
-
 
     for{
         message, errMes = workingNode.Recv()

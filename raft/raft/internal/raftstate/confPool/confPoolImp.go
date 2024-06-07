@@ -64,7 +64,9 @@ func (c *confPool) GetNodeList() *sync.Map {
 func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 	switch op {
 	case ADD:
+        log.Println("storing a new Node")
 		c.nodeList.Store(node.GetIp(), node)
+        c.UpdateStatusList(nodeIndexPool.ADD,node.GetIp())
 		c.numNodes++
 	case REM:
 		c.nodeList.Delete(node.GetIp())
