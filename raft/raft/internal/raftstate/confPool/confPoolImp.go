@@ -78,6 +78,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	log.Println("appending entry, general pool: ", entry)
     c.LogEntry.AppendEntry(entry)
     c.entryToCommiC <- 1
+	log.Println("appending entry, general pool done")
 }
 
 func (c *confPool) appendEntryToConf(){
