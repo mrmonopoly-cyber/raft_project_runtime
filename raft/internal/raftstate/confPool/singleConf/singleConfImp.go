@@ -152,7 +152,7 @@ func (s *singleConfImp) executeAppendEntry() {
                 enriesToSend = s.GetEntries()
             default:
                 enriesToSend = append(enriesToSend, entry.Entry)
-                prevLogIndex = state.FetchData(nodestate.NEXTT)
+                prevLogIndex = state.FetchData(nodestate.NEXTT)-1
                 prevLogTerm = uint(s.GetEntriAt(int64(prevLogIndex)).Entry.Term)
             }
 
