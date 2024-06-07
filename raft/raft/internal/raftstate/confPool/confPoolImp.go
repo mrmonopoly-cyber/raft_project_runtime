@@ -33,7 +33,7 @@ type confPool struct {
 	nodeIndexPool.NodeIndexPool
 	commonMetadata clustermetadata.ClusterMetadata
 
-    entryToCommiC chan int
+    entryToCommiC chan *raft_log.LogInstance
     raft_log.LogEntry
     localfs.LocalFs
 }
@@ -78,7 +78,7 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 	log.Println("appending entry, general pool: ", entry)
     c.LogEntry.AppendEntry(entry)
     go func(){
-        c.entryToCommiC <- 1
+        c.entryToCommiC <- entry
     }()
 	log.Println("appending entry, general pool done")
 }
@@ -86,9 +86,8 @@ func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
 func (c *confPool) appendEntryToConf(){
     for {
         log.Println("appendEntryToConf: waiting signal")
-        <- c.entryToCommiC
+        var entry = <- c.entryToCommiC
         var newConf singleconf.SingleConf
-        var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
         switch entry.Entry.OpType {
         case protobuf.Operation_JOIN_CONF_ADD:
@@ -216,7 +215,7 @@ func (c *confPool) joinNextConf() {
 		var co = c.confQueue.Pop()
         log.Println("new conf to join: ",co.SingleConf.GetConfig())
 		c.newConf = co.SingleConf
-        c.entryToCommiC <- 1
+        c.entryToCommiC <- co.LogInstance
 	}
 }
 
@@ -231,7 +230,7 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 		fsRootDir:        rootDir,
 		NodeIndexPool:    nodeIndexPool.NewLeaederCommonIdx(),
 		commonMetadata:   commonMetadata,
-        entryToCommiC: make(chan int),
+        entryToCommiC: make(chan *raft_log.LogInstance),
         LogEntry: raft_log.NewLogEntry(nil,true),
         LocalFs: localfs.NewFs(rootDir),
 	}
