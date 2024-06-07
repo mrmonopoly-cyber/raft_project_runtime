@@ -4,14 +4,12 @@ import (
 	"log"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/utiliy"
-	"sync"
 
 	"github.com/fatih/color"
 )
 
 
 type commonMatchImp struct {
-    lock sync.RWMutex
     commitEntryC chan int
     subs []utiliy.Triple[nodestate.NodeState,<- chan int,int]
     numNodes int
@@ -32,7 +30,6 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
         go func(){
             for{
                 <- v.Snd
-                c.lock.Lock()
                 var newMatch = v.Fst.FetchData(nodestate.MATCH)
                 color.Red("check if can increase commonMatchIdx: %v,%v,%v,%v",
                     c.numNodes,newMatch,c.commonMatchIndex, v.Trd)
@@ -53,7 +50,6 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
                     }
                 }
                 v.Trd = newMatch
-                c.lock.Unlock()
             }
         }()
     }
@@ -61,7 +57,6 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
 
 func NewCommonMatchImp(nodeSubs []nodestate.NodeState) *commonMatchImp {
 	var res = &commonMatchImp{
-        lock: sync.RWMutex{},
         subs: nil,
         commonMatchIndex: -1,
         numStable: 1, //INFO: Leader always stable
