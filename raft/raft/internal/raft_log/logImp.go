@@ -26,19 +26,30 @@ func (this *logEntryImp) GetEntriesRange(startIndex int) []*protobuf.LogEntry {
 }
 
 
+func (this *logEntryImp) AppendEntryLast(newEntrie *LogInstance) {
+    this.lock.RLock()
+    defer this.lock.RUnlock()
+    
+    log.Println("adding at the end of the queue: ",newEntrie)
+    this.AppendEntry(newEntrie,int(this.logSize)-1)
+
+
+}
 
 // AppendEntry implements LogEntry.
-func (this *logEntryImp) AppendEntry(newEntrie *LogInstance) {
+func (this *logEntryImp) AppendEntry(newEntrie *LogInstance, index int) {
     this.lock.RLock()
     defer this.lock.RUnlock()
 
-    if this.isInLog(newEntrie.Entry){
+    log.Println("adding queue at: ",newEntrie, index)
+    if this.isInLog(newEntrie.Entry,index){
         log.Println("skipping already insert: ",newEntrie.Entry)
         return
     }
 
     this.lock.Lock()
     defer this.lock.Unlock()
+
 	l.Println("adding new entrie to the logEntryImp: ", *newEntrie)
 	*this.entries = append(*this.entries, *newEntrie)
 	this.logSize++
@@ -155,21 +166,18 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 
 //utility
 
-func (this *logEntryImp) isInLog(entry *protobuf.LogEntry) bool{
-
-    for _,v  := range (*this.entries) {
-
-        if  v.Entry.Term == entry.Term &&
-            v.Entry.OpType == entry.OpType &&
-            v.Entry.Description == entry.Description &&
-            reflect.DeepEqual(v.Entry.Payload,entry.Payload) {
-
-                return true
-
-        }
+func (this *logEntryImp) isInLog(entry *protobuf.LogEntry, index int) bool{
+    if index >= int(this.logSize){
+        return false
     }
 
-    return false
+    var savedEntrie = this.GetEntriAt(int64(index)).Entry
+
+    return  savedEntrie.Term == entry.Term &&
+            savedEntrie.OpType == entry.OpType &&
+            savedEntrie.Description == entry.Description &&
+            reflect.DeepEqual(savedEntrie.Payload,entry.Payload)
+
 }
 
 func (this *logEntryImp) getLogState() *logEntryImp{

@@ -22,6 +22,8 @@ type tuple struct {
 }
 
 type confPool struct {
+    lock         sync.RWMutex
+
 	fsRootDir    string
 	mainConf     singleconf.SingleConf
 	newConf      singleconf.SingleConf
@@ -74,9 +76,9 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 	}
 }
 
-func (c *confPool) AppendEntry(entry *raft_log.LogInstance) {
+func (c *confPool) AppendEntry(entry *raft_log.LogInstance, index int) {
 	log.Println("appending entry, general pool: ", entry)
-    c.LogEntry.AppendEntry(entry)
+    c.LogEntry.AppendEntry(entry,index)
     go func(){
         c.entryToCommiC <- 1
     }()
@@ -158,6 +160,12 @@ func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.Sin
 	return newConf
 }
 
+func (c *confPool) appendEntryLast(){
+    c.lock.Lock()
+    defer c.lock.Unlock()
+
+}
+
 // daemon
 func (c *confPool) increaseCommitIndex() {
 	for {
@@ -190,7 +198,7 @@ func (c *confPool) updateLastApplied() {
                     Term:   c.commonMetadata.GetTerm(),
                     OpType: protobuf.Operation_COMMIT_CONFIG_ADD,
                 }
-                c.AppendEntry(c.NewLogInstance(&commit, nil))
+                c.AppendEntryLast(c.NewLogInstance(&commit, nil))
             }
         case protobuf.Operation_READ,protobuf.Operation_WRITE,protobuf.Operation_DELETE,
              protobuf.Operation_CREATE, protobuf.Operation_RENAME:
@@ -222,6 +230,8 @@ func (c *confPool) joinNextConf() {
 
 func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata) *confPool {
 	var res = &confPool{
+        lock: sync.RWMutex{},
+
 		mainConf:         nil,
 		newConf:          nil,
 		confQueue:        queue.NewQueue[tuple](),
