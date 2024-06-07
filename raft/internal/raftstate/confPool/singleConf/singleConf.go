@@ -4,7 +4,6 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
-	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"sync"
 )
 
@@ -18,14 +17,14 @@ type SingleConf interface{
     GetConfig() map[string]string
     SendHearthbit()
     CommiEntryC() <- chan int
-    raft_log.LogEntry
+    raft_log.LogEntrySlave
 }
 
 func NewSingleConf( conf []string,  
-                    oldEntries []*protobuf.LogEntry,
+                    masterLog raft_log.LogEntry,
                     nodeList *sync.Map,
                     commonStatePool nodeIndexPool.NodeIndexPool,
                     commonMetadata clustermetadata.ClusterMetadata) SingleConf{
-    return newSingleConfImp(conf,oldEntries, nodeList,commonStatePool,commonMetadata)
+    return newSingleConfImp(conf,masterLog, nodeList,commonStatePool,commonMetadata)
 }
 
