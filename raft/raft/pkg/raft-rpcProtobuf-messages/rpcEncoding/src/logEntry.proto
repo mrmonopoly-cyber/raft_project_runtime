@@ -8,14 +8,15 @@ enum Operation {
   WRITE = 0;
   READ = 1;
   DELETE = 2;
-  JOIN_CONF_ADD = 3;
-  JOIN_CONF_DEL = 4;
-  COMMIT_CONFIG_ADD = 5;
-  COMMIT_CONFIG_REM = 6;
-  NODE_UPDATED = 7;
-  NODE_DELETED = 8;
-  CREATE = 9;
-  RENAME = 10;
+  JOIN_CONF_FULL = 3;
+  JOIN_CONF_ADD = 4;
+  JOIN_CONF_DEL = 5;
+  COMMIT_CONFIG_ADD = 6;
+  COMMIT_CONFIG_REM = 7;
+  NODE_UPDATED = 8;
+  NODE_DELETED = 9;
+  CREATE = 10;
+  RENAME = 11;
 }
 
 message logEntry {
