@@ -186,6 +186,7 @@ func (c *confPool) updateLastApplied() {
         var toApplyIdx = <- c.ApplyEntryC()
 		var entr = c.GetEntriAt(int64(toApplyIdx))
 
+        color.Cyan("applying new entry: %v",entr)
         switch entr.Entry.OpType {
         case protobuf.Operation_COMMIT_CONFIG_ADD:
             c.mainConf = c.newConf
