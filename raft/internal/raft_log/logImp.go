@@ -160,7 +160,7 @@ func (this *logEntryImp) isInLog(entry *protobuf.LogEntry, index int) bool{
         return false
     }
 
-    var savedEntrie = (*this.entries)[index].Entry
+    var savedEntrie = this.GetEntriAt(int64(index)).Entry
 
     return  savedEntrie.Term == entry.Term &&
             savedEntrie.OpType == entry.OpType &&
