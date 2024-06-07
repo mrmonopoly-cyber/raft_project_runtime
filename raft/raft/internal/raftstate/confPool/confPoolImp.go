@@ -84,7 +84,7 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
     color.Yellow("appending entry, general pool: %v %v\n", entry, prevLogIndex)
     var appended = c.LogEntry.AppendEntry(entry,prevLogIndex)
     for i := 0; i < int(appended); i++ {
-        log.Println("appending entry, general pool done")
+        color.Cyan("appending entry, general pool done\n")
         go func(){
             c.entryToCommiC <- 1
         }()
