@@ -79,6 +79,10 @@ func (this *logEntryImp) GetEntriAt(index int64) *LogInstance {
 	return nil
 }
 
+func (this *logEntryImp) GetLogSize() uint{
+    return this.logSize
+}
+
 // DeleteFromEntry implements LogEntry.
 func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
 	for i := int(entryIndex); i < len(*this.entries); i++ {
