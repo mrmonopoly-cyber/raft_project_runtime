@@ -61,9 +61,6 @@ func (this *logEntryImp) GetEntriAt(index int64) *LogInstance {
 
 // DeleteFromEntry implements LogEntry.
 func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
-    this.lock.Lock()
-    defer this.lock.Unlock()
-
 	for i := int(entryIndex); i < len(*this.entries); i++ {
 		(*this.entries)[i] = LogInstance{
 			Entry:        nil,
@@ -74,9 +71,6 @@ func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
 }
 
 func (this *logEntryImp) IsInLog(entry *protobuf.LogEntry, index int) bool{
-    this.lock.RLock()
-    defer this.lock.RUnlock()
-
     if index >= int(this.logSize){
         return false
     }
