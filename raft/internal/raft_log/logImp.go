@@ -36,16 +36,14 @@ func (this *logEntryImp) AppendEntryLast(newEntrie *LogInstance) {
 
 // AppendEntry implements LogEntry.
 func (this *logEntryImp) AppendEntry(newEntrie *LogInstance, index int) {
-    this.lock.RLock()
-    defer this.lock.RUnlock()
+    this.lock.Lock()
+    defer this.lock.Unlock()
 
     log.Println("adding queue at: ",newEntrie, index)
     if this.isInLog(newEntrie.Entry,index){
         log.Println("skipping already insert: ",newEntrie.Entry)
         return
     }
-    this.lock.Lock()
-    defer this.lock.Unlock()
 
 	l.Println("adding new entrie to the logEntryImp: ", *newEntrie)
 	*this.entries = append(*this.entries, *newEntrie)
@@ -164,9 +162,6 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 //utility
 
 func (this *logEntryImp) isInLog(entry *protobuf.LogEntry, index int) bool{
-    this.lock.RLock()
-    defer this.lock.Unlock()
-
     log.Println("check if entry is in log: ",entry,index)
 
     if index >= int(this.logSize) || this.logSize == 0{
