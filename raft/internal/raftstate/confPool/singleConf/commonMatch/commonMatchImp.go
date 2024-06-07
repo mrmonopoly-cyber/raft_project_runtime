@@ -36,6 +36,7 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
                     c.numStable++
                     for c.numStable > uint(halfNodeNum){
                         c.commitEntryC <- 1
+                        c.commonMatchIndex++
                         c.numStable=1
                         //INFO: it's possible that a node has a mach greater match index 
                         //and so every time i increment the current common i have to check if
