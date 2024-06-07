@@ -98,7 +98,7 @@ func (c *confPool) appendEntryToConf(){
         <- c.entryToCommiC
         var newConf singleconf.SingleConf
         //FIX: explode
-        color.Red("explode with commit index: ",c.GetCommitIndex())
+        color.Red("explode with commit index: %v\n",c.GetCommitIndex())
         var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
         switch entry.Entry.OpType {
