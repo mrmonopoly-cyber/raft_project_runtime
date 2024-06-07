@@ -203,6 +203,7 @@ func (c *confPool) updateLastApplied() {
                 }
                 c.AppendEntry([]*raft_log.LogInstance{c.NewLogInstance(&commit, nil)},-2)
             }
+            color.Green("join conf applied")
         case protobuf.Operation_READ,protobuf.Operation_WRITE,protobuf.Operation_DELETE,
              protobuf.Operation_CREATE, protobuf.Operation_RENAME:
 
