@@ -4,6 +4,7 @@ import (
 	"log"
 	l "log"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+	"reflect"
 	"sync"
 )
 
@@ -24,10 +25,18 @@ func (this *logEntryImp) GetEntriesRange(startIndex int) []*protobuf.LogEntry {
 
 
 // AppendEntry implements LogEntry.
-func (this *logEntryImp) AppendEntry(newEntrie *LogInstance) {
-	l.Println("adding new entrie to the logEntryImp: ", *newEntrie)
-	*this.entries = append(*this.entries, *newEntrie)
-	this.logSize++
+func (this *logEntryImp) AppendEntry(newEntrie []*LogInstance, prevLogIndex int) {
+    for _,v  := range newEntrie {
+        prevLogIndex++
+        if this.isInLog(v.Entry,prevLogIndex){
+            continue
+        }
+        l.Println("adding new entrie to the logEntryImp: ", *v)
+        *this.entries = append(*this.entries, *v)
+        this.logSize++
+        
+    }
+
 }
 
 func (this *logEntryImp) GetEntries() []*protobuf.LogEntry {
@@ -129,6 +138,24 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry, post []
 }
 
 //utility
+
+func (this *logEntryImp) isInLog(entrie *protobuf.LogEntry, index int) bool{
+    if index < 0 {
+        index = int(this.logSize)
+    }
+
+    if this.logSize == 0 {
+        return false
+    }
+
+    var saved = (*this.entries)[index].Entry
+    
+    return  saved.Term == entrie.Term &&
+            saved.OpType == entrie.OpType &&
+            saved.Description == entrie.Description &&
+            reflect.DeepEqual(saved.Payload, entrie.Payload)
+
+}
 
 func (this *logEntryImp) getLogState() *logEntryImp{
     return this
