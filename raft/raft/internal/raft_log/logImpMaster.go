@@ -8,8 +8,6 @@ import (
 type LogEntryMasterImp struct {
 	logEntryImp
 	applyC chan int
-
-	commitIndex int64
 }
 
 // ApplyEntryC implements LogEntry.
@@ -32,31 +30,13 @@ func newLogImpMaster() *LogEntryMasterImp {
 
 	var l = &LogEntryMasterImp{
 		logEntryImp: logEntryImp{
+			commitIndex: -1,
 			logSize:     0,
 			entries:     &masterEntries,
 			lock:        sync.RWMutex{},
 		},
-        commitIndex: -1,
 		applyC: make(chan int),
 	}
 
 	return l
-}
-
-// MinimumCommitIndex implements LogEntry.
-func (this *LogEntryMasterImp) MinimumCommitIndex(val uint) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
-	if val < this.logSize {
-		this.commitIndex = int64(val)
-		return
-	}
-	this.commitIndex = int64(this.logSize) - 1
-}
-
-func (this *LogEntryMasterImp) GetCommitIndex() int64 {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	return this.commitIndex
 }
