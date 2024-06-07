@@ -27,6 +27,8 @@ type LogEntryRead interface {
     GetEntriAt(index int64) *LogInstance
     GetEntriesRange(startIndex int) []*protobuf.LogEntry
 
+    IsInLog(entry *protobuf.LogEntry, idex int) bool
+
     GetCommitIndex() int64
 
 	LastLogIndex() int
