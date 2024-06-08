@@ -122,6 +122,7 @@ func (s *singleConfImp) executeAppendEntry() {
         if s.GetRole() == clustermetadata.FOLLOWER || s.numNodes <= 1 {
             //INFO: FOLLOWER or THE ONLY NODE IN THE CONF
             color.HiGreen("auto commit")
+            color.Yellow("notifying on channel: %v\n",s.commitC)
             s.commitC <- 1
             color.Yellow("ok to chann to apply")
             continue
