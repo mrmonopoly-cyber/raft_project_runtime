@@ -101,6 +101,7 @@ func (c *confPool) appendEntryToConf(){
         case protobuf.Operation_JOIN_CONF_ADD:
             newConf = c.appendJoinConfADD(entry)
             if c.pushJoinConf(entry,newConf){
+                color.Red("pushed conf")
                 continue
             }
         case protobuf.Operation_JOIN_CONF_DEL:
