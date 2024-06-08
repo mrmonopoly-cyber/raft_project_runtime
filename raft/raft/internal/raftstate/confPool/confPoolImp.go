@@ -194,7 +194,9 @@ func (c *confPool) updateLastApplied() {
 
             c.mainConf = c.newConf
             c.newConf = nil
-            c.emptyNewConf <- 1
+            go func(){
+                c.emptyNewConf <- 1
+            }()
             color.Green("commit config applied [main,new]: ", c.mainConf, c.newConf)
 
             color.Yellow("done applying commitADD:")
