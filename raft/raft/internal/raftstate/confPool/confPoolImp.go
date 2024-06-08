@@ -39,8 +39,6 @@ type confPool struct {
     entryToCommiC chan int
     raft_log.LogEntry
     localfs.LocalFs
-
-    resetIncreaseDaemon bool
 }
 
 
@@ -172,6 +170,7 @@ func (c *confPool) increaseCommitIndex() {
 	for {
         color.Cyan("commit Index: waiting commit of main conf on ch: %v\n",c.mainConf.CommiEntryC())
 		<-c.mainConf.CommiEntryC()
+
         color.Cyan("main conf committed")
 		if c.newConf != nil {
             color.Cyan("commit Index: waiting commit of new conf on ch: %v\n",c.newConf.CommiEntryC())
@@ -259,7 +258,6 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
         entryToCommiC: make(chan int),
         LogEntry: raft_log.NewLogEntry(nil,true),
         LocalFs: localfs.NewFs(rootDir),
-        resetIncreaseDaemon: false,
 	}
 	var mainConf = singleconf.NewSingleConf(
 		nil,
