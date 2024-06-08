@@ -61,7 +61,7 @@ func (n *nodeStateImpl) UpdateNodeState(info INFO, val int) {
 }
 
 // Substribe implements NodeState.
-func (n *nodeStateImpl) Subscribe(info INFO) <-chan int {
+func (n *nodeStateImpl) Subscribe(info INFO) (int,<-chan int) {
     var notifC chan int = make(chan int)
 
     switch info{
@@ -74,7 +74,7 @@ func (n *nodeStateImpl) Subscribe(info INFO) <-chan int {
     }
     n.counter++
 
-    return notifC
+    return int(n.counter-1), notifC
 }
 
 func newNodeStateImpl(nodeIp string) *nodeStateImpl {

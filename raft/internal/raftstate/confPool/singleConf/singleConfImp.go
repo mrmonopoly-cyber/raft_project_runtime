@@ -2,6 +2,7 @@ package singleconf
 
 import (
 	"log"
+	"maps"
 	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
 	"raft/internal/raft_log"
@@ -19,7 +20,7 @@ import (
 
 type singleConfImp struct {
 	nodeList *sync.Map
-	conf     sync.Map
+	conf     map[string]string
 	numNodes uint
 	nodeIndexPool.NodeIndexPool
 	clustermetadata.ClusterMetadata
@@ -30,16 +31,16 @@ type singleConfImp struct {
 }
 
 func (s *singleConfImp) SendHearthbit(){
-    s.conf.Range(func(key, value any) bool {
-        var v,f = s.nodeList.Load(key)
+    for _,ip  := range s.conf {
+        var v,f = s.nodeList.Load(ip)
         var nNode node.Node
         var nextIndex int
         var hearthbit rpcs.Rpc
         var rawMex []byte
 
         if !f{
-            s.nodeNotFound(key)
-            return true
+            s.nodeNotFound(ip)
+            continue
         }
         nNode = v.(node.Node)
         var state,err = s.FetchNodeInfo(nNode.GetIp())
@@ -61,24 +62,21 @@ func (s *singleConfImp) SendHearthbit(){
                 int64(nextIndex)-1,
                 prevEntr.Entry.Term,
                 entries)
-        }else {
-            hearthbit = AppendEntryRpc.GenerateHearthbeat(s.LogEntrySlave,s.ClusterMetadata)
-        }
+            }else {
+                hearthbit = AppendEntryRpc.GenerateHearthbeat(s.LogEntrySlave,s.ClusterMetadata)
+            }
 
-        rawMex,err = genericmessage.Encode(hearthbit)
-        if err != nil{
-            log.Panicln(err)
-        }
+            rawMex,err = genericmessage.Encode(hearthbit)
+            if err != nil{
+                log.Panicln(err)
+            }
 
-        err = nNode.Send(rawMex)
-        if err != nil {
-            log.Println(err)
-        }
+            err = nNode.Send(rawMex)
+            if err != nil {
+                log.Println(err)
+            }
         
-
-
-        return true
-    })
+    }
 }
 
 // CommiEntryC implements SingleConf.
@@ -94,26 +92,18 @@ func (s *singleConfImp) CloseCommitEntryC(){
 
 // GetConfig implements SingleConf.
 func (s *singleConfImp) GetConfig() map[string]string{
-	var res map[string]string= map[string]string{}
-
-	s.conf.Range(func(key, value any) bool {
-        var ip = value.(string)
-        res[ip]=ip
-		return true
-	})
-
-	return res
+    return maps.Clone(s.conf)
 }
 
 //utility
 
-func (s *singleConfImp) nodeNotFound(key any) bool {
+func (s *singleConfImp) nodeNotFound(key any) {
     if key == s.ClusterMetadata.GetMyIp(clustermetadata.PRI){
         log.Println("skiping myself from propagation: ", key)
-        return true
+        return 
     }
     log.Println("node not yet connected or crashes, skipping send: ", key)
-    return true
+    return 
 }
 
 //daemon
@@ -138,8 +128,8 @@ func (s *singleConfImp) executeAppendEntry() {
         //INFO:LEADER
         //Propagate to all nodes in this conf
         log.Println("propagate to all follower: ",entry.Entry)
-        s.conf.Range(func(key, value any) bool {
-            var v, f = s.nodeList.Load(key)
+        for _,ip  := range s.conf {
+            var v, f = s.nodeList.Load(ip)
             var fNode node.Node
             var appendRpc rpcs.Rpc
             var enriesToSend []*protobuf.LogEntry = nil
@@ -150,7 +140,8 @@ func (s *singleConfImp) executeAppendEntry() {
             var state nodestate.NodeState
 
             if !f {
-                return s.nodeNotFound(key)
+                s.nodeNotFound(ip)
+                continue
             }
             fNode = v.(node.Node)
 
@@ -172,19 +163,18 @@ func (s *singleConfImp) executeAppendEntry() {
                 s.ClusterMetadata, s.LogEntrySlave, 
                 int64(prevLogIndex), uint64(prevLogTerm), enriesToSend)
 
-            rawMex, err = genericmessage.Encode(appendRpc)
-            if err != nil {
-                log.Panicln("error encoding: ", appendRpc, err)
-            }
+                rawMex, err = genericmessage.Encode(appendRpc)
+                if err != nil {
+                    log.Panicln("error encoding: ", appendRpc, err)
+                }
 
-            log.Println("sending rpc to node: ",appendRpc.ToString(),fNode.GetIp())
-            err = fNode.Send(rawMex)
-            if err != nil {
-                log.Panicln("error sending rpc to: ", appendRpc, err)
-            }
-
-            return true
-            })
+                log.Println("sending rpc to node: ",appendRpc.ToString(),fNode.GetIp())
+                err = fNode.Send(rawMex)
+                if err != nil {
+                    log.Panicln("error sending rpc to: ", appendRpc, err)
+                }
+            
+        }
     }
 }
 
@@ -197,7 +187,7 @@ func (s *singleConfImp) updateEntryCommit() {
 	}
 }
 
-func newSingleConfImp(conf []string,
+func newSingleConfImp(conf map[string]string,
     masterLog raft_log.LogEntry,
 	nodeList *sync.Map,
 	commonStatePool nodeIndexPool.NodeIndexPool,
@@ -205,7 +195,7 @@ func newSingleConfImp(conf []string,
 
 	var res = &singleConfImp{
 		nodeList:        nodeList,
-		conf:            sync.Map{},
+		conf:            conf,
 		numNodes:        0,
 		NodeIndexPool:   commonStatePool,
 		ClusterMetadata: commonMetadata,
@@ -214,16 +204,6 @@ func newSingleConfImp(conf []string,
 		commitC:         make(chan int),
 	}
 	var nodeStates []nodestate.NodeState = nil
-
-	for _, v := range conf {
-		res.conf.Store(v, v)
-		var st, err = commonStatePool.FetchNodeInfo(v)
-		if err != nil {
-			log.Panicln("state for node not found: ", v)
-		}
-		nodeStates = append(nodeStates, st)
-		res.numNodes++
-	}
 
     log.Println("node to subs: ",nodeStates)
 	res.CommonMatch = commonmatch.NewCommonMatch(int(masterLog.GetCommitIndex()), nodeStates)

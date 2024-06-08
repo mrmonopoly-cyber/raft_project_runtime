@@ -3,6 +3,7 @@ package confpool
 import (
 	"errors"
 	"log"
+	"maps"
 	localfs "raft/internal/localFs"
 	"raft/internal/node"
 	"raft/internal/raft_log"
@@ -110,7 +111,11 @@ func (c *confPool) appendEntryToConf(){
 
             if entry.Entry.OpType == protobuf.Operation_JOIN_CONF_FULL{
                 <-c.emptyNewConf
-                c.newConf = c.appendJoinConf(entry)
+                //TODO: critical case 1 of change in configuration.
+                //updated all the new nodes until they are all pared
+                var newConf = c.extractConfPayloadConf(entry.Entry)
+                c.updateAllNewNodes(&newConf)
+                c.newConf = c.appendJoinConf(&newConf)
             }
 
             log.Println("notifying main conf to commit a new entry")
@@ -124,32 +129,57 @@ func (c *confPool) appendEntryToConf(){
     }
 }
 
-func (c *confPool) appendJoinConf(entry *raft_log.LogInstance) singleconf.SingleConf {
-	var confUnfiltered string = string(entry.Entry.Payload)
-	var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
-    var mainConf map[string]string = nil
-
-	confFiltered = confFiltered[0 : len(confFiltered)-1]
-	for i := range confFiltered {
-		confFiltered[i], _ = strings.CutSuffix(confFiltered[i], " ")
-		var ip *string = &confFiltered[i]
-		if *ip == "" || *ip == " " {
-			continue
-		}
-		c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, *ip)
-	}
-
-    for _,v := range mainConf {
-        confFiltered = append(confFiltered, v)
+func (c *confPool) updateAllNewNodes(newConf *map[string]string){
+    var currentConf = c.mainConf.GetConfig()
+    if c.newConf != nil{
+        maps.Copy(currentConf,c.newConf.GetConfig())
     }
+    
+    for _, v := range *newConf {
+        go func ()  {
+            if currentConf[v] == "" {
+                c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, v)
+                // var nodeState,_ = c.NodeIndexPool.FetchNodeInfo(v)
+                // var subNum, stateC = nodeState.Subscribe(nodestate.MATCH)
+                
+            }
+        }()
+    }
+    
+    
 
-	var newConf = singleconf.NewSingleConf(
-		confFiltered,
+
+
+}
+
+func (c *confPool) appendJoinConf(newConf *map[string]string) singleconf.SingleConf {
+	return singleconf.NewSingleConf(
+		*newConf,
         c.LogEntry,
 		&c.nodeList,
 		c.NodeIndexPool,
 		c.commonMetadata)
-	return newConf
+}
+
+func (c *confPool) extractConfPayloadConf(entry *protobuf.LogEntry) map[string]string{
+	var confUnfiltered string = string(entry.Payload)
+	var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
+    var mainConf map[string]string = map[string]string{}
+
+	confFiltered = confFiltered[0 : len(confFiltered)-1]
+	for i := range confFiltered {
+        var ip *string = &confFiltered[i]
+
+		*ip, _ = strings.CutSuffix(*ip, " ")
+		if *ip == "" || *ip == " " {
+			continue
+		}
+        mainConf[*ip] = *ip
+
+		c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, *ip)
+	}
+
+    return mainConf
 }
 
 // daemon
