@@ -190,7 +190,7 @@ func (s *singleConfImp) updateEntryCommit() {
         //INFO: every time the common match is updated commit an entry
 		<-s.CommonMatch.CommitNewEntryC()
         log.Println("new entry to commit")
-		s.commitC <- int(s.GetCommitIndex()) + 1
+		s.commitC <- 1
 	}
 }
 
