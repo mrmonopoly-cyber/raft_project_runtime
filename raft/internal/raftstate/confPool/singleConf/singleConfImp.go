@@ -128,7 +128,7 @@ func (s *singleConfImp) executeAppendEntry() {
             //INFO: FOLLOWER or THE ONLY NODE IN THE CONF
             color.HiGreen("auto commit")
             color.Yellow("notifying on channel: %v\n",s.commitC)
-            if s.commitC == nil{
+            if s.commitC != nil{
                 s.commitC <- 1
             }
             color.Yellow("ok to chann to apply")
