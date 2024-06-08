@@ -48,10 +48,10 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
     }
 }
 
-func NewCommonMatchImp(nodeSubs []nodestate.NodeState) *commonMatchImp {
+func NewCommonMatchImp(initialCommonCommitIdx int, nodeSubs []nodestate.NodeState) *commonMatchImp {
 	var res = &commonMatchImp{
         subs: nil,
-        commonMatchIndex: -1,
+        commonMatchIndex: initialCommonCommitIdx,
         numStable: 1, //INFO: Leader always stable
         numNodes: len(nodeSubs),
         commitEntryC: make(chan int),
