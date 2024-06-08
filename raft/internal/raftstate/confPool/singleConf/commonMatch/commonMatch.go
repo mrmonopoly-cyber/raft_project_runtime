@@ -6,6 +6,6 @@ type CommonMatch interface{
     CommitNewEntryC() <- chan int
 }
 
-func NewCommonMatch(nodeStates []nodestate.NodeState) CommonMatch  {
-    return NewCommonMatchImp(nodeStates)
+func NewCommonMatch(initialCommonCommitIdx int, nodeStates []nodestate.NodeState) CommonMatch  {
+    return NewCommonMatchImp(initialCommonCommitIdx, nodeStates)
 }
