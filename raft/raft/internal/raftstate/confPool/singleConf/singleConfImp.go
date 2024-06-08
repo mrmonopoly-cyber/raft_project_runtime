@@ -188,9 +188,11 @@ func (s *singleConfImp) executeAppendEntry() {
 func (s *singleConfImp) updateEntryCommit() {
 	for {
         //INFO: every time the common match is updated commit an entry
-		<-s.CommonMatch.CommitNewEntryC()
-        log.Println("new entry to commit")
-		s.commitC <- 1
+		var newCommonMatch = <-s.CommonMatch.CommitNewEntryC()
+        if  newCommonMatch > int(s.GetCommitIndex()){
+            log.Println("new entry to commit")
+            s.commitC <- 1
+        }
 	}
 }
 
