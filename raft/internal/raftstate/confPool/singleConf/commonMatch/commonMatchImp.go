@@ -41,12 +41,12 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
                         //INFO: it's possible that a node has a mach greater match index 
                         //and so every time i increment the current common i have to check if
                         //the other nodes has already a greater common match index
-                        for _, v := range c.subs {
-                            if v.Trd >= c.commonMatchIndex{
-                                c.numStable++
-                            }
-
-                        }
+                        // for _, v := range c.subs {
+                        //     if v.Trd >= c.commonMatchIndex{
+                        //         c.numStable++
+                        //     }
+                        //
+                        // }
                     }
                 }
                 v.Trd = newMatch
