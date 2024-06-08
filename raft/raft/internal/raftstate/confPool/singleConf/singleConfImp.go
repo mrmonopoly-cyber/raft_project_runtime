@@ -86,6 +86,10 @@ func (s *singleConfImp) CommiEntryC() <-chan int {
 	return s.commitC
 }
 
+func (s *singleConfImp) CloseCommitEntryC(){
+    close(s.commitC)
+}
+
 
 // GetConfig implements SingleConf.
 func (s *singleConfImp) GetConfig() map[string]string{

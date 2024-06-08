@@ -5,18 +5,18 @@ import (
 	"sync"
 )
 
-type LogEntryMasterImp struct {
+type logEntryMasterImp struct {
 	logEntryImp
 	applyC chan int
 }
 
 // ApplyEntryC implements LogEntry.
-func (this *LogEntryMasterImp) ApplyEntryC() <-chan int {
+func (this *logEntryMasterImp) ApplyEntryC() <-chan int {
 	return this.applyC
 }
 
 // IncreaseCommitIndex implements LogEntry.
-func (this *LogEntryMasterImp) IncreaseCommitIndex() {
+func (this *logEntryMasterImp) IncreaseCommitIndex() {
 	log.Println("increasing commit Index, log imp")
 	this.commitIndex++
 	if this.applyC != nil {
@@ -25,10 +25,10 @@ func (this *LogEntryMasterImp) IncreaseCommitIndex() {
 	log.Println("increasing commit Index done, log imp")
 }
 
-func newLogImpMaster() *LogEntryMasterImp {
+func newLogImpMaster() *logEntryMasterImp {
     var masterEntries []LogInstance = nil
 
-	var l = &LogEntryMasterImp{
+	var l = &logEntryMasterImp{
 		logEntryImp: logEntryImp{
 			commitIndex: -1,
 			logSize:     0,
