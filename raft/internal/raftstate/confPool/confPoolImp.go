@@ -169,7 +169,11 @@ func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.Sin
 func (c *confPool) increaseCommitIndex() {
 	for {
         color.Cyan("commit Index: waiting commit of main conf on ch: %v\n",c.mainConf.CommiEntryC())
-		<-c.mainConf.CommiEntryC()
+		var activeC = <-c.mainConf.CommiEntryC()
+        
+        if activeC == 0{
+            return
+        }
 
         color.Cyan("main conf committed")
 		if c.newConf != nil {
@@ -200,6 +204,8 @@ func (c *confPool) updateLastApplied() {
             c.newConf = nil
             c.emptyNewConf <- 1
             color.Green("commit config applied [main,new]: ", c.mainConf, c.newConf)
+
+            go c.increaseCommitIndex()
 
             c.lock.Unlock()
         case protobuf.Operation_COMMIT_CONFIG_REM:
