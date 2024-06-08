@@ -17,6 +17,7 @@ enum Operation {
   NODE_DELETED = 9;
   CREATE = 10;
   RENAME = 11;
+  NEWCONF = 12;
 }
 
 message logEntry {
