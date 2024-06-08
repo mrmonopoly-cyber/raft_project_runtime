@@ -247,6 +247,7 @@ func (c *confPool) joinNextConf() {
         log.Println("new conf to join: ",co.SingleConf.GetConfig())
 		c.newConf = co.SingleConf
         c.entryToCommiC <- 1
+        color.Cyan("commit the pop of a new join conf")
 	}
 }
 
