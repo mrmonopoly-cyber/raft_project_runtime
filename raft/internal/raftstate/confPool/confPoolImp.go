@@ -39,6 +39,8 @@ type confPool struct {
     entryToCommiC chan int
     raft_log.LogEntry
     localfs.LocalFs
+
+    resetIncreaseDaemon bool
 }
 
 
@@ -192,7 +194,8 @@ func (c *confPool) updateLastApplied() {
         switch entr.Entry.OpType {
         case protobuf.Operation_COMMIT_CONFIG_ADD:
             c.lock.Lock()
-            c.mainConf.CloseNotifyAppendEntryC()
+
+            c.mainConf.CloseCommitEntryC()
 
             c.mainConf = c.newConf
             c.newConf = nil
@@ -256,6 +259,7 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
         entryToCommiC: make(chan int),
         LogEntry: raft_log.NewLogEntry(nil,true),
         LocalFs: localfs.NewFs(rootDir),
+        resetIncreaseDaemon: false,
 	}
 	var mainConf = singleconf.NewSingleConf(
 		nil,

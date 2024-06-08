@@ -17,6 +17,7 @@ type SingleConf interface{
     GetConfig() map[string]string
     SendHearthbit()
     CommiEntryC() <- chan int
+    CloseCommitEntryC()
     raft_log.LogEntrySlave
 }
 
