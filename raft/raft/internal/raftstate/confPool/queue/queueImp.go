@@ -20,7 +20,9 @@ func (q *queueImp[T]) Pop() T {
 func (q *queueImp[T]) Push(v T) {
     q.buffer = append(q.buffer, v)
     log.Println("pushing notification on: ", q.notifyAdd)
-    q.notifyAdd <- 1
+    go func(){
+        q.notifyAdd <- 1
+    }()
 }
 
 // Size implements Queue.
