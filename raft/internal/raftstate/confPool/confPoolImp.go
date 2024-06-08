@@ -189,8 +189,15 @@ func (c *confPool) updateLastApplied() {
             go func(){
                 c.emptyNewConf <- 1
             }()
-            color.Green("commit config applied [main,new]: ", 
-                    c.mainConf.GetConfig(), c.newConf.GetConfig())
+
+            if c.newConf != nil{
+                color.Green("commit config applied [main,new]: ", 
+                c.mainConf.GetConfig(), c.newConf.GetConfig())
+            }else{
+                color.Green("commit config applied [main,new]: ", 
+                c.mainConf.GetConfig(), c.newConf)
+            }
+
 
             color.Yellow("done applying commitADD:")
         case protobuf.Operation_COMMIT_CONFIG_REM:
