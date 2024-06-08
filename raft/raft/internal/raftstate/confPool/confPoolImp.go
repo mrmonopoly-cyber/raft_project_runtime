@@ -12,7 +12,6 @@ import (
 	"raft/internal/raftstate/confPool/queue"
 	singleconf "raft/internal/raftstate/confPool/singleConf"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
-	"reflect"
 	"strings"
 	"sync"
 )
@@ -81,57 +80,51 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
     c.lock.Lock()
     defer c.lock.Unlock()
 
+    var appended uint = 0
+
     color.Yellow("appending entry, general pool: %v %v\n", entry, prevLogIndex)
-    var appended = c.LogEntry.AppendEntry(entry,prevLogIndex)
-    for i := 0; i < int(appended); i++ {
-        color.Cyan("appending entry, general pool done\n")
-        c.entryToCommiC <- 1
+    for i, v := range entry {
+        appended = c.LogEntry.AppendEntry([]*raft_log.LogInstance{v},prevLogIndex+i)
+        if appended > 0{
+            color.Cyan("appending entry, general pool done\n")
+            go func ()  {
+                c.entryToCommiC <- 1
+            }()
+        }
     }
+
     return appended
 }
 
-func (c *confPool) appendEntryToConf(){
-    for {
-        log.Println("appendEntryToConf: waiting signal")
-        <- c.entryToCommiC
-        var newConf singleconf.SingleConf
-        var entry = c.GetEntriAt(c.GetCommitIndex()+1)
-
-        switch entry.Entry.OpType {
-        case protobuf.Operation_JOIN_CONF_ADD:
-            newConf = c.appendJoinConfADD(entry)
-            if c.pushJoinConf(entry,newConf){
-                color.Red("pushed conf")
-                continue
-            }
-        case protobuf.Operation_JOIN_CONF_DEL:
-            newConf = c.appendJoinConfDEL(entry)
-            if c.pushJoinConf(entry,newConf){
-               continue 
-            }
-        }
-
-        log.Println("notifying main conf to commit a new entry")
-        c.mainConf.NotifyAppendEntryC() <- 1
-        if c.newConf != nil{
-            log.Println("notifying new conf to commit a new entry")
-            c.newConf.NotifyAppendEntryC() <- 1
-        }
-
-    }
+func (c *confPool) IncreaseCommitIndex(){
+    <- c.entryToCommiC
 }
 
-func (c *confPool) pushJoinConf(entry *raft_log.LogInstance, newConf singleconf.SingleConf) bool{
-	//WARN: DANGEROUS
+func (c *confPool) appendEntryToConf(){
+    for{
+        <- c.entryToCommiC
+        for c.GetCommitIndex() < int64(c.GetLogSize()){
+            log.Println("appendEntryToConf: waiting signal")
+            var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
-	if c.newConf != nil {
-		log.Println("checking conf is the same: ", newConf.GetConfig(), c.newConf.GetConfig())
-	}
-	if c.newConf == nil || !reflect.DeepEqual(c.newConf.GetConfig(), newConf.GetConfig()) {
-		c.confQueue.Push(tuple{SingleConf: newConf, LogInstance: entry})
-		return true
-	}
-    return false
+            switch entry.Entry.OpType {
+            case protobuf.Operation_JOIN_CONF_ADD:
+                <-c.emptyNewConf
+                c.newConf = c.appendJoinConfADD(entry)
+            case protobuf.Operation_JOIN_CONF_DEL:
+                <-c.emptyNewConf
+                c.newConf = c.appendJoinConfDEL(entry)
+            }
+
+            log.Println("notifying main conf to commit a new entry")
+            c.mainConf.NotifyAppendEntryC() <- 1
+            if c.newConf != nil{
+                log.Println("notifying new conf to commit a new entry")
+                c.newConf.NotifyAppendEntryC() <- 1
+            }
+            c.increaseCommitIndex()
+        }
+    }
 }
 
 func (c *confPool) appendJoinConfDEL(entry *raft_log.LogInstance) singleconf.SingleConf {
@@ -168,23 +161,21 @@ func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.Sin
 
 // daemon
 func (c *confPool) increaseCommitIndex() {
-	for {
-        color.Cyan("commit Index: waiting commit of main conf on ch: %v\n",c.mainConf.CommiEntryC())
-		var activeC = <-c.mainConf.CommiEntryC()
-        
-        if activeC == 0{
-            return
-        }
+    color.Cyan("commit Index: waiting commit of main conf on ch: %v\n",c.mainConf.CommiEntryC())
+    var activeC = <-c.mainConf.CommiEntryC()
 
-        color.Cyan("main conf committed")
-		if c.newConf != nil {
-            color.Cyan("commit Index: waiting commit of new conf on ch: %v\n",c.newConf.CommiEntryC())
-			<-c.newConf.CommiEntryC()
-            color.Cyan("new conf committed")
-		}
-        color.Cyan("increasing commitIndex")
-        c.IncreaseCommitIndex()
-	}
+    if activeC == 0{
+        return
+    }
+
+    color.Cyan("main conf committed")
+    if c.newConf != nil {
+        color.Cyan("commit Index: waiting commit of new conf on ch: %v\n",c.newConf.CommiEntryC())
+        <-c.newConf.CommiEntryC()
+        color.Cyan("new conf committed")
+    }
+    color.Cyan("increasing commitIndex")
+    c.LogEntry.IncreaseCommitIndex()
 }
 
 func (c *confPool) updateLastApplied() {
@@ -238,20 +229,6 @@ func (c *confPool) updateLastApplied() {
 	}
 }
 
-func (c *confPool) joinNextConf() {
-	for {
-		log.Println("waiting commiting of new conf")
-		<-c.emptyNewConf
-		log.Println("waiting new conf to join")
-		<-c.confQueue.WaitEl()
-		var co = c.confQueue.Pop()
-        log.Println("new conf to join: ",co.SingleConf.GetConfig())
-		c.newConf = co.SingleConf
-        c.entryToCommiC <- 1
-        color.Cyan("commit the pop of a new join conf")
-	}
-}
-
 func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata) *confPool {
 	var res = &confPool{
         lock: &sync.Mutex{},
@@ -278,10 +255,8 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 
 	res.mainConf = mainConf
 
-	go res.joinNextConf()
-	go res.increaseCommitIndex()
-	go res.updateLastApplied()
     go res.appendEntryToConf()
+	go res.updateLastApplied()
 
     res.emptyNewConf <- 1
 

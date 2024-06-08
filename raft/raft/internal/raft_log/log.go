@@ -28,6 +28,7 @@ type LogEntryRead interface {
     GetEntriesRange(startIndex int) []*protobuf.LogEntry
 
     GetCommitIndex() int64
+    GetLogSize() uint
 
 	LastLogIndex() int
 	LastLogTerm() uint

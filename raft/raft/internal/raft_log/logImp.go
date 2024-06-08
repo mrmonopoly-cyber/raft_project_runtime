@@ -93,6 +93,11 @@ func (this *logEntryImp) GetCommitIndex() int64 {
 	return this.commitIndex
 }
 
+    
+func (this *logEntryImp) GetLogSize() uint{
+    return this.logSize
+}
+
 // MinimumCommitIndex implements LogEntry.
 func (this *logEntryImp) MinimumCommitIndex(val uint) {
 	this.lock.Lock()
