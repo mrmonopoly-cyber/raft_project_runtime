@@ -103,7 +103,7 @@ func (c *confPool) IncreaseCommitIndex(){
 func (c *confPool) appendEntryToConf(){
     for{
         <- c.entryToCommiC
-        for c.GetCommitIndex() < int64(c.GetLogSize()){
+        for c.GetCommitIndex() < int64(c.GetLogSize()-1){
             color.Cyan("appendEntryToConf: waiting signal: CI %v, LS %V\n",
                 c.GetCommitIndex(),c.GetLogSize())
             var entry = c.GetEntriAt(c.GetCommitIndex()+1)
