@@ -1,17 +1,21 @@
 package raft_log
 
-type LogEntrySlaveImp struct {
+type logEntrySlaveImp struct {
 	*logEntryImp
 	commitEntry chan int
 }
 
 //NotifyAppendEntryC implements LogEntrySlave
-func (this *LogEntrySlaveImp) NotifyAppendEntryC() chan int{
+func (this *logEntrySlaveImp) NotifyAppendEntryC() chan int{
     return this.commitEntry
 }
 
-func newLogImpSlave(masterLog LogEntry) *LogEntrySlaveImp {
-	var l = &LogEntrySlaveImp{
+func (this *logEntrySlaveImp) CloseNotifyAppendEntryC(){
+    close(this.commitEntry)
+}
+
+func newLogImpSlave(masterLog LogEntry) *logEntrySlaveImp {
+	var l = &logEntrySlaveImp{
 		logEntryImp: masterLog.getLogState(),
 		commitEntry: make(chan int),
 	}

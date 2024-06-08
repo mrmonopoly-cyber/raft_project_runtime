@@ -40,6 +40,7 @@ type LogEntryRead interface {
 type LogEntrySlave interface{
     LogEntryRead
     NotifyAppendEntryC() chan int
+    CloseNotifyAppendEntryC()
 
 }
 
