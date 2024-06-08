@@ -190,8 +190,6 @@ func (c *confPool) updateLastApplied() {
         switch entr.Entry.OpType {
         case protobuf.Operation_COMMIT_CONFIG_ADD:
             color.Yellow("start applying commitADD:")
-            c.lock.Lock()
-
             c.mainConf.CloseCommitEntryC()
 
             c.mainConf = c.newConf
@@ -199,9 +197,6 @@ func (c *confPool) updateLastApplied() {
             c.emptyNewConf <- 1
             color.Green("commit config applied [main,new]: ", c.mainConf, c.newConf)
 
-            go c.increaseCommitIndex()
-
-            c.lock.Unlock()
             color.Yellow("done applying commitADD:")
         case protobuf.Operation_COMMIT_CONFIG_REM:
             panic("Not implemented")
