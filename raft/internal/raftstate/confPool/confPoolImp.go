@@ -258,7 +258,9 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
     go res.appendEntryToConf()
 	go res.updateLastApplied()
 
-    res.emptyNewConf <- 1
+    go func(){
+        res.emptyNewConf <- 1
+    }()
 
 	return res
 }
