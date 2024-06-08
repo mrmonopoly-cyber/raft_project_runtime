@@ -33,6 +33,8 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
                 color.Red("check if can increase commonMatchIdx: %v,%v,%v,%v",
                     c.numNodes,newMatch,c.commonMatchIndex, v.Trd)
                 if newMatch > c.commonMatchIndex && v.Trd < newMatch{
+                    color.Red("check passed: %v:%v:%v:%v\n",
+                        c.numNodes, newMatch, c.commonMatchIndex, v.Trd)
                     c.numStable++
                     for c.numStable > uint(halfNodeNum){
                         c.commitEntryC <- 1
