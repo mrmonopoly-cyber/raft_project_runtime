@@ -36,8 +36,8 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
                     color.Red("check passed: %v:%v:%v:%v\n",
                         c.numNodes, newMatch, c.commonMatchIndex, v.Trd)
                     c.numStable++
-                    for c.numStable > uint(halfNodeNum){
-                        c.commitEntryC <- 1
+                    if c.numStable > uint(halfNodeNum){
+                        c.commitEntryC <- c.commonMatchIndex
                         c.commonMatchIndex++
                         c.numStable=1
                     }
