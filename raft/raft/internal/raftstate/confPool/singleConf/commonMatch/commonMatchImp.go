@@ -32,7 +32,7 @@ func (c *commonMatchImp) updateCommonMatchIndex()  {
                 var newMatch = <- v.Snd
                 color.Red("check if can increase commonMatchIdx: %v,%v,%v,%v",
                     c.numNodes,newMatch,c.commonMatchIndex, v.Trd)
-                if newMatch > c.commonMatchIndex && v.Trd < newMatch{
+                if newMatch >= c.commonMatchIndex && v.Trd < newMatch{
                     color.Red("check passed: %v:%v:%v:%v\n",
                         c.numNodes, newMatch, c.commonMatchIndex, v.Trd)
                     c.numStable++
