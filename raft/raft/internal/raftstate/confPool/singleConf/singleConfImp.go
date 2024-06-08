@@ -88,6 +88,7 @@ func (s *singleConfImp) CommiEntryC() <-chan int {
 
 func (s *singleConfImp) CloseCommitEntryC(){
     close(s.commitC)
+    s.commitC = nil
 }
 
 
@@ -127,7 +128,9 @@ func (s *singleConfImp) executeAppendEntry() {
             //INFO: FOLLOWER or THE ONLY NODE IN THE CONF
             color.HiGreen("auto commit")
             color.Yellow("notifying on channel: %v\n",s.commitC)
-            s.commitC <- 1
+            if s.commitC == nil{
+                s.commitC <- 1
+            }
             color.Yellow("ok to chann to apply")
             continue
         }
