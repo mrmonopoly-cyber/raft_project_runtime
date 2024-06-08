@@ -21,7 +21,7 @@ type SingleConf interface{
     raft_log.LogEntrySlave
 }
 
-func NewSingleConf( conf []string,  
+func NewSingleConf( conf map[string]string,  
                     masterLog raft_log.LogEntry,
                     nodeList *sync.Map,
                     commonStatePool nodeIndexPool.NodeIndexPool,

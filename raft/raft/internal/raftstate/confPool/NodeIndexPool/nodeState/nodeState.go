@@ -9,7 +9,7 @@ const (
 type NodeState interface{
     UpdateNodeState(info INFO, val int)
     FetchData(info INFO) int
-    Subscribe(info INFO) <- chan int
+    Subscribe(info INFO) (int,<- chan int)
 }
 
 func NewNodeState(nodeIp string) NodeState{

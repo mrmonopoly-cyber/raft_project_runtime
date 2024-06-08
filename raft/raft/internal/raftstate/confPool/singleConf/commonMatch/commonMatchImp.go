@@ -72,7 +72,7 @@ func NewCommonMatchImp(initialCommonCommitIdx int, nodeSubs []nodestate.NodeStat
 	res.subs = make([]utiliy.Triple[nodestate.NodeState, <-chan int, int], nodeSubsNum)
 	for i := 0; i < nodeSubsNum; i++ {
 		res.subs[i].Fst = nodeSubs[i]
-		res.subs[i].Snd = nodeSubs[i].Subscribe(nodestate.MATCH)
+		_,res.subs[i].Snd = nodeSubs[i].Subscribe(nodestate.MATCH)
 		res.subs[i].Trd = nodeSubs[i].FetchData(nodestate.MATCH)
 	}
 	log.Println("list subs commmon Match: ", res.subs)
