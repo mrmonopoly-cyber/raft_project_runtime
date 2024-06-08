@@ -97,7 +97,7 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
 }
 
 func (c *confPool) IncreaseCommitIndex(){
-    <- c.entryToCommiC
+    color.Red("you should not use this function, doing nothing\n")
 }
 
 func (c *confPool) appendEntryToConf(){
