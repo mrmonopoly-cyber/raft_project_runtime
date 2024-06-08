@@ -98,6 +98,16 @@ func (c *confPool) appendEntryToConf(){
         var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
         switch entry.Entry.OpType {
+        case protobuf.Operation_JOIN_CONF_ADD:
+            newConf = c.appendJoinConfADD(entry)
+            if c.pushJoinConf(entry,newConf){
+                continue
+            }
+        case protobuf.Operation_JOIN_CONF_DEL:
+            newConf = c.appendJoinConfDEL(entry)
+            if c.pushJoinConf(entry,newConf){
+               continue 
+            }
         }
 
         log.Println("notifying main conf to commit a new entry")
