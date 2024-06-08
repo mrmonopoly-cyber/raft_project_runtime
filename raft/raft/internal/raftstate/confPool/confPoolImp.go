@@ -78,11 +78,11 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 }
 
 func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) uint {
-    c.lock.Lock()
-    defer c.lock.Unlock()
 
+    c.lock.Lock()
     color.Yellow("appending entry, general pool: %v %v\n", entry, prevLogIndex)
     var appended = c.LogEntry.AppendEntry(entry,prevLogIndex)
+    c.lock.Unlock()
 
     for i := 0; i < int(appended); i++ {
         color.Cyan("appending entry, general pool done\n")
@@ -183,7 +183,6 @@ func (c *confPool) updateLastApplied() {
         case protobuf.Operation_COMMIT_CONFIG_ADD:
             color.Yellow("start applying commitADD:")
             c.mainConf.CloseCommitEntryC()
-
             c.mainConf = c.newConf
             c.newConf = nil
             go func(){
@@ -199,9 +198,7 @@ func (c *confPool) updateLastApplied() {
             }
 
 
-            color.Yellow("done applying commitADD:")
-        case protobuf.Operation_COMMIT_CONFIG_REM:
-            panic("Not implemented")
+            color.Yellow("done applying commit:")
         case protobuf.Operation_JOIN_CONF_FULL:
             if c.commonMetadata.GetRole() == clustermetadata.LEADER{
                 var commit = protobuf.LogEntry{
