@@ -43,11 +43,13 @@ if it's not specified a specific return value type
 
     {
 
-         OP_TYPE : [ADD, REM, NEW]
+         OP_TYPE : [CHANGE, NEW]
 
          cluster configuration
 
     }
+
+    The configuration must be absolute not relative
 
 - **Establish connection with the leader**: the cluster must already exist
 
