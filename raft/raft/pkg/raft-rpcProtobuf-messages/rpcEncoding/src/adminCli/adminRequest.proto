@@ -6,8 +6,7 @@ option go_package = "protobuf/";
 
 enum AdminOp {
     CHANGE_CONF_NEW = 0;
-    CHANGE_CONF_ADD = 1;
-    CHANGE_CONF_REM = 2;
+    CHANGE_CONF_CHANGE = 1;
 }
 
 message clusterConf{

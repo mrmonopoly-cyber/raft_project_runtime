@@ -45,17 +45,9 @@ func (this* NewConf) Execute(   intLog raft_log.LogEntry,
         If you want to change the conf use ADD or REM`
         log.Println(failureDescr)
         return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureDescr)
-    case protobuf.AdminOp_CHANGE_CONF_ADD:
+    case protobuf.AdminOp_CHANGE_CONF_CHANGE:
         if metadata.GetRole() == clustermetadata.LEADER{
             return this.joinConfAddExecute(intLog,metadata)
-        }
-        var failureMex = "i'm not leader, i cannot change conf"
-        log.Println(failureMex)
-        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureMex)
-    case protobuf.AdminOp_CHANGE_CONF_REM:
-        if metadata.GetRole() == clustermetadata.LEADER{
-            panic("not implemented")
-            // return exitSucess
         }
         var failureMex = "i'm not leader, i cannot change conf"
         log.Println(failureMex)
@@ -99,7 +91,7 @@ func (this *NewConf) joinConfAddExecute(
     var exitSucess rpcs.Rpc = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,"")
     var newEntryBaseEntry = protobuf.LogEntry{
         Term: metadata.GetTerm(),
-        OpType: protobuf.Operation_JOIN_CONF_ADD,
+        OpType: protobuf.Operation_JOIN_CONF_FULL,
     }
 
     for _, v := range this.pMex.Conf.Conf {
