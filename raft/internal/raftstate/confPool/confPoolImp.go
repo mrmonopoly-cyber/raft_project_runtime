@@ -104,7 +104,8 @@ func (c *confPool) appendEntryToConf(){
     for{
         <- c.entryToCommiC
         for c.GetCommitIndex() < int64(c.GetLogSize()){
-            log.Println("appendEntryToConf: waiting signal")
+            color.Cyan("appendEntryToConf: waiting signal: CI %v, LS %V\n",
+                c.GetCommitIndex(),c.GetLogSize())
             var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
             switch entry.Entry.OpType {
