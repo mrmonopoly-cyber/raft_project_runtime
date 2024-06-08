@@ -160,7 +160,7 @@ func (s *singleConfImp) executeAppendEntry() {
             }
 
             switch entry.Entry.OpType {
-            case protobuf.Operation_JOIN_CONF_DEL, protobuf.Operation_JOIN_CONF_ADD:
+            case protobuf.Operation_JOIN_CONF_FULL:
                 enriesToSend = s.GetEntries()
             default:
                 enriesToSend = append(enriesToSend, entry.Entry)

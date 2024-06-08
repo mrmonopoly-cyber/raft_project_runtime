@@ -2,7 +2,6 @@ package confpool
 
 import (
 	"errors"
-    "github.com/fatih/color"
 	"log"
 	localfs "raft/internal/localFs"
 	"raft/internal/node"
@@ -14,6 +13,8 @@ import (
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strings"
 	"sync"
+
+	"github.com/fatih/color"
 )
 
 type tuple struct {
@@ -80,17 +81,15 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
     c.lock.Lock()
     defer c.lock.Unlock()
 
-    var appended uint = 0
-
     color.Yellow("appending entry, general pool: %v %v\n", entry, prevLogIndex)
-    for i, v := range entry {
-        appended = c.LogEntry.AppendEntry([]*raft_log.LogInstance{v},prevLogIndex+i)
-        if appended > 0{
-            color.Cyan("appending entry, general pool done\n")
-            go func ()  {
-                c.entryToCommiC <- 1
-            }()
-        }
+    var appended = c.LogEntry.AppendEntry(entry,prevLogIndex)
+
+    for i := 0; i < int(appended); i++ {
+        color.Cyan("appending entry, general pool done\n")
+        go func ()  {
+            c.entryToCommiC <- 1
+        }()
+        
     }
 
     return appended
@@ -108,13 +107,10 @@ func (c *confPool) appendEntryToConf(){
                 c.GetCommitIndex(),c.GetLogSize())
             var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
-            switch entry.Entry.OpType {
-            case protobuf.Operation_JOIN_CONF_ADD:
+
+            if entry.Entry.OpType == protobuf.Operation_JOIN_CONF_FULL{
                 <-c.emptyNewConf
-                c.newConf = c.appendJoinConfADD(entry)
-            case protobuf.Operation_JOIN_CONF_DEL:
-                <-c.emptyNewConf
-                c.newConf = c.appendJoinConfDEL(entry)
+                c.newConf = c.appendJoinConf(entry)
             }
 
             log.Println("notifying main conf to commit a new entry")
@@ -128,14 +124,10 @@ func (c *confPool) appendEntryToConf(){
     }
 }
 
-func (c *confPool) appendJoinConfDEL(entry *raft_log.LogInstance) singleconf.SingleConf {
-	panic("not implemented")
-}
-
-func (c *confPool) appendJoinConfADD(entry *raft_log.LogInstance) singleconf.SingleConf {
+func (c *confPool) appendJoinConf(entry *raft_log.LogInstance) singleconf.SingleConf {
 	var confUnfiltered string = string(entry.Entry.Payload)
 	var confFiltered []string = strings.Split(confUnfiltered, raft_log.SEPARATOR)
-    var mainConf = c.mainConf.GetConfig()
+    var mainConf map[string]string = nil
 
 	confFiltered = confFiltered[0 : len(confFiltered)-1]
 	for i := range confFiltered {
@@ -202,11 +194,12 @@ func (c *confPool) updateLastApplied() {
             color.Yellow("done applying commitADD:")
         case protobuf.Operation_COMMIT_CONFIG_REM:
             panic("Not implemented")
-        case protobuf.Operation_JOIN_CONF_ADD, protobuf.Operation_JOIN_CONF_DEL:
+        case protobuf.Operation_JOIN_CONF_FULL:
             if c.commonMetadata.GetRole() == clustermetadata.LEADER{
                 var commit = protobuf.LogEntry{
                     Term:   c.commonMetadata.GetTerm(),
                     OpType: protobuf.Operation_COMMIT_CONFIG_ADD,
+                    Payload: entr.Entry.Payload,
                 }
                 c.AppendEntry([]*raft_log.LogInstance{c.NewLogInstance(&commit, nil)},-2)
             }
