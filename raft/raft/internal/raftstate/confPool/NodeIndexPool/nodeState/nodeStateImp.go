@@ -36,16 +36,22 @@ func (n *nodeStateImpl) UpdateNodeState(info INFO, val int) {
 		n.mathcIndex = val
         color.Cyan("updating match index: ",val)
         n.subsMtc.Range(func(key, value any) bool {
-            var C chan int = value.(chan int)
-            C <- val
+            //HACK: until i resolve the main bug with the stuck node
+            go func ()  {
+                var C chan int = value.(chan int)
+                C <- val
+            }()
             return true
         })
 	case NEXTT:
 		n.nextIndex = val
         color.Cyan("updating next index: ",val)
         n.subsNxt.Range(func(key, value any) bool {
-            var C chan int = value.(chan int)
-            C <- val
+            //HACK: until i resolve the main bug with the stuck node
+            go func ()  {
+                var C chan int = value.(chan int)
+                C <- val
+            }()
             return true
         })
     default:
