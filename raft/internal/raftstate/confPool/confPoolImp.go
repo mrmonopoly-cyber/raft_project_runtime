@@ -152,8 +152,8 @@ func (c *confPool) extractConfPayloadConf(entry *protobuf.LogEntry) map[string]s
         mainConf[*ip] = *ip
 
 		c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, *ip)
-        var state,_ = c.NodeIndexPool.FetchNodeInfo(*ip)
-        state.SetVoteRight(false)
+        // var state,_ = c.NodeIndexPool.FetchNodeInfo(*ip)
+        // state.SetVoteRight(false)
         //TODO: send updated message to new node, it may be not present at the moment
         //be aware
 	}
