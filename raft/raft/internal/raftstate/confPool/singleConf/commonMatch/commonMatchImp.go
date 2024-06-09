@@ -81,7 +81,7 @@ func (c *commonMatchImp) addUpdatedNode(indexTrpCell uint, state nodestate.NodeS
 
     trp.Fst = state
     _,trp.Snd = state.Subscribe(nodestate.MATCH)
-    trp.Trd = state.FetchData(nodestate.MATCH)
+    trp.Trd = -1
 
 	go c.checkUpdateNewMatch(trp)
 }
