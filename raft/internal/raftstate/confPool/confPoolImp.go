@@ -113,6 +113,14 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
     return appended
 }
 
+func (c *confPool) MinimumCommitIndex(val uint){
+    c.LogEntry.MinimumCommitIndex(val)
+    go func(){
+        c.entryToCommiC <- 1
+    }()
+}
+
+
 func (c *confPool) IncreaseCommitIndex(){
     color.Red("you should not use this function, doing nothing\n")
 }
