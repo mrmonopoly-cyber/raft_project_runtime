@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package protobuf;
+
+option go_package = "protobuf/";
+
+enum AdminOp {
+    CHANGE_CONF_NEW = 0;
+    CHANGE_CONF_CHANGE = 1;
+}
+
+message clusterConf{
+    repeated string conf =1;
+    optional string leader =2;
+}
+
+message changeConfReq{
+    AdminOp op = 1;
+    clusterConf conf =2;
+}
+
+message infoRequest{
+    AdminOp reqType = 1;
+    string timestamp = 2;
+}
+
+message infoResponse{
+    infoRequest metadata = 1;
+    bytes payload = 2;
+}
+
+message redirect{
+    string leaderip = 1;
+}
