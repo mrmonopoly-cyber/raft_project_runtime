@@ -85,6 +85,7 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 	case ADD:
         log.Println("storing a new Node")
 		c.nodeList.Store(node.GetIp(), node)
+        c.UpdateStatusList(nodeIndexPool.ADD,node.GetIp())
 		c.numNodes++
         go func(){
             c.signalNewNode <- node.GetIp()
@@ -132,7 +133,7 @@ func (c *confPool) appendEntryToConf(){
     for{
         <- c.entryToCommiC
         for c.GetCommitIndex() < int64(c.GetLogSize()-1){
-            color.Cyan("appendEntryToConf: waiting signal: CI %v, LS %V\n",
+            color.Cyan("appendEntryToConf: waiting signal: CI %state, LS %V\n",
                 c.GetCommitIndex(),c.GetLogSize())
             var entry = c.GetEntriAt(c.GetCommitIndex()+1)
 
@@ -158,8 +159,7 @@ func (c *confPool) appendEntryToConf(){
 }
 
 func (c *confPool) appendJoinConf(newConf *map[string]string) singleconf.SingleConf {
-	return singleconf.NewSingleConf(
-		*newConf,
+	return singleconf.NewSingleConf( *newConf,
         c.LogEntry,
 		&c.nodeList,
 		c.NodeIndexPool,
