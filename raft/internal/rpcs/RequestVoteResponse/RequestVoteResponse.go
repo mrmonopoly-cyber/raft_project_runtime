@@ -8,6 +8,7 @@ import (
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
+	"github.com/fatih/color"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -43,26 +44,26 @@ func (this *RequestVoteResponse) Execute(
 
     if this.GetVote() {
         log.Println("received positive vote");
-        // state.IncreaseSupporters()
+        metadata.UpdateSupportersNum(clustermetadata.INC)
     }else {
         log.Println("received negative vote");
-        // state.IncreaseNotSupporters()
+        metadata.UpdateSupportersNum(clustermetadata.DEC)
     }
     
-    // var nodeInCluster = uint64(state.GetNumberNodesInCurrentConf())
-    // var nVictory = nodeInCluster/2
-    // var supp = state.GetNumSupporters()
-    // var notSupp = state.GetNumNotSupporters()
-    //
-    // if supp > nVictory {
-    //     log.Println("election won");
-    //     state.SetRole(raftstate.LEADER)
-    //     return nil
-    // }
-    // if supp + notSupp == nodeInCluster{
-    //     log.Println("election lost");
-    //     state.ResetElection()
-    // }
+    var nodeInCluster = metadata.GetNumNodeInConf()
+    var nVictory = nodeInCluster/2
+    var supp = metadata.GetNumSupporters()
+    var notSupp = metadata.GetNumNotSupporters()
+
+    if supp > nVictory {
+        color.Green("election won")
+        metadata.SetRole(clustermetadata.LEADER)
+        return nil
+    }
+    if supp + notSupp == nodeInCluster{
+        color.Red("election lost")
+        metadata.ResetElection()
+    }
 
     return nil
 }

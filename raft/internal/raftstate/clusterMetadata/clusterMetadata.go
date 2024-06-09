@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+type SUPP_OP uint
+const (
+    INC SUPP_OP = iota
+    DEC SUPP_OP = iota
+)
 
 type ClusterMetadata interface{
     leaderIpMetadata
@@ -57,6 +62,9 @@ type voteMetadata interface{
     CanVote() bool
     VoteRight(vote bool)
     ResetElection()
+    UpdateSupportersNum(op SUPP_OP)
+    GetNumSupporters() uint
+    GetNumNotSupporters() uint
 }
 
 type termMetadata interface{
