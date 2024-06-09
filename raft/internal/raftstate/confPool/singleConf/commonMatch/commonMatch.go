@@ -7,6 +7,6 @@ type CommonMatch interface{
     StopNotify()
 }
 
-func NewCommonMatch(initialCommonCommitIdx int, nodeStates []nodestate.NodeState) CommonMatch  {
+func NewCommonMatch(initialCommonCommitIdx int, nodeStates map[string]nodestate.NodeState) CommonMatch  {
     return NewCommonMatchImp(initialCommonCommitIdx, nodeStates)
 }
