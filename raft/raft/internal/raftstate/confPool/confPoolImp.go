@@ -3,7 +3,6 @@ package confpool
 import (
 	"errors"
 	"log"
-	"maps"
 	localfs "raft/internal/localFs"
 	"raft/internal/node"
 	"raft/internal/raft_log"
@@ -114,7 +113,6 @@ func (c *confPool) appendEntryToConf(){
                 //TODO: critical case 1 of change in configuration.
                 //updated all the new nodes until they are all pared
                 var newConf = c.extractConfPayloadConf(entry.Entry)
-                c.updateAllNewNodes(&newConf)
                 c.newConf = c.appendJoinConf(&newConf)
             }
 
@@ -127,29 +125,6 @@ func (c *confPool) appendEntryToConf(){
             c.increaseCommitIndex()
         }
     }
-}
-
-func (c *confPool) updateAllNewNodes(newConf *map[string]string){
-    var currentConf = c.mainConf.GetConfig()
-    if c.newConf != nil{
-        maps.Copy(currentConf,c.newConf.GetConfig())
-    }
-    
-    for _, v := range *newConf {
-        go func ()  {
-            if currentConf[v] == "" {
-                c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, v)
-                // var nodeState,_ = c.NodeIndexPool.FetchNodeInfo(v)
-                // var subNum, stateC = nodeState.Subscribe(nodestate.MATCH)
-                
-            }
-        }()
-    }
-    
-    
-
-
-
 }
 
 func (c *confPool) appendJoinConf(newConf *map[string]string) singleconf.SingleConf {
