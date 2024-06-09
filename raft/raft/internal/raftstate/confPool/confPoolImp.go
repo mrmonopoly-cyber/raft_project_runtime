@@ -287,9 +287,26 @@ func (c *confPool) updateLastApplied() {
                 color.Green("commit config applied [main,new]: ", 
                 c.mainConf.GetConfig(), c.newConf)
             }
-
-
             color.Yellow("done applying commit:")
+            
+            //INFO: critical case 2 of change in configuration
+            var newCommittedConf = c.mainConf.GetConfig()
+            var myIp = c.commonMetadata.GetMyIp(clustermetadata.PRI)
+            var found = false
+            
+            for _, v := range newCommittedConf {
+                if v == myIp{
+                    found = true
+                    break
+                }
+            }
+
+            if !found{
+                color.Red("i'm no more in the conf, becomming follower")
+                c.commonMetadata.SetRole(clustermetadata.FOLLOWER)
+            }
+
+
         case protobuf.Operation_JOIN_CONF_FULL:
             if c.commonMetadata.GetRole() == clustermetadata.LEADER{
                 var commit = protobuf.LogEntry{
