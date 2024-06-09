@@ -62,7 +62,7 @@ func NewCommonMatchImp(initialCommonCommitIdx int, nodeSubs map[string]nodestate
 		subs:             nil,
 		commonMatchIndex: initialCommonCommitIdx,
 		numStable:        1, //INFO: Leader always stable
-		numNodes:         len(nodeSubs),
+		numNodes:         0,
 		commitEntryC:     make(chan int),
         run:              true,
 	}
@@ -79,6 +79,8 @@ func NewCommonMatchImp(initialCommonCommitIdx int, nodeSubs map[string]nodestate
             (*trp).Fst = v
             _,(*trp).Snd = v.Subscribe(nodestate.MATCH)
             (*trp).Trd = v.FetchData(nodestate.MATCH)
+            res.numNodes++
+            j++
         }else{
             //TODO: subs to see when the node is updated
             // go res.checkWhenNodeIsUpdated(v)
