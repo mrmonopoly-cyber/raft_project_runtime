@@ -5,6 +5,7 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
+	confmetadata "raft/internal/raftstate/confPool/singleConf/confMetadata"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -28,6 +29,7 @@ func NewclientReturnValueRPC(exitStatus protobuf.STATUS, description string) rpc
 func (this *ClientReturnValue) Execute(
             intLog raft_log.LogEntry,
             metadata clustermetadata.ClusterMetadata,
+            confMetadata confmetadata.ConfMetadata,
             senderState nodestate.NodeState) rpcs.Rpc {
     panic("dummy implementation")
 }

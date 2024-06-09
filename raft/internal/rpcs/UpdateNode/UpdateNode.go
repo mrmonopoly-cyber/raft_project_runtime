@@ -5,6 +5,7 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
+	confmetadata "raft/internal/raftstate/confPool/singleConf/confMetadata"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -24,9 +25,11 @@ func ChangeVoteRightNode(voteAble bool) rpcs.Rpc {
 }
 
 // Manage implements rpcs.Rpc.
-func (this *UpdateNode) Execute(intLog raft_log.LogEntry,
-                                metadata clustermetadata.ClusterMetadata,
-                                senderState nodestate.NodeState) rpcs.Rpc {
+func (this *UpdateNode) Execute(
+            intLog raft_log.LogEntry,
+            metadata clustermetadata.ClusterMetadata,
+            confMetadata confmetadata.ConfMetadata,
+            senderState nodestate.NodeState) rpcs.Rpc {
     metadata.VoteRight(this.pMex.Votante)
     return nil
 }

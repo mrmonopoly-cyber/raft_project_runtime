@@ -67,12 +67,17 @@ func (c *confPool) GetNode(ip string) (node.Node, error) {
 	return v.(node.Node), nil
 }
 
-func (c* confPool) GetConf() map[string]string{
+func (c* confPool) GetConfig() map[string]string{
     var mainConf = c.mainConf.GetConfig()
     if c.newConf != nil{
         maps.Copy(mainConf,c.newConf.GetConfig())
     }
     return mainConf
+}
+
+// GetNumNodesInConf implements SingleConf.
+func (s *confPool) GetNumNodesInConf() uint{
+    return s.numNodes
 }
 
 func (c *confPool) GetNodeList() *sync.Map {
@@ -186,7 +191,7 @@ func (c *confPool) extractConfPayloadConf(entry *protobuf.LogEntry) map[string]s
 //INFO: send updated message to new node, it may be not present at the moment
 //be aware
 func (c *confPool) updateNewerNode(newConf map[string]string)  {
-    var currConf = c.GetConf()
+    var currConf = c.GetConfig()
     var changeVoteRight = UpdateNode.ChangeVoteRightNode(false)
     var rawMex,err = genericmessage.Encode(changeVoteRight)
     if err != nil{

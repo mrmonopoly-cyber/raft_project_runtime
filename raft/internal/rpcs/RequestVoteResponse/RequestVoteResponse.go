@@ -5,6 +5,7 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
+	confmetadata "raft/internal/raftstate/confPool/singleConf/confMetadata"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
@@ -36,6 +37,7 @@ func (this *RequestVoteResponse) GetId() string {
 func (this *RequestVoteResponse) Execute(
                     intLog raft_log.LogEntry,
                     metadata clustermetadata.ClusterMetadata,
+                    confMetadata confmetadata.ConfMetadata,
                     senderState nodestate.NodeState) rpcs.Rpc{
     if this.pMex.Term > metadata.GetTerm(){
         metadata.SetRole(clustermetadata.FOLLOWER)
@@ -50,7 +52,7 @@ func (this *RequestVoteResponse) Execute(
         metadata.UpdateSupportersNum(clustermetadata.DEC)
     }
     
-    var nodeInCluster = metadata.GetNumNodeInConf()
+    var nodeInCluster = confMetadata.GetNumNodesInConf()
     var nVictory = nodeInCluster/2
     var supp = metadata.GetNumSupporters()
     var notSupp = metadata.GetNumNotSupporters()

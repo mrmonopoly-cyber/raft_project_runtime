@@ -4,6 +4,7 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
+	confmetadata "raft/internal/raftstate/confPool/singleConf/confMetadata"
 	"sync"
 )
 
@@ -14,7 +15,7 @@ const(
 )
 
 type SingleConf interface{
-    GetConfig() map[string]string
+    confmetadata.ConfMetadata
     SendHearthbit()
     CommiEntryC() <- chan int
     CloseCommitEntryC()

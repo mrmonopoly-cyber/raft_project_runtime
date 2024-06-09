@@ -5,6 +5,7 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
+	confmetadata "raft/internal/raftstate/confPool/singleConf/confMetadata"
 	"raft/internal/rpcs"
 	app_resp "raft/internal/rpcs/AppendResponse"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -96,6 +97,7 @@ func checkConsistency(prevLogIndex int64, prevLogTerm uint64, entries []*protobu
 func (this *AppendEntryRpc) Execute( 
             intLog raft_log.LogEntry,
             metadata clustermetadata.ClusterMetadata,
+            confMetadata confmetadata.ConfMetadata,
             senderState nodestate.NodeState)rpcs.Rpc {
 
     log.Println("executing appendEntryRpc: ", this.ToString())

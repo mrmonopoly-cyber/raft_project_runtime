@@ -95,6 +95,15 @@ func (s *singleConfImp) GetConfig() map[string]string{
     return maps.Clone(s.conf)
 }
 
+
+// GetNumNodesInConf implements SingleConf.
+func (s *singleConfImp) GetNumNodesInConf() uint{
+    return s.numNodes
+}
+
+
+
+
 //utility
 
 func (s *singleConfImp) nodeNotFound(key any) {
