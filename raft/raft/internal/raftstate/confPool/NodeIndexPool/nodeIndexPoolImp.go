@@ -18,8 +18,8 @@ func (n *nodeIndexPoolImpl) FetchNodeInfo(ip string) (nodestate.NodeState, error
     if err != nil{
         var newState = nodestate.NewNodeState(ip)
 		n.nodeStateList.Store(ip, newState)
-        return newState,nil
     }
+
     return state,nil
 }
 
