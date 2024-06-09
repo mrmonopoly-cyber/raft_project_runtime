@@ -57,7 +57,7 @@ func (c *commonMatchImp) updateCommonMatchIndex() {
 	}
 }
 
-func NewCommonMatchImp(initialCommonCommitIdx int, nodeSubs []nodestate.NodeState) *commonMatchImp {
+func NewCommonMatchImp(initialCommonCommitIdx int, nodeSubs map[string]nodestate.NodeState) *commonMatchImp {
 	var res = &commonMatchImp{
 		subs:             nil,
 		commonMatchIndex: initialCommonCommitIdx,
@@ -70,19 +70,40 @@ func NewCommonMatchImp(initialCommonCommitIdx int, nodeSubs []nodestate.NodeStat
 	var nodeSubsNum = len(nodeSubs)
 
 	res.subs = make([]utiliy.Triple[nodestate.NodeState, <-chan int, int], nodeSubsNum)
-	for i := 0; i < nodeSubsNum; i++ {
-        if nodeSubs[i].GetVoteRight(){
-            res.subs[i].Fst = nodeSubs[i]
-            _,res.subs[i].Snd = nodeSubs[i].Subscribe(nodestate.MATCH)
-            res.subs[i].Trd = nodeSubs[i].FetchData(nodestate.MATCH)
-        }else {
+
+    var j = 0
+    for _, v := range nodeSubs {
+        if v.GetVoteRight(){
+            var trp = &res.subs[j]
+
+            (*trp).Fst = v
+            _,(*trp).Snd = v.Subscribe(nodestate.MATCH)
+            (*trp).Trd = v.FetchData(nodestate.MATCH)
+        }else{
             //TODO: subs to see when the node is updated
+            // go res.checkWhenNodeIsUpdated(v)
             res.numNodes--
         }
-	}
+    }
+
 	log.Println("list subs commmon Match: ", res.subs)
 
 	go res.updateCommonMatchIndex()
 
 	return res
+}
+
+//utility
+func (c *commonMatchImp) checkWhenNodeIsUpdated(state nodestate.NodeState){
+    var _,subC =  state.Subscribe(nodestate.MATCH)
+
+    for {
+        var match = <- subC
+        if match >= c.commonMatchIndex{
+            c.numNodes++
+            break
+        }
+        //TODO: unsubscribe
+    }
+
 }
