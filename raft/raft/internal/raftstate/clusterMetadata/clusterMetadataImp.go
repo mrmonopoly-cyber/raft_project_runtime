@@ -73,6 +73,7 @@ func (c *clusterMetadataImp) GetVoteFor() string {
 func (c *clusterMetadataImp) ResetElection() {
     c.nNotSupporting = 0
     c.nSupporting = 0
+    c.voteFor = ""
 }
 
 // SetLeaderIp implements ClusterMetadata.

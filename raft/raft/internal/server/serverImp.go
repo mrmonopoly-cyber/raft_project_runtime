@@ -6,14 +6,16 @@ import (
 	"net"
 	genericmessage "raft/internal/genericMessage"
 	"raft/internal/node"
-	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	confpool "raft/internal/raftstate/confPool"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/rpcs"
+	"raft/internal/rpcs/RequestVoteRPC"
 	"raft/internal/rpcs/redirection"
 	"strings"
 	"sync"
+
+	"github.com/fatih/color"
 )
 
 type pairMex struct{
@@ -185,7 +187,7 @@ func (s *server) run() {
             log.Println("server: new mex received: ")
             go s.newMessageReceived(mess)
         case <- timeoutElection:
-            log.Println("server: election not implemented")
+            go s.startElection()
         case <- timeoutHearthbit:
             go s.SendHearthBit()
         }
@@ -235,11 +237,32 @@ func (s *server) newMessageReceived(mess pairMex){
             mess.workdone <- 1
 }
 
-//utility
-func (s *server) nodeAppendEntryPayload(n node.Node, toAppend []raft_log.LogInstance) rpcs.Rpc{
-    panic("not implemented")
+func (s *server) startElection(){
+    color.Yellow("start new election\n")
+    
+    s.ResetElection()
+    s.SetTerm(s.GetTerm()+1)
+
+    var candidature rpcs.Rpc = RequestVoteRPC.NewRequestVoteRPC(s.ClusterMetadata,s.ConfPool)
+    var conf = s.GetConf()
+    var rawMex,err = genericmessage.Encode(candidature)
+    if err != nil{
+        log.Panicln(err)
+    }
+
+    for _,v  := range conf {
+        go func(){
+            var nNode,err = s.GetNode(v)
+            if err != nil{
+                color.Red(err.Error())
+                return
+            }
+            nNode.Send(rawMex)
+        }()
+    }
 }
 
+//utility
 func (s *server) encodeAndSend(rpcMex rpcs.Rpc, n node.Node){
     var err error
     var rawMex []byte
