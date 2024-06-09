@@ -284,8 +284,12 @@ func (c *confPool) updateLastApplied() {
         switch entr.Entry.OpType {
         case protobuf.Operation_COMMIT_CONFIG_ADD:
             color.Yellow("start applying commitADD:")
+            var newConf = c.extractConfPayloadConf(entr.Entry)
+
             c.mainConf.CloseCommitEntryC()
-            c.mainConf = c.newConf
+            c.updateNewerNode(newConf)
+            c.mainConf = c.appendJoinConf(&newConf)
+
             c.newConf = nil
             go func(){
                 c.emptyNewConf <- 1
