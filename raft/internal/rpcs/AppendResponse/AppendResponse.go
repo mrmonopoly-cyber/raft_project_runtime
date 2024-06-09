@@ -39,22 +39,26 @@ func (this *AppendResponse) Execute(
     var term uint64 = this.pMex.GetTerm()
     var errorIndex = this.pMex.GetLogIndexError()
 
-    if !this.pMex.GetSuccess() {
-        if term > metadata.GetTerm() {
-            metadata.SetTerm(term)
-            metadata.SetRole(clustermetadata.FOLLOWER)
+    if metadata.GetRole() == clustermetadata.LEADER{
+        if !this.pMex.GetSuccess() {
+            if term > metadata.GetTerm() {
+                metadata.SetTerm(term)
+                metadata.SetRole(clustermetadata.FOLLOWER)
+            } else {
+                log.Println("consistency fail: ", errorIndex)
+                senderState.UpdateNodeState(nodestate.NEXTT,int(errorIndex))
+                log.Println("setting next index to: ",senderState.FetchData(nodestate.NEXTT))
+            }
         } else {
-            log.Println("consistency fail: ", errorIndex)
-            senderState.UpdateNodeState(nodestate.NEXTT,int(errorIndex))
-            log.Println("setting next index to: ",senderState.FetchData(nodestate.NEXTT))
+            log.Printf("response ok increasing match and next index of node: %v\n", *this.pMex.Id)
+            senderState.UpdateNodeState(nodestate.NEXTT,int(errorIndex)+1)
+            senderState.UpdateNodeState(nodestate.MATCH,int(errorIndex))
         }
-    } else {
-        log.Printf("response ok increasing match and next index of node: %v\n", *this.pMex.Id)
-        senderState.UpdateNodeState(nodestate.NEXTT,int(errorIndex)+1)
-        senderState.UpdateNodeState(nodestate.MATCH,int(errorIndex))
+
+        return resp
     }
 
-    return resp
+    return nil
 }
 
 // ToString implements rpcs.Rpc.
