@@ -112,7 +112,7 @@ func (this *AppendEntryRpc) Execute(
     var err error
 
     var resp rpcs.Rpc = nil
-    // var leaderCommit int64
+    var leaderCommit int64
 
     if this.pMex.GetTerm() < myTerm { //case 1
         return respondeAppend(id, false, myTerm, -1)
@@ -137,11 +137,11 @@ func (this *AppendEntryRpc) Execute(
                 resp = respondeAppend(id, false, myTerm, nextIdx)
             default:
                 intLog.AppendEntry(newEntriesWrapper, int(prevLogIndex))
-                // leaderCommit = this.pMex.GetLeaderCommit()
+                leaderCommit = this.pMex.GetLeaderCommit()
 
-                // if leaderCommit > intLog.GetCommitIndex() {
-                //     intLog.MinimumCommitIndex(uint(leaderCommit))
-                // }
+                if leaderCommit > intLog.GetCommitIndex() {
+                    intLog.MinimumCommitIndex(uint(leaderCommit))
+                }
                 resp = respondeAppend(id, true , myTerm, intLog.LastLogIndex())
         }
     } 
