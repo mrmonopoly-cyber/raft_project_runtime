@@ -17,14 +17,13 @@ type RequestVoteRPC struct {
 	pMex protobuf.RequestVote
 }
 
-func NewRequestVoteRPC(term uint64, candidateId string,
-lastLogIndex int64, lastLogTerm uint64) rpcs.Rpc {
+func NewRequestVoteRPC(metadata clustermetadata.ClusterMetadata, intLog raft_log.LogEntry) rpcs.Rpc {
     return &RequestVoteRPC{
         pMex : protobuf.RequestVote{
-            Term: term,
-            CandidateId: candidateId,
-            LastLogIndex: lastLogIndex,
-            LastLogTerm: lastLogTerm,
+            Term: metadata.GetTerm(),
+            CandidateId: metadata.GetMyIp(clustermetadata.PRI),
+            LastLogIndex: int64(intLog.LastLogIndex()),
+            LastLogTerm: uint64(intLog.LastLogTerm()),
         },
     }
 }
