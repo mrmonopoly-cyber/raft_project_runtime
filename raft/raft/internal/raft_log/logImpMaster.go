@@ -11,7 +11,7 @@ type logEntryMasterImp struct {
 }
 
 // ApplyEntryC implements LogEntry.
-func (this *logEntryMasterImp) ApplyEntryC() <-chan int {
+func (this *logEntryMasterImp) ApplyEntryC() chan int {
 	return this.applyC
 }
 

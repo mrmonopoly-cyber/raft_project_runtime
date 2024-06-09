@@ -19,7 +19,7 @@ type logEntryWrite interface {
     MinimumCommitIndex(val uint)
     IncreaseCommitIndex()
 
-    ApplyEntryC() <- chan int
+    ApplyEntryC() chan int
 }
 
 type LogEntryRead interface {
