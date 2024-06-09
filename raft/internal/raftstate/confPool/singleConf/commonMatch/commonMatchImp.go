@@ -100,6 +100,7 @@ func (c *commonMatchImp) checkWhenNodeIsUpdated(indexToStoreSub uint, state node
         if match >= c.commonMatchIndex{
             break
         }
+        color.Green("node updated in commonMatch, adding it the majority count: \n")
         c.addUpdatedNode(indexToStoreSub,state)
         //TODO: unsubscribe
     }
