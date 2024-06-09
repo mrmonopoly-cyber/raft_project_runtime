@@ -103,7 +103,7 @@ func (c *commonMatchImp) checkUpdateNewMatch(sub *substriber) {
                 c.commonMatchIndex++
                 c.numStable = 1
             }
-            sub.Trd = newMatch
         }
+        sub.Trd = newMatch
     }
 }
