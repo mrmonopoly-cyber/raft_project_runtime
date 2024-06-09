@@ -10,7 +10,7 @@ type NodeState interface{
     UpdateNodeState(info INFO, val int)
     FetchData(info INFO) int
     Subscribe(info INFO) (int,<- chan int)
-    SetVoteRight(right bool)
+    SetStatusUpdated()
     GetVoteRight() bool
 }
 
