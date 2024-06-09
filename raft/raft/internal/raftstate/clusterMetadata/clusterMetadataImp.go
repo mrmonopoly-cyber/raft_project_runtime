@@ -72,7 +72,7 @@ func (c *clusterMetadataImp) GetVoteFor() string {
 // ResetElection implements ClusterMetadata.
 func (c *clusterMetadataImp) ResetElection() {
     c.nNotSupporting = 0
-    c.nSupporting = 0
+    c.nSupporting = 1
     c.voteFor = ""
 }
 
