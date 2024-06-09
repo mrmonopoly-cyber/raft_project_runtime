@@ -114,10 +114,13 @@ func (c *confPool) AppendEntry(entry []*raft_log.LogInstance, prevLogIndex int) 
 }
 
 func (c *confPool) MinimumCommitIndex(val uint){
+    var oldCommitIndex = c.GetCommitIndex()
     c.LogEntry.MinimumCommitIndex(val)
-    go func(){
-        c.entryToCommiC <- 1
-    }()
+    var newCommitIndex = c.GetCommitIndex()
+    var applyC = c.ApplyEntryC()
+    for i := oldCommitIndex; i <= newCommitIndex; i++ {
+        applyC <- 1
+    }
 }
 
 
