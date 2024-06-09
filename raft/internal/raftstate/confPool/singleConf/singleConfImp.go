@@ -193,6 +193,7 @@ func newSingleConfImp(conf map[string]string,
 	commonStatePool nodeIndexPool.NodeIndexPool,
 	commonMetadata clustermetadata.ClusterMetadata) *singleConfImp {
 
+    var err error
 	var res = &singleConfImp{
 		nodeList:        nodeList,
 		conf:            conf,
@@ -203,7 +204,17 @@ func newSingleConfImp(conf map[string]string,
 		LogEntrySlave:   raft_log.NewLogEntrySlave(masterLog),
 		commitC:         make(chan int),
 	}
-	var nodeStates []nodestate.NodeState = nil
+	var nodeStates map[string]nodestate.NodeState = map[string]nodestate.NodeState{}
+
+    for _, v := range conf {
+        res.numNodes++
+        nodeStates[v],err = commonStatePool.FetchNodeInfo(v)
+        if err != nil{
+            log.Panicln(err)
+        }
+    }
+
+
 
     log.Println("node to subs: ",nodeStates)
 	res.CommonMatch = commonmatch.NewCommonMatch(int(masterLog.GetCommitIndex()), nodeStates)
