@@ -3,13 +3,17 @@ package confpool
 import (
 	"errors"
 	"log"
+	"maps"
+	genericmessage "raft/internal/genericMessage"
 	localfs "raft/internal/localFs"
 	"raft/internal/node"
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
+	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	"raft/internal/raftstate/confPool/queue"
 	singleconf "raft/internal/raftstate/confPool/singleConf"
+	"raft/internal/rpcs/UpdateNode"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strings"
 	"sync"
@@ -32,6 +36,10 @@ type confPool struct {
 	emptyNewConf chan int
 	nodeList     sync.Map
 	numNodes     uint
+
+    toUpdateNode map[string]string
+    signalNewNode chan string
+
 
 	nodeIndexPool.NodeIndexPool
 	commonMetadata clustermetadata.ClusterMetadata
@@ -59,6 +67,14 @@ func (c *confPool) GetNode(ip string) (node.Node, error) {
 	return v.(node.Node), nil
 }
 
+func (c* confPool) GetConf() map[string]string{
+    var mainConf = c.mainConf.GetConfig()
+    if c.newConf != nil{
+        maps.Copy(mainConf,c.newConf.GetConfig())
+    }
+    return mainConf
+}
+
 func (c *confPool) GetNodeList() *sync.Map {
 	return &c.nodeList
 }
@@ -69,8 +85,10 @@ func (c *confPool) UpdateNodeList(op OP, node node.Node) {
 	case ADD:
         log.Println("storing a new Node")
 		c.nodeList.Store(node.GetIp(), node)
-        c.UpdateStatusList(nodeIndexPool.ADD,node.GetIp())
 		c.numNodes++
+        go func(){
+            c.signalNewNode <- node.GetIp()
+        }()
 	case REM:
 		c.nodeList.Delete(node.GetIp())
 		c.numNodes--
@@ -113,6 +131,7 @@ func (c *confPool) appendEntryToConf(){
                 //TODO: critical case 1 of change in configuration.
                 //updated all the new nodes until they are all pared
                 var newConf = c.extractConfPayloadConf(entry.Entry)
+                c.updateNewerNode(newConf)
                 c.newConf = c.appendJoinConf(&newConf)
             }
 
@@ -144,24 +163,87 @@ func (c *confPool) extractConfPayloadConf(entry *protobuf.LogEntry) map[string]s
 	confFiltered = confFiltered[0 : len(confFiltered)-1]
 	for i := range confFiltered {
         var ip *string = &confFiltered[i]
-
 		*ip, _ = strings.CutSuffix(*ip, " ")
 		if *ip == "" || *ip == " " {
 			continue
 		}
         mainConf[*ip] = *ip
-
-		c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, *ip)
-        // var state,_ = c.NodeIndexPool.FetchNodeInfo(*ip)
-        // state.SetVoteRight(false)
-        //TODO: send updated message to new node, it may be not present at the moment
-        //be aware
 	}
-
     return mainConf
 }
 
+//INFO: send updated message to new node, it may be not present at the moment
+//be aware
+func (c *confPool) updateNewerNode(newConf map[string]string)  {
+    var currConf = c.GetConf()
+    var changeVoteRight = UpdateNode.ChangeVoteRightNode(false)
+    var rawMex,err = genericmessage.Encode(changeVoteRight)
+    if err != nil{
+        log.Panicln(err)
+    }
+
+    for _, v := range newConf {
+        if currConf[v] == ""{
+            c.NodeIndexPool.UpdateStatusList(nodeIndexPool.ADD, v)
+            
+            var val,f = c.nodeList.Load(v)
+            var nNode node.Node
+            if !f{
+                color.Yellow("Node not yet present in the network: ",val)
+                c.toUpdateNode[v] = v
+                continue
+            }
+            nNode = val.(node.Node)
+            nNode.Send(rawMex)
+            go c.checkIfNodeIsUpdated(nNode)
+        }
+    }
+}
+
+func (c *confPool) checkIfNodeIsUpdated(nNode node.Node){
+    var changeVoteRight = UpdateNode.ChangeVoteRightNode(true)
+    var ip = nNode.GetIp()
+    rawMex,err := genericmessage.Encode(changeVoteRight)
+    state,err := c.FetchNodeInfo(ip)
+    if err != nil{
+        log.Panicln(err)
+    }
+
+    var _,subC = state.Subscribe(nodestate.MATCH)
+    for{
+        var match = <- subC
+        if match >= int(c.GetCommitIndex()){
+            break
+        }
+    }
+    color.Green("node %v updated\n",ip)
+    //TODO: unsubscribe
+    nNode.Send(rawMex)
+}
+
 // daemon
+
+//INFO: manage case of the node not yes present in the network
+func (c *confPool) checkNodeToUpdate(){
+    var changeVoteRight = UpdateNode.ChangeVoteRightNode(false)
+    var rawMex,err = genericmessage.Encode(changeVoteRight)
+    if err != nil{
+        log.Panicln(err)
+    }
+
+    for {
+        var ip = <- c.signalNewNode
+        if c.toUpdateNode[ip] == ""{
+            continue
+        }
+        var val,_ = c.nodeList.Load(ip)
+        var nNode = val.(node.Node)
+        nNode.Send(rawMex)
+        delete(c.toUpdateNode,ip)
+        go c.checkIfNodeIsUpdated(nNode)
+    }
+}
+
 func (c *confPool) increaseCommitIndex() {
     color.Cyan("commit Index: waiting commit of main conf on ch: %v\n",c.mainConf.CommiEntryC())
     var activeC = <-c.mainConf.CommiEntryC()
@@ -243,11 +325,13 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 		confQueue:        queue.NewQueue[tuple](),
 		emptyNewConf:     make(chan int),
 		nodeList:         sync.Map{},
+        toUpdateNode:     map[string]string{},
+        signalNewNode:    make(chan string),
 		numNodes:         0,
 		fsRootDir:        rootDir,
 		NodeIndexPool:    nodeIndexPool.NewLeaederCommonIdx(),
 		commonMetadata:   commonMetadata,
-        entryToCommiC: make(chan int),
+        entryToCommiC:    make(chan int),
         LogEntry: raft_log.NewLogEntry(nil,true),
         LocalFs: localfs.NewFs(rootDir),
 	}
@@ -262,6 +346,7 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 
     go res.appendEntryToConf()
 	go res.updateLastApplied()
+    go res.checkNodeToUpdate()
 
     go func(){
         res.emptyNewConf <- 1

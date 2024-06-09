@@ -214,9 +214,6 @@ func newSingleConfImp(conf map[string]string,
         }
     }
 
-
-
-    log.Println("node to subs: ",nodeStates)
 	res.CommonMatch = commonmatch.NewCommonMatch(int(masterLog.GetCommitIndex()), nodeStates)
 
     go res.executeAppendEntry()

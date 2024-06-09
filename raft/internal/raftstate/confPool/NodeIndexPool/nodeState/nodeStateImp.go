@@ -18,8 +18,8 @@ type nodeStateImpl struct {
 }
 
 // SetVoteRight implements NodeState.
-func (n *nodeStateImpl) SetVoteRight(right bool) {
-    n.voteRight = right
+func (n *nodeStateImpl) SetStatusUpdated() {
+    n.voteRight = true
 }
 
 // GetVoteRight implements NodeState.
@@ -96,6 +96,6 @@ func newNodeStateImpl(nodeIp string) *nodeStateImpl {
 		subsMtc:    sync.Map{},
 		counter:    0,
 		nodeIp:     nodeIp,
-        voteRight: true,
+        voteRight: false,
 	}
 }
