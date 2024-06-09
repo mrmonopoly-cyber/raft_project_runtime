@@ -287,7 +287,6 @@ func (c *confPool) updateLastApplied() {
             var newConf = c.extractConfPayloadConf(entr.Entry)
 
             c.mainConf.CloseCommitEntryC()
-            c.updateNewerNode(newConf)
             c.mainConf = c.appendJoinConf(&newConf)
 
             c.newConf = nil
