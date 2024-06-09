@@ -96,5 +96,6 @@ func newNodeStateImpl(nodeIp string) *nodeStateImpl {
 		subsMtc:    sync.Map{},
 		counter:    0,
 		nodeIp:     nodeIp,
+        voteRight: true,
 	}
 }
