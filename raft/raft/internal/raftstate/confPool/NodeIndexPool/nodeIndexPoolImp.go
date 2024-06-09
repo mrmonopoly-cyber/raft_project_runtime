@@ -16,7 +16,9 @@ func (n *nodeIndexPoolImpl) FetchNodeInfo(ip string) (nodestate.NodeState, error
     var state,err = n.getNode(ip)
 
     if err != nil{
-        return nil,err
+        var newState = nodestate.NewNodeState(ip)
+		n.nodeStateList.Store(ip, newState)
+        return newState,err
     }
     return state,nil
 }
