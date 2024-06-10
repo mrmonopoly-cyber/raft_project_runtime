@@ -5,6 +5,7 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
+	confmetadata "raft/internal/raftstate/confPool/singleConf/confMetadata"
 	"sync"
 )
 
@@ -19,10 +20,10 @@ type ConfPool interface {
 	UpdateNodeList(op OP, node node.Node)
 	GetNodeList() *sync.Map
 	GetNode(ip string) (node.Node, error)
-    GetConf() map[string]string
     SendHearthBit()
 	raft_log.LogEntry
 	nodeIndexPool.NodeIndexPool
+    confmetadata.ConfMetadata
 }
 
 func NewConfPoll(rootDirFs string,commonMetadata clustermetadata.ClusterMetadata) ConfPool {

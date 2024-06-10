@@ -221,7 +221,7 @@ func (s *server) newMessageReceived(mess pairMex){
             }
             oldRole = s.GetRole()
             rpcCall = mess.payload
-            resp = rpcCall.Execute(s.ConfPool, s.ClusterMetadata, senderState)
+            resp = rpcCall.Execute(s.ConfPool, s.ClusterMetadata,s.ConfPool, senderState)
 
             if resp != nil {
                 log.Println("sending resp to caller RPC: ", resp.ToString())
@@ -244,7 +244,7 @@ func (s *server) startElection(){
     s.SetTerm(s.GetTerm()+1)
 
     var candidature rpcs.Rpc = RequestVoteRPC.NewRequestVoteRPC(s.ClusterMetadata,s.ConfPool)
-    var conf = s.GetConf()
+    var conf = s.GetConfig()
     var rawMex,err = genericmessage.Encode(candidature)
     if err != nil{
         log.Panicln(err)

@@ -5,6 +5,7 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
+	confmetadata "raft/internal/raftstate/confPool/singleConf/confMetadata"
 	"raft/internal/rpcs"
 	"raft/internal/rpcs/RequestVoteResponse"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -76,8 +77,10 @@ func (this *RequestVoteRPC) GetLastLogTerm() uint64 {
 
 // Manage implements rpcs.Rpc.
 
-func (this *RequestVoteRPC) Execute(intLog raft_log.LogEntry,
+func (this *RequestVoteRPC) Execute(
+            intLog raft_log.LogEntry,
             metadata clustermetadata.ClusterMetadata,
+            confMetadata confmetadata.ConfMetadata,
             senderState nodestate.NodeState) rpcs.Rpc{
 	var myVote string = metadata.GetVoteFor()
 	var senderIp = this.pMex.GetCandidateId()

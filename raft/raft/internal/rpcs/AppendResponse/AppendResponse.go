@@ -5,6 +5,7 @@ import (
 	"raft/internal/raft_log"
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
+	confmetadata "raft/internal/raftstate/confPool/singleConf/confMetadata"
 	"raft/internal/rpcs"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strconv"
@@ -34,6 +35,7 @@ func NewAppendResponseRPC(id string, success bool, term uint64, logIndexError in
 func (this *AppendResponse) Execute( 
             intLog raft_log.LogEntry,
             metadata clustermetadata.ClusterMetadata,
+            confMetadata confmetadata.ConfMetadata,
             senderState nodestate.NodeState)rpcs.Rpc {
     var resp rpcs.Rpc = nil
     var term uint64 = this.pMex.GetTerm()
