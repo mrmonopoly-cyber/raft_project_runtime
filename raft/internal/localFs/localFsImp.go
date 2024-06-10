@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"log"
 	"os"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"sync"
@@ -21,13 +20,33 @@ func (this *fs) GetRootDir() string {
 	return this.rootDir
 }
 
-func (this *fs) ApplyLogEntry(mex *protobuf.LogEntry) error {
+func (this *fs) ApplyLogEntry(mex *protobuf.LogEntry) ([]byte,error){
+    var filePath = this.rootDir + mex.FilenName
+
 	switch mex.GetOpType() {
+    case protobuf.Operation_CREATE:
+        var fd,err = os.Create(filePath)
+        fd.Close()
+        return nil,err
+    case protobuf.Operation_DELETE:
+        var err = os.Remove(mex.FilenName)
+        return nil,err
 	case protobuf.Operation_READ:
+        var fileData, errm = os.ReadFile(filePath)
+        return fileData,errm
+    case protobuf.Operation_WRITE:
+        var fd,err = os.Open(filePath)
+        if err != nil{
+            return nil,err
+        }
+        _,err = fd.WriteAt(mex.Payload,0)
+        return nil,err
+    case protobuf.Operation_RENAME:
+        var newPath = this.rootDir + string(mex.Payload)
+        os.Rename(filePath,newPath)
 	}
 
-	log.Println("Apply log entry not implemented")
-	return nil
+    return nil,errors.New("operation not supported")
 }
 
 // utility

@@ -102,7 +102,7 @@ func (this *NewConf) joinConfAddExecute(
         newEntryBaseEntry.Payload = append(newEntryBaseEntry.Payload, raft_log.SEPARATOR...)
     }
 
-    var newConfLog = intLog.NewLogInstance(&newEntryBaseEntry,nil)
+    var newConfLog = intLog.NewLogInstance(&newEntryBaseEntry)
     log.Println("appending log entry: ",newConfLog)
 
     metadata.SetRole(clustermetadata.LEADER)

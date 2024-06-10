@@ -197,7 +197,6 @@ func (s *server) run() {
 
 func (s *server) newMessageReceived(mess pairMex){
             var rpcCall rpcs.Rpc
-            var oldRole clustermetadata.Role
             var resp rpcs.Rpc
             var byEnc []byte
             var errEn error
@@ -219,7 +218,6 @@ func (s *server) newMessageReceived(mess pairMex){
                     log.Panicf("nodestate for node %v not exist\n",mess.sender)
                 }
             }
-            oldRole = s.GetRole()
             rpcCall = mess.payload
             resp = rpcCall.Execute(s.ConfPool, s.ClusterMetadata,s.ConfPool, senderState)
 
@@ -232,8 +230,6 @@ func (s *server) newMessageReceived(mess pairMex){
                 senderNode.Send(byEnc)
             }
 
-            if s.GetRole() == clustermetadata.LEADER && oldRole != clustermetadata.LEADER{
-            }
             mess.workdone <- 1
 }
 

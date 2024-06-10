@@ -14,6 +14,7 @@ import (
 
 type ClientReq struct {
     pMex protobuf.ClientReq
+    returnValue chan []byte
 }
 
 
@@ -26,7 +27,7 @@ func (this *ClientReq) Execute(
     var operation protobuf.Operation = (*this).pMex.Op
     var newEntries []*protobuf.LogEntry =make([]*protobuf.LogEntry, 1)
     var newLogEntry protobuf.LogEntry = protobuf.LogEntry{}
-    var newLogEntryWrp []*raft_log.LogInstance = intLog.NewLogInstanceBatch(newEntries,[]func(){})
+    var newLogEntryWrp []*raft_log.LogInstance = intLog.NewLogInstanceBatch(newEntries)
 
     newLogEntry.Term = metadata.GetTerm()
     newEntries[0] = &newLogEntry
@@ -61,5 +62,6 @@ func (this *ClientReq) Decode(b []byte) error {
     if err != nil {
         log.Panicln("error in Encoding Request Vote: ", err)
     }
+    this.returnValue = make(chan []byte)
 	return err
 }

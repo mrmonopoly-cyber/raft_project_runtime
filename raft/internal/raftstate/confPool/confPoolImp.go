@@ -334,7 +334,7 @@ func (c *confPool) updateLastApplied() {
                     OpType: protobuf.Operation_COMMIT_CONFIG_ADD,
                     Payload: entr.Entry.Payload,
                 }
-                c.AppendEntry([]*raft_log.LogInstance{c.NewLogInstance(&commit, nil)},-2)
+                c.AppendEntry([]*raft_log.LogInstance{c.NewLogInstance(&commit)},-2)
             }
             color.Green("join conf applied")
         case protobuf.Operation_READ,protobuf.Operation_WRITE,protobuf.Operation_DELETE,
@@ -346,10 +346,6 @@ func (c *confPool) updateLastApplied() {
         }
 
         color.Red("finish switch")
-
-        if entr.AtCompletion != nil {
-            entr.AtCompletion()
-        }
 	}
 }
 

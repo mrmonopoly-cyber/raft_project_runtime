@@ -110,7 +110,7 @@ func (this *AppendEntryRpc) Execute(
     var prevLogTerm uint64 = this.pMex.GetPrevLogTerm()
     var entries []*protobuf.LogEntry = intLog.GetEntries()
     var newEntries []*protobuf.LogEntry = this.pMex.GetEntries()
-    var newEntriesWrapper []*raft_log.LogInstance = intLog.NewLogInstanceBatch(newEntries,nil)
+    var newEntriesWrapper []*raft_log.LogInstance = intLog.NewLogInstanceBatch(newEntries)
     var err error
 
     var resp rpcs.Rpc = nil

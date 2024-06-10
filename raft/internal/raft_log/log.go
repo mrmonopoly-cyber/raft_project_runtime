@@ -9,7 +9,7 @@ const SEPARATOR = "K"
 
 type LogInstance struct {
 	Entry             *p.LogEntry
-    AtCompletion    func() 
+    returnValue       chan []byte
 }
 
 type logEntryWrite interface {
@@ -33,8 +33,8 @@ type LogEntryRead interface {
 	LastLogIndex() int
 	LastLogTerm() uint
 
-    NewLogInstance(entry *p.LogEntry, post func()) *LogInstance
-    NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogInstance
+    NewLogInstance(entry *p.LogEntry) *LogInstance
+    NewLogInstanceBatch(entry []*p.LogEntry) []*LogInstance
 
 }
 
