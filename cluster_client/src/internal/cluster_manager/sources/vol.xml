@@ -1,0 +1,15 @@
+<volume>
+  <name>raft_node_NUMERO.qcow2</name>
+  <allocation>0</allocation>
+  <capacity unit="G">16</capacity>
+  <target>
+    <path>/var/lib/libvirt/images/raft_node_NUMERO.qcow2</path>
+    <format type='qcow2'/>
+    <permissions>
+      <owner>107</owner>
+      <group>107</group>
+      <mode>0744</mode>
+     <label>raft_node_NUMERO</label>
+    </permissions>
+  </target>
+</volume>
