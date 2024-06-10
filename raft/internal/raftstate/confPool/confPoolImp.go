@@ -184,6 +184,7 @@ func (c *confPool) extractConfPayloadConf(entry *protobuf.LogEntry) map[string]s
 			continue
 		}
         mainConf[*ip] = *ip
+        c.UpdateStatusList(nodeIndexPool.ADD,*ip)
 	}
     return mainConf
 }
