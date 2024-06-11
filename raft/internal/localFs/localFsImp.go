@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"raft/internal/utiliy"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"sync"
 )
@@ -20,33 +21,41 @@ func (this *fs) GetRootDir() string {
 	return this.rootDir
 }
 
-func (this *fs) ApplyLogEntry(mex *protobuf.LogEntry) ([]byte,error){
+func (this *fs) ApplyLogEntry(mex *protobuf.LogEntry) utiliy.Pair[[]byte,error]{
     var filePath = this.rootDir + mex.FilenName
+    var ret = utiliy.Pair[[]byte,error]{}
+    ret.Fst = nil
 
 	switch mex.GetOpType() {
     case protobuf.Operation_CREATE:
         var fd,err = os.Create(filePath)
         fd.Close()
-        return nil,err
+        ret.Snd = err
     case protobuf.Operation_DELETE:
         var err = os.Remove(mex.FilenName)
-        return nil,err
+        ret.Snd = err
 	case protobuf.Operation_READ:
         var fileData, errm = os.ReadFile(filePath)
-        return fileData,errm
+        ret.Fst = fileData
+        ret.Snd = errm
     case protobuf.Operation_WRITE:
         var fd,err = os.Open(filePath)
         if err != nil{
-            return nil,err
+            ret.Snd = err
+        }else{
+            _,err = fd.WriteAt(mex.Payload,0)
         }
-        _,err = fd.WriteAt(mex.Payload,0)
-        return nil,err
+
+        ret.Snd = err
     case protobuf.Operation_RENAME:
         var newPath = this.rootDir + string(mex.Payload)
-        os.Rename(filePath,newPath)
+        var err = os.Rename(filePath,newPath)
+        ret.Snd = err
+    default:
+        ret.Snd = errors.New("operation not supported")
 	}
 
-    return nil,errors.New("operation not supported")
+    return ret
 }
 
 // utility

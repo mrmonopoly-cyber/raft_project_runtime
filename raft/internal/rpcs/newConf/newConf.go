@@ -47,18 +47,18 @@ func (this* NewConf) Execute(
         in all other cases this call will do noting.
         If you want to change the conf use ADD or REM`
         log.Println(failureDescr)
-        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureDescr)
+        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE,nil, failureDescr)
     case protobuf.AdminOp_CHANGE_CONF_CHANGE:
         if metadata.GetRole() == clustermetadata.LEADER{
             return this.joinConfAddExecute(intLog,metadata)
         }
         var failureMex = "i'm not leader, i cannot change conf"
         log.Println(failureMex)
-        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureMex)
+        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE,nil, failureMex)
     default:
         var failDescr = "invalid new conf request type: " + this.pMex.Op.String()
         log.Println(failDescr)
-        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failDescr)
+        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE,nil, failDescr)
     }
 }
 
@@ -91,7 +91,7 @@ func (this *NewConf) joinConfAddExecute(
                         intLog raft_log.LogEntry,
                         metadata clustermetadata.ClusterMetadata) rpcs.Rpc{
 
-    var exitSucess rpcs.Rpc = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,"")
+    var exitSucess rpcs.Rpc = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,nil,"")
     var newEntryBaseEntry = protobuf.LogEntry{
         Term: metadata.GetTerm(),
         OpType: protobuf.Operation_JOIN_CONF_FULL,

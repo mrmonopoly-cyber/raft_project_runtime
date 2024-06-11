@@ -340,7 +340,8 @@ func (c *confPool) updateLastApplied() {
         case protobuf.Operation_READ,protobuf.Operation_WRITE,protobuf.Operation_DELETE,
              protobuf.Operation_CREATE, protobuf.Operation_RENAME:
 
-            c.LocalFs.ApplyLogEntry(entr.Entry)
+            var value = c.LocalFs.ApplyLogEntry(entr.Entry)
+            entr.ReturnValue <- value
         default:
             log.Panicln("unrecognized opration: ",entr.Entry.OpType)
         }

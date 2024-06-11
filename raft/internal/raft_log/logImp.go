@@ -81,7 +81,7 @@ func (this *logEntryImp) DeleteFromEntry(entryIndex uint) {
 	for i := int(entryIndex); i < len(*this.entries); i++ {
 		(*this.entries)[i] = LogInstance{
 			Entry:        nil,
-            returnValue: make(chan []byte),
+            ReturnValue: nil,
 		}
 		this.logSize--
 	}
@@ -132,7 +132,7 @@ func (this *logEntryImp) LastLogTerm() uint {
 func (this *logEntryImp) NewLogInstance(entry *protobuf.LogEntry) *LogInstance {
 	return &LogInstance{
 		Entry:        entry,
-        returnValue: make(chan []byte),
+        ReturnValue: nil,
 	}
 }
 
@@ -142,7 +142,7 @@ func (this *logEntryImp) NewLogInstanceBatch(entry []*protobuf.LogEntry) []*LogI
 	for i, v := range entry {
 		res[i] = &LogInstance{
 			Entry: v,
-            returnValue: make(chan []byte),
+            ReturnValue: nil,
 		}
 	}
 

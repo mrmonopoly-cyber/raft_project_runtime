@@ -1,6 +1,7 @@
 package raft_log
 
 import (
+	"raft/internal/utiliy"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 )
@@ -9,7 +10,7 @@ const SEPARATOR = "K"
 
 type LogInstance struct {
 	Entry             *p.LogEntry
-    returnValue       chan []byte
+    ReturnValue       chan utiliy.Pair[[]byte,error]
 }
 
 type logEntryWrite interface {

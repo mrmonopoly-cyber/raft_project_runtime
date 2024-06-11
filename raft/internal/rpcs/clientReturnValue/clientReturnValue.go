@@ -16,7 +16,10 @@ type ClientReturnValue struct {
     pMex protobuf.ClientReturnValue
 }
 
-func NewclientReturnValueRPC(exitStatus protobuf.STATUS, description string) rpcs.Rpc {
+func NewclientReturnValueRPC(
+        exitStatus protobuf.STATUS, 
+        returnValue []byte,
+        description string) rpcs.Rpc {
     return &ClientReturnValue{
         pMex: protobuf.ClientReturnValue{
             ExitStatus: exitStatus,

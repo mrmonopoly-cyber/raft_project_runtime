@@ -1,9 +1,12 @@
 package localfs
 
-import "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+import (
+	"raft/internal/utiliy"
+	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
+)
 
 type LocalFs interface{
-    ApplyLogEntry(log *protobuf.LogEntry) ([]byte,error)
+    ApplyLogEntry(log *protobuf.LogEntry) utiliy.Pair[[]byte,error] 
     GetRootDir() string
 }
 
