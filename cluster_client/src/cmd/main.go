@@ -5,10 +5,11 @@ import (
 	"io"
 	"log"
 	"net"
-	"os"
+	//"os"
 	"raft/client/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
-	"raft/client/src/internal/rpcs/client_request"
-	"raft/client/src/internal/user_cli"
+	"raft/client/src/internal/cluster_manager"
+	//"raft/client/src/internal/rpcs/client_request"
+	//"raft/client/src/internal/user_cli"
 	"strings"
 
 	"google.golang.org/protobuf/proto"
@@ -20,7 +21,10 @@ import (
 //ip range of cluster 192.168.122.2 192.168.122.255
 
 func main()  {
-    var conn net.Conn
+
+    cl := cluster_manager.NewClusterManager()
+    cl.Init()
+    /*var conn net.Conn
     var mex []byte
     var ipAddr string
 
@@ -34,7 +38,7 @@ func main()  {
   3- WRITE (write data in the file, if it does not exist the file will be created)
             4- RENAME (rename a file)
             5- DELETE (delete a file from the cluster)
-    */
+    
     
 
     var cli = usercli.NewCli()
@@ -61,7 +65,7 @@ func main()  {
 
     ipAddr = GetCluterNodeIp()
     conn = ConnectToLeader(ipAddr)
-    SendCluster(conn, mex)
+    SendCluster(conn, mex)*/
 }
 
 func EncodeMessage(req *protobuf.ClientReq) []byte{

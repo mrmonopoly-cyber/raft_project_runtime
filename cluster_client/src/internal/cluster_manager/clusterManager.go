@@ -7,9 +7,8 @@ type ClusterManager interface {
   SetConfig()
 }
 
-func NewClusterManager(initialConfig []string) ClusterManager {
+func NewClusterManager() ClusterManager {
   return &clusterManagerImpl{
-    nodes: initialConfig,
     sources: *newSources(), 
   }
 }

@@ -1,6 +1,5 @@
-<domain type='kvm' id='1'>
-  <name>raft_vm</name>
-  <uuid>36ce7847-f3f3-4422-ba61-969780288f26</uuid>
+<domain type='kvm' id='1'>vm
+  <name>RAFT_NODE_NUMERO</name>
   <metadata>
     <libosinfo:libosinfo xmlns:libosinfo="http://libosinfo.org/xmlns/libvirt/domain/1.0">
       <libosinfo:os id="http://archlinux.org/archlinux/rolling"/>
@@ -40,17 +39,18 @@
       <source file='/var/lib/libvirt/images/raft_node_NUMERO.qcow2' index='2'/>
       <backingStore/>
       <target dev='vda' bus='virtio'/>
-      <boot order='2'/>
+      <boot order='1'/>
       <alias name='virtio-disk0'/>
       <address type='pci' domain='0x0000' bus='0x04' slot='0x00' function='0x0'/>
     </disk>
     <disk type='file' device='cdrom'>
       <driver name='qemu' type='raw'/>
-      <source file='/var/lib/libvirt/images/raft_live-2024.03.04-x86_64.iso' index='1'/>
+      <source file='/var/lib/libvirt/images/raft_live_install.iso' index='1'/>
+      <!-- <source file='/var/lib/libvirt/images/archlinux-2024.01.16-x86_64.iso' index='1'/> -->
       <backingStore/>
       <target dev='sda' bus='sata'/>
       <readonly/>
-      <boot order='1'/>
+      <boot order='2'/>
       <alias name='sata0-0-0'/>
       <address type='drive' controller='0' bus='0' target='0' unit='0'/>
     </disk>
@@ -153,14 +153,15 @@
       <alias name='virtio-serial0'/>
       <address type='pci' domain='0x0000' bus='0x03' slot='0x00' function='0x0'/>
     </controller>
-    <interface type='network'>
-      <mac address='52:54:00:e7:5f:23'/>
-      <source network='default' portid='24a6a91f-2408-4c46-99af-a38c4c97c1e7' bridge='virbr0'/>
-      <target dev='vnet0'/>
+    <interface type='bridge'>
+      <source bridge='virbr3'/>
       <model type='virtio'/>
-      <link state='up'/>
-      <alias name='net0'/>
-      <address type='pci' domain='0x0000' bus='0x01' slot='0x00' function='0x0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x08' function='0x0'/>
+    </interface>
+    <interface type="bridge">
+      <source bridge="virbr2"/>
+      <model type="virtio"/>
+      <address type="pci" domain="0x0000" bus="0x01" slot="0x00" function="0x0"/>
     </interface>
     <serial type='pty'>
       <source path='/dev/pts/1'/>
@@ -176,7 +177,7 @@
     </console>
     <channel type='unix'>
       <source mode='bind' path='/run/libvirt/qemu/channel/1-raft_vm/org.qemu.guest_agent.0'/>
-      <target type='virtio' name='org.qemu.guest_agent.0' state='disconnected'/>
+      <target type='virtio' name='org.qemu.guest_agent.0' state='connected'/>
       <alias name='channel0'/>
       <address type='virtio-serial' controller='0' bus='0' port='1'/>
     </channel>
@@ -235,3 +236,9 @@
     <imagelabel>+963:+963</imagelabel>
   </seclabel>
 </domain>
+
+
+
+
+
+
