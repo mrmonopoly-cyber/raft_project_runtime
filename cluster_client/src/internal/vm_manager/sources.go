@@ -1,4 +1,4 @@
-package cluster_manager
+package vmmanager
 
 import (
 	"os"

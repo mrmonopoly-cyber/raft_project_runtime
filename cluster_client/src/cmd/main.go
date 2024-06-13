@@ -29,7 +29,7 @@ func main()  {
     var ipAddr string
 
     /*
-    TODO:   
+  TODO:   
         implement different operation type with an interaction by the user,
         also implement add data in the payload field, when needed.
         OPERATION TO ADD:
