@@ -4,7 +4,6 @@ import (
 	"log"
 	c "raft/client/src/internal/cluster"
 	"raft/client/src/internal/utility"
-	"slices"
 	"strings"
 	"time"
 
@@ -25,7 +24,7 @@ type libvirtMetaData struct {
   conn *libvirt.Connect
   pool *libvirt.StoragePool
   vols []*libvirt.StorageVol
-  doms []utility.Pair[*libvirt.Domain, []libvirt.DomainInterface]
+  doms []utility.Pair[*libvirt.Domain, string]
 }
 
 /* 
@@ -67,7 +66,7 @@ func (this *vMManagerImpl) Terminate() bool {
     d.Fst.Destroy()
     d.Fst.Undefine()
   }
-  this.doms = make([]utility.Pair[*libvirt.Domain, []libvirt.DomainInterface], 0)
+  this.doms = make([]utility.Pair[*libvirt.Domain, string], 0)
 
   for _, sv := range this.vols {
     name, _ := sv.GetName()
@@ -106,12 +105,18 @@ func (this *vMManagerImpl) AddNode() c.Cluster {
  * Change the current configuration, removing a new node
 */
 func (this *vMManagerImpl) RemoveNode(IP string) {
-  var domInterfaces [][]libvirt.DomainInterface = getDomInterfaces(this.doms)
-
-  for _, v := range domInterfaces {
-    
+  var newConf []utility.Pair[*libvirt.Domain, string]
+  for _, d := range this.doms {
+    var currIP = d.Snd
+    if IP != currIP {
+      newConf = append(newConf, d)
+    } else {
+      d.Fst.Destroy()
+      d.Fst.Undefine()
+    }
   }
 
+  this.doms = newConf
 }
 
 /*
@@ -233,7 +238,7 @@ func (this *vMManagerImpl) createDom() {
     log.Panicf("%sError creating a domain: %s \n%s", red, errDom, white)
   }
 
-  this.doms = append(this.doms, dom)
+  this.doms = append(this.doms, newDomPair(dom, ""))
 
   dom.Create()
 
@@ -243,11 +248,11 @@ func (this *vMManagerImpl) createDom() {
  * Collect private and public ips from DomainInterfaces
 */
 func (this *vMManagerImpl) getIPs() []utility.Pair[string,string] {
-  var domInterfaces [][]libvirt.DomainInterface = getDomInterfaces(this.doms)
+  var domInts = this.getDomInterfaces()
   var IPs []utility.Pair[string,string]
 
-  for _, v := range domInterfaces {
-    IPs = append(IPs, utility.Pair[string, string]{Fst: v[0].Addrs[0].Addr, Snd: v[1].Addrs[0].Addr})
+  for _, d := range domInts {
+    IPs = append(IPs, newStringPair(d[0].Addrs[0].Addr, d[1].Addrs[0].Addr))
   }
 
   return IPs
@@ -256,18 +261,26 @@ func (this *vMManagerImpl) getIPs() []utility.Pair[string,string] {
 /*
  * Collect domain interfaces of all domain
 */
-func getDomInterfaces(doms []*libvirt.Domain) [][]libvirt.DomainInterface {
+func (this *vMManagerImpl) getDomInterfaces() [][]libvirt.DomainInterface {
   var domInterfaces [][]libvirt.DomainInterface
 
-  for _, d := range doms  {
+  for _, d := range this.doms  {
     var err error
     var domInt []libvirt.DomainInterface
-    domInt, err = d.ListAllInterfaceAddresses(libvirt.DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
+    domInt, err = d.Fst.ListAllInterfaceAddresses(libvirt.DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
     if err != nil {
       log.Printf("Error retreiving IPs: %s \n", err)
     }
     domInterfaces = append(domInterfaces, domInt)
+    d.Snd = domInt[0].Addrs[0].Addr
   }
-
   return domInterfaces
+}
+
+func newStringPair(fst string, snd string) utility.Pair[string, string] {
+  return utility.Pair[string, string]{Fst: fst, Snd: snd}
+}
+
+func newDomPair(fst *libvirt.Domain, snd string) utility.Pair[*libvirt.Domain, string] {
+  return utility.Pair[*libvirt.Domain, string]{Fst: fst, Snd: snd}
 }

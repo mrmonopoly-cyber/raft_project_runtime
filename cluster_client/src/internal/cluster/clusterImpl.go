@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"log"
 	"net"
@@ -11,9 +12,11 @@ import (
 	inforequest "raft/client/src/internal/rpcs/info_request"
 	inforesponse "raft/client/src/internal/rpcs/info_response"
 	"raft/client/src/internal/utility"
+	"slices"
 	"strings"
 
 	"google.golang.org/protobuf/proto"
+	"libvirt.org/go/libvirt"
 )
 
 type ConfigChangeOp int 
@@ -83,15 +86,23 @@ func (this *clusterImpl) ConnectToLeader() {
 /*
  * Removing a node by its public IPs
 */
-func (this *clusterImpl) RemoveNode(IP string) {
+func (this *clusterImpl) RemoveNode(IP string) error {
+  var found bool = slices.ContainsFunc(this.IPs, func(element utility.Pair[string, string]) bool {
+                                              return IP == element.Fst}) 
+
+  if found == false {
+    return errors.New("IP address not found")
+  }
+
   var IPs []utility.Pair[string,string]
   for _,i := range this.IPs {
     if i.Fst != IP {
       IPs = append(IPs, i)
     }
   }
-  
   this.IPs = IPs
+
+  return nil
 }
 
 /*
