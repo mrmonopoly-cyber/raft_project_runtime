@@ -21,14 +21,14 @@ func main()  {
         log.Panicln(err)
     }
 
-    // newConf(conn,leader)
+    newConf(conn,leader)
     // addConf(conn,leader)
-    remConf(conn,leader)
+    // remConf(conn,leader)
 }
 
 func remConf(conn net.Conn, leader string){
     var addConfReq protobuf.ChangeConfReq = protobuf.ChangeConfReq{
-        Op: protobuf.AdminOp_CHANGE_CONF_REM,
+        Op: protobuf.AdminOp_CHANGE_CONF_CHANGE,
         Conf: &protobuf.ClusterConf{
             // Conf: []string{"10.0.0.20"},
             Conf: []string{"10.0.0.29"},
@@ -46,7 +46,7 @@ func remConf(conn net.Conn, leader string){
 
 func addConf(conn net.Conn, leader string){
     var addConfReq protobuf.ChangeConfReq = protobuf.ChangeConfReq{
-        Op: protobuf.AdminOp_CHANGE_CONF_ADD,
+        Op: protobuf.AdminOp_CHANGE_CONF_CHANGE,
         Conf: &protobuf.ClusterConf{
             Conf: []string{"10.0.0.29"},
             // Conf: []string{"10.0.0.195"},
@@ -68,7 +68,7 @@ func newConf(conn net.Conn, leader string){
         Conf: &protobuf.ClusterConf{
             // Conf: []string{leader},
             // Conf: []string{leader, "10.0.0.195","10.0.0.20"},
-            Conf: []string{leader,"10.0.0.29"},
+            Conf: []string{leader,"10.0.0.226"},
             Leader: &leader,
             
         },
