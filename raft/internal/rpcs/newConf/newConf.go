@@ -38,13 +38,17 @@ func (this* NewConf) Execute(
 
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
-        if metadata.GetLeaderIp(clustermetadata.PRI) == "" && myPrivateIp == *this.pMex.Conf.Leader{
+        if  metadata.GetLeaderIp(clustermetadata.PRI) == "" && 
+            this.pMex.Conf.Leader != nil &&
+            myPrivateIp == *this.pMex.Conf.Leader{
+
             metadata.SetRole(clustermetadata.LEADER)
             return this.joinConfAddExecute(intLog,metadata)
         }
-        var failureDescr = `cluster already created and settend, New conf can only be applied 
-        when the cluster is still yet to be configured in the first place,
-        in all other cases this call will do noting.
+        var failureDescr = `invalid new configuration, New conf can only be applied 
+        when the cluster is still yet to be configured in the first place and the leader given
+        must coincide with the leader of the node you are sending the message.
+        In all other cases this call will do noting.
         If you want to change the conf use ADD or REM`
         log.Println(failureDescr)
         return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE,nil, failureDescr)
