@@ -50,7 +50,7 @@ type LogEntry interface {
     getLogState() *logEntryImp
 }
 
-func NewLogEntry(oldEntries []*protobuf.LogEntry, applicationC bool) LogEntry {
+func NewLogEntry() LogEntry {
     return newLogImpMaster()
 }
 

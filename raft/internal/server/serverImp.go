@@ -196,41 +196,41 @@ func (s *server) run() {
 
 
 func (s *server) newMessageReceived(mess pairMex){
-            var rpcCall rpcs.Rpc
-            var resp rpcs.Rpc
-            var byEnc []byte
-            var errEn error
-            var senderNode node.Node 
-            var senderState nodestate.NodeState = nil
+    var rpcCall rpcs.Rpc
+    var resp rpcs.Rpc
+    var byEnc []byte
+    var errEn error
+    var senderNode node.Node 
+    var senderState nodestate.NodeState = nil
 
-            senderNode,errEn = s.GetNode(mess.sender)
-            if errEn != nil {
-                var v,f = s.clientList.Load(mess.sender)
-                if !f{
-                    log.Println(errEn)
-                    return
-                }
-                senderNode = v.(node.Node)
-            }
-            if strings.Contains(mess.sender,"10.0.0") && s.GetRole() == clustermetadata.LEADER{
-                senderState,errEn = s.FetchNodeInfo(mess.sender)
-                if errEn != nil{
-                    log.Panicf("nodestate for node %v not exist\n",mess.sender)
-                }
-            }
-            rpcCall = mess.payload
-            resp = rpcCall.Execute(s.ConfPool, s.ClusterMetadata,s.ConfPool, senderState)
+    senderNode,errEn = s.GetNode(mess.sender)
+    if errEn != nil {
+        var v,f = s.clientList.Load(mess.sender)
+        if !f{
+            log.Println(errEn)
+            return
+        }
+        senderNode = v.(node.Node)
+    }
+    if strings.Contains(mess.sender,"10.0.0") && s.GetRole() == clustermetadata.LEADER{
+        senderState,errEn = s.FetchNodeInfo(mess.sender)
+        if errEn != nil{
+            log.Panicf("nodestate for node %v not exist\n",mess.sender)
+        }
+    }
+    rpcCall = mess.payload
+    resp = rpcCall.Execute(s.ConfPool, s.ClusterMetadata,s.ConfPool, senderState)
 
-            if resp != nil {
-                log.Println("sending resp to caller RPC: ", resp.ToString())
-                byEnc, errEn = genericmessage.Encode(resp)
-                if errEn != nil{
-                    log.Panicln("error encoding this rpc: ", resp.ToString())
-                }
-                senderNode.Send(byEnc)
-            }
+    if resp != nil {
+        log.Println("sending resp to caller RPC: ", resp.ToString())
+        byEnc, errEn = genericmessage.Encode(resp)
+        if errEn != nil{
+            log.Panicln("error encoding this rpc: ", resp.ToString())
+        }
+        senderNode.Send(byEnc)
+    }
 
-            mess.workdone <- 1
+    mess.workdone <- 1
 }
 
 func (s *server) startElection(){

@@ -11,7 +11,6 @@ import (
 	clustermetadata "raft/internal/raftstate/clusterMetadata"
 	nodeIndexPool "raft/internal/raftstate/confPool/NodeIndexPool"
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
-	"raft/internal/raftstate/confPool/queue"
 	singleconf "raft/internal/raftstate/confPool/singleConf"
 	"raft/internal/rpcs/UpdateNode"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
@@ -29,10 +28,8 @@ type tuple struct {
 type confPool struct {
     lock         sync.Locker
 
-	fsRootDir    string
 	mainConf     singleconf.SingleConf
 	newConf      singleconf.SingleConf
-	confQueue    queue.Queue[tuple]
 	emptyNewConf chan int
 	nodeList     sync.Map
 	numNodes     uint
@@ -145,7 +142,7 @@ func (c *confPool) appendEntryToConf(){
 
             if entry.Entry.OpType == protobuf.Operation_JOIN_CONF_FULL{
                 <-c.emptyNewConf
-                //TODO: critical case 1 of change in configuration.
+                //INFO: critical case 1 of change in configuration.
                 //updated all the new nodes until they are all pared
                 var newConf = c.extractConfPayloadConf(entry.Entry)
                 c.updateNewerNode(newConf)
@@ -240,7 +237,7 @@ func (c *confPool) checkIfNodeIsUpdated(nNode node.Node){
 
 // daemon
 
-//INFO: manage case of the node not yes present in the network
+//INFO: manage case of the node not yet present in the network
 func (c *confPool) checkNodeToUpdate(){
     var changeVoteRight = UpdateNode.ChangeVoteRightNode(false)
     var rawMex,err = genericmessage.Encode(changeVoteRight)
@@ -265,6 +262,7 @@ func (c *confPool) increaseCommitIndex() {
     color.Cyan("commit Index: waiting commit of main conf on ch: %v\n",c.mainConf.CommiEntryC())
     var activeC = <-c.mainConf.CommiEntryC()
 
+    //TODO: to explain
     if activeC == 0{
         return
     }
@@ -283,7 +281,6 @@ func (c *confPool) updateLastApplied() {
 	for {
         color.Cyan("waiting to apply new entry")
         var toApplyIdx = <- c.ApplyEntryC()
-        color.Red("ready to apply new entry")
 		var entr = c.GetEntriAt(int64(toApplyIdx))
 
         color.Cyan("applying new entry: %v",entr)
@@ -345,8 +342,6 @@ func (c *confPool) updateLastApplied() {
         default:
             log.Panicln("unrecognized opration: ",entr.Entry.OpType)
         }
-
-        color.Red("finish switch")
 	}
 }
 
@@ -356,27 +351,23 @@ func confPoolImpl(rootDir string, commonMetadata clustermetadata.ClusterMetadata
 
 		mainConf:         nil,
 		newConf:          nil,
-		confQueue:        queue.NewQueue[tuple](),
 		emptyNewConf:     make(chan int),
 		nodeList:         sync.Map{},
         toUpdateNode:     map[string]string{},
         signalNewNode:    make(chan string),
 		numNodes:         0,
-		fsRootDir:        rootDir,
 		NodeIndexPool:    nodeIndexPool.NewLeaederCommonIdx(),
 		commonMetadata:   commonMetadata,
         entryToCommiC:    make(chan int),
-        LogEntry: raft_log.NewLogEntry(nil,true),
+        LogEntry: raft_log.NewLogEntry(),
         LocalFs: localfs.NewFs(rootDir),
 	}
-	var mainConf = singleconf.NewSingleConf(
+	res.mainConf = singleconf.NewSingleConf(
 		nil,
 		res.LogEntry,
 		&res.nodeList,
 		res.NodeIndexPool,
 		res.commonMetadata)
-
-	res.mainConf = mainConf
 
     go res.appendEntryToConf()
 	go res.updateLastApplied()
