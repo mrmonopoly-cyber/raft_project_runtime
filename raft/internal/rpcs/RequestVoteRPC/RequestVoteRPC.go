@@ -105,9 +105,11 @@ func (this *RequestVoteRPC) Execute(
     intLog.LastLogTerm(), this.pMex.GetLastLogTerm())
 
     
-    if (this.pMex.Term >= metadata.GetTerm()) && (myVote == "" || myVote == this.pMex.CandidateId) &&
+    if  (this.pMex.Term >= metadata.GetTerm()) && 
+        (myVote == "" || myVote == this.pMex.CandidateId) &&
         (this.pMex.LastLogIndex >= int64(intLog.LastLogIndex())) && 
         (this.pMex.LastLogTerm >= uint64(intLog.LastLogTerm())){
+
             metadata.VoteFor(this.pMex.CandidateId)
             log.Println("vote accepted")
             return this.respondeVote(metadata,&senderIp,true)

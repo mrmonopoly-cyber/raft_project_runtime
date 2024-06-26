@@ -122,7 +122,9 @@ func (c *confPool) MinimumCommitIndex(val uint){
     var newCommitIndex = c.GetCommitIndex()
     var applyC = c.ApplyEntryC()
     for i := oldCommitIndex; i <= newCommitIndex; i++ {
-        applyC <- 1
+        go func(){
+            applyC <- 1 //TODO: test parallelism
+        }()
     }
 }
 

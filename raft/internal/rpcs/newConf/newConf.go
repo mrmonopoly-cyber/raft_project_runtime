@@ -34,6 +34,7 @@ func (this* NewConf) Execute(
             metadata clustermetadata.ClusterMetadata, 
             confMetadata confmetadata.ConfMetadata,
             senderState nodestate.NodeState) rpcs.Rpc{
+
     var myPrivateIp = metadata.GetMyIp(clustermetadata.PRI)
 
     switch this.pMex.Op{
@@ -109,7 +110,7 @@ func (this *NewConf) joinConfAddExecute(
     var newConfLog = intLog.NewLogInstance(&newEntryBaseEntry)
     log.Println("appending log entry: ",newConfLog)
 
-    metadata.SetRole(clustermetadata.LEADER)
+    metadata.SetRole(clustermetadata.LEADER) //FIX: to removed useless
     intLog.AppendEntry([]*raft_log.LogInstance{newConfLog},-2)
 
     return exitSucess
