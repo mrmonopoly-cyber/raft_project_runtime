@@ -7,6 +7,8 @@ import (
 	nodestate "raft/internal/raftstate/confPool/NodeIndexPool/nodeState"
 	confmetadata "raft/internal/raftstate/confPool/singleConf/confMetadata"
 	"raft/internal/rpcs"
+	"raft/internal/rpcs/clientReturnValue"
+	"raft/internal/utiliy"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 
 	"google.golang.org/protobuf/proto"
@@ -14,6 +16,7 @@ import (
 
 type ClientReq struct {
     pMex protobuf.ClientReq
+    returnValue chan []byte
 }
 
 
@@ -24,20 +27,29 @@ func (this *ClientReq) Execute(
             confMetadata confmetadata.ConfMetadata,
             senderState nodestate.NodeState) rpcs.Rpc {
     var operation protobuf.Operation = (*this).pMex.Op
-    var newEntries []*protobuf.LogEntry =make([]*protobuf.LogEntry, 1)
-    var newLogEntry protobuf.LogEntry = protobuf.LogEntry{}
-    var newLogEntryWrp []*raft_log.LogInstance = intLog.NewLogInstanceBatch(newEntries,[]func(){})
-
-    newLogEntry.Term = metadata.GetTerm()
-    newEntries[0] = &newLogEntry
-
-    newLogEntry.OpType = operation
-
-    newLogEntry.Description = "new " + string(operation) + " operation on file" + string((*this).pMex.Others)
+    var newLogEntry protobuf.LogEntry = protobuf.LogEntry{
+        Term: metadata.GetTerm(),
+        OpType: operation,
+        Description:    "new " + 
+                        string(operation) + 
+                        " operation on file" + 
+                        string((*this).pMex.Others)}
+    var newLogEntryWrp = intLog.NewLogInstanceBatch([]*protobuf.LogEntry{&newLogEntry})
+    newLogEntryWrp[0].ReturnValue = make(chan utiliy.Pair[[]byte, error])
 
     intLog.AppendEntry(newLogEntryWrp,-2)
 
-    return nil
+    var returnValue = <- newLogEntryWrp[0].ReturnValue
+
+    var exitStatus = returnValue.Snd
+    var retValue = returnValue.Fst
+    var exitReturnValue protobuf.STATUS = protobuf.STATUS_SUCCESS
+
+    if exitStatus != nil{
+        exitReturnValue = protobuf.STATUS_FAILURE
+    }
+
+    return clientReturnValue.NewclientReturnValueRPC(exitReturnValue, retValue, exitStatus.Error())
 }
 
 // ToString implements rpcs.Rpc.
@@ -61,5 +73,6 @@ func (this *ClientReq) Decode(b []byte) error {
     if err != nil {
         log.Panicln("error in Encoding Request Vote: ", err)
     }
+    this.returnValue = make(chan []byte)
 	return err
 }

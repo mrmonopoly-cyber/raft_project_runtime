@@ -1,6 +1,7 @@
 package raft_log
 
 import (
+	"raft/internal/utiliy"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	p "raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 )
@@ -9,7 +10,7 @@ const SEPARATOR = "K"
 
 type LogInstance struct {
 	Entry             *p.LogEntry
-    AtCompletion    func() 
+    ReturnValue       chan utiliy.Pair[[]byte,error]
 }
 
 type logEntryWrite interface {
@@ -33,8 +34,8 @@ type LogEntryRead interface {
 	LastLogIndex() int
 	LastLogTerm() uint
 
-    NewLogInstance(entry *p.LogEntry, post func()) *LogInstance
-    NewLogInstanceBatch(entry []*p.LogEntry, post []func()) []*LogInstance
+    NewLogInstance(entry *p.LogEntry) *LogInstance
+    NewLogInstanceBatch(entry []*p.LogEntry) []*LogInstance
 
 }
 
@@ -49,7 +50,7 @@ type LogEntry interface {
     getLogState() *logEntryImp
 }
 
-func NewLogEntry(oldEntries []*protobuf.LogEntry, applicationC bool) LogEntry {
+func NewLogEntry() LogEntry {
     return newLogImpMaster()
 }
 

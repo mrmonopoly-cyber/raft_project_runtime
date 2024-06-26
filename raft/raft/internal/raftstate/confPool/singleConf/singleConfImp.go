@@ -62,19 +62,19 @@ func (s *singleConfImp) SendHearthbit(){
                 int64(nextIndex)-1,
                 prevEntr.Entry.Term,
                 entries)
-            }else {
-                hearthbit = AppendEntryRpc.GenerateHearthbeat(s.LogEntrySlave,s.ClusterMetadata)
-            }
+        }else {
+            hearthbit = AppendEntryRpc.GenerateHearthbeat(s.LogEntrySlave,s.ClusterMetadata)
+        }
 
-            rawMex,err = genericmessage.Encode(hearthbit)
-            if err != nil{
-                log.Panicln(err)
-            }
+        rawMex,err = genericmessage.Encode(hearthbit)
+        if err != nil{
+            log.Panicln(err)
+        }
 
-            err = nNode.Send(rawMex)
-            if err != nil {
-                log.Println(err)
-            }
+        err = nNode.Send(rawMex)
+        if err != nil {
+            log.Println(err)
+        }
         
     }
 }

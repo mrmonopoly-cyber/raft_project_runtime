@@ -11,5 +11,6 @@ enum STATUS{
 
 message ClientReturnValue{
     STATUS exitStatus =1;
-    string description =2;
+    bytes returnValue =2;
+    string description =3;
 }

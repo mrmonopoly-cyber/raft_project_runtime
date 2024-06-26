@@ -34,31 +34,36 @@ func (this* NewConf) Execute(
             metadata clustermetadata.ClusterMetadata, 
             confMetadata confmetadata.ConfMetadata,
             senderState nodestate.NodeState) rpcs.Rpc{
+
     var myPrivateIp = metadata.GetMyIp(clustermetadata.PRI)
 
     switch this.pMex.Op{
     case protobuf.AdminOp_CHANGE_CONF_NEW:
-        if metadata.GetLeaderIp(clustermetadata.PRI) == "" && myPrivateIp == *this.pMex.Conf.Leader{
+        if  metadata.GetLeaderIp(clustermetadata.PRI) == "" && 
+            this.pMex.Conf.Leader != nil &&
+            myPrivateIp == *this.pMex.Conf.Leader{
+
             metadata.SetRole(clustermetadata.LEADER)
             return this.joinConfAddExecute(intLog,metadata)
         }
-        var failureDescr = `cluster already created and settend, New conf can only be applied 
-        when the cluster is still yet to be configured in the first place,
-        in all other cases this call will do noting.
+        var failureDescr = `invalid new configuration, New conf can only be applied 
+        when the cluster is still yet to be configured in the first place and the leader given
+        must coincide with the leader of the node you are sending the message.
+        In all other cases this call will do noting.
         If you want to change the conf use ADD or REM`
         log.Println(failureDescr)
-        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureDescr)
+        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE,nil, failureDescr)
     case protobuf.AdminOp_CHANGE_CONF_CHANGE:
         if metadata.GetRole() == clustermetadata.LEADER{
             return this.joinConfAddExecute(intLog,metadata)
         }
         var failureMex = "i'm not leader, i cannot change conf"
         log.Println(failureMex)
-        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failureMex)
+        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE,nil, failureMex)
     default:
         var failDescr = "invalid new conf request type: " + this.pMex.Op.String()
         log.Println(failDescr)
-        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE, failDescr)
+        return ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_FAILURE,nil, failDescr)
     }
 }
 
@@ -91,7 +96,7 @@ func (this *NewConf) joinConfAddExecute(
                         intLog raft_log.LogEntry,
                         metadata clustermetadata.ClusterMetadata) rpcs.Rpc{
 
-    var exitSucess rpcs.Rpc = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,"")
+    var exitSucess rpcs.Rpc = ClientReturnValue.NewclientReturnValueRPC(protobuf.STATUS_SUCCESS,nil,"")
     var newEntryBaseEntry = protobuf.LogEntry{
         Term: metadata.GetTerm(),
         OpType: protobuf.Operation_JOIN_CONF_FULL,
@@ -102,10 +107,10 @@ func (this *NewConf) joinConfAddExecute(
         newEntryBaseEntry.Payload = append(newEntryBaseEntry.Payload, raft_log.SEPARATOR...)
     }
 
-    var newConfLog = intLog.NewLogInstance(&newEntryBaseEntry,nil)
+    var newConfLog = intLog.NewLogInstance(&newEntryBaseEntry)
     log.Println("appending log entry: ",newConfLog)
 
-    metadata.SetRole(clustermetadata.LEADER)
+    metadata.SetRole(clustermetadata.LEADER) //FIX: to removed useless
     intLog.AppendEntry([]*raft_log.LogInstance{newConfLog},-2)
 
     return exitSucess
