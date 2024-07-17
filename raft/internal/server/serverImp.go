@@ -238,6 +238,7 @@ func (s *server) startElection(){
     
     s.ResetElection()
     s.SetTerm(s.GetTerm()+1)
+    s.VoteFor(s.GetMyIp(clustermetadata.PRI))
 
     var candidature rpcs.Rpc = RequestVoteRPC.NewRequestVoteRPC(s.ClusterMetadata,s.ConfPool)
     var conf = s.GetConfig()
