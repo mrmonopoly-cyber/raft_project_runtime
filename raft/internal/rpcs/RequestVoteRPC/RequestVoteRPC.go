@@ -10,16 +10,19 @@ import (
 	"raft/internal/rpcs/RequestVoteResponse"
 	"raft/pkg/raft-rpcProtobuf-messages/rpcEncoding/out/protobuf"
 	"strconv"
+	"sync"
 
 	"google.golang.org/protobuf/proto"
 )
 
 type RequestVoteRPC struct {
+    lock sync.RWMutex
 	pMex protobuf.RequestVote
 }
 
 func NewRequestVoteRPC(metadata clustermetadata.ClusterMetadata, intLog raft_log.LogEntry) rpcs.Rpc {
     return &RequestVoteRPC{
+        lock: sync.RWMutex{},
         pMex : protobuf.RequestVote{
             Term: metadata.GetTerm(),
             CandidateId: metadata.GetMyIp(clustermetadata.PRI),
@@ -82,6 +85,10 @@ func (this *RequestVoteRPC) Execute(
             metadata clustermetadata.ClusterMetadata,
             confMetadata confmetadata.ConfMetadata,
             senderState nodestate.NodeState) rpcs.Rpc{
+
+    this.lock.Lock()
+    defer this.lock.Unlock()
+
 	var myVote string = metadata.GetVoteFor()
 	var senderIp = this.pMex.GetCandidateId()
 
