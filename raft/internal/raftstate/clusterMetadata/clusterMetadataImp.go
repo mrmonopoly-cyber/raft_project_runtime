@@ -4,6 +4,7 @@ import (
 	"log"
 	"math/rand"
 	"raft/internal/raftstate/timeout"
+	"sync"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type clusterMetadataImp struct {
 	voteFor string
 	voting  bool
 
+    lockSupporter sync.RWMutex
 	nSupporting    uint
 	nNotSupporting uint
 
@@ -25,16 +27,25 @@ type clusterMetadataImp struct {
 
 // GetNumNotSupporters implements ClusterMetadata.
 func (c *clusterMetadataImp) GetNumNotSupporters() uint {
+    c.lockSupporter.RLock()
+    defer c.lockSupporter.RUnlock()
+
 	return c.nNotSupporting
 }
 
 // GetNumSupporters implements ClusterMetadata.
 func (c *clusterMetadataImp) GetNumSupporters() uint {
+    c.lockSupporter.RLock()
+    defer c.lockSupporter.RUnlock()
+
     return c.nSupporting
 }
 
 // UpdateSupportersNum implements ClusterMetadata.
 func (c *clusterMetadataImp) UpdateSupportersNum(op SUPP_OP) {
+    c.lockSupporter.Lock()
+    defer c.lockSupporter.Unlock()
+
 	switch op {
 	case INC:
 		c.nSupporting++
@@ -91,6 +102,9 @@ func (c *clusterMetadataImp) GetVoteFor() string {
 
 // ResetElection implements ClusterMetadata.
 func (c *clusterMetadataImp) ResetElection() {
+    c.lockSupporter.Lock()
+    defer c.lockSupporter.Unlock()
+
 	c.nNotSupporting = 0
 	c.nSupporting = 1
 	c.voteFor = ""
@@ -159,6 +173,7 @@ func newClusterMetadataImp(idPrivate string, idPublic string) *clusterMetadataIm
 		term:           0,
 		voteFor:        "",
 		voting:         true,
+        lockSupporter: sync.RWMutex{},
 		nSupporting:    0,
 		nNotSupporting: 0,
 		TimeoutPool:    timeout.NewTimeoutPool(),
