@@ -45,7 +45,7 @@ echo $my_ip_private > $my_ip_pos
 echo $my_ip_public >> $my_ip_pos
 echo "setted ips"
 
-while [[ $(wc -l $others_ip_pos_work | cut -d -f 1) -lt 1 ]]; do
+while [[ $(wc -l $others_ip_pos_work | cut -d' ' -f 1) -lt 1 ]]; do
     sleep 1
 done
 cp $others_ip_pos_work $others_ip_pos
