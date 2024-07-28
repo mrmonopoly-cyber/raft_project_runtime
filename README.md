@@ -43,6 +43,9 @@ Raft Project Runtime implements the Raft consensus algorithm for distributed sys
    ```
 
 3. **Set up the environment**:
+
+Right now the automatic setup only works on Arch-Linux
+
    ```sh
    ./env_setup/setup.sh
    ```
