@@ -1,0 +1,33 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Preambolo}{3}{}%
+\contentsline {section}{\numberline {2}Composizione di un cluster}{4}{}%
+\contentsline {section}{\numberline {3}Obbiettivi}{4}{}%
+\contentsline {section}{\numberline {4}Soluzioni}{5}{}%
+\contentsline {section}{\numberline {5}PIB}{5}{}%
+\contentsline {subsection}{\numberline {5.1}elementi}{5}{}%
+\contentsline {subsubsection}{\numberline {5.1.1}nodi}{5}{}%
+\contentsline {subsubsection}{\numberline {5.1.2}gestore dei nodi e della rete}{5}{}%
+\contentsline {subsubsection}{\numberline {5.1.3}sistema operativo}{5}{}%
+\contentsline {subsection}{\numberline {5.2}RAFT per il consenso distribuito}{5}{}%
+\contentsline {subsubsection}{\numberline {5.2.1}motivazioni}{5}{}%
+\contentsline {subsubsection}{\numberline {5.2.2}limiti}{5}{}%
+\contentsline {subsection}{\numberline {5.3}dettagli implementativi dell'applicativo}{5}{}%
+\contentsline {subsubsection}{\numberline {5.3.1}obbiettivi}{5}{}%
+\contentsline {subsubsection}{\numberline {5.3.2}struttura del codice}{5}{}%
+\contentsline {subsubsection}{\numberline {5.3.3}funzionamento}{5}{}%
+\contentsline {subsubsection}{\numberline {5.3.4}limiti}{5}{}%
+\contentsline {section}{\numberline {6}tool di configurazione}{5}{}%
+\contentsline {subsection}{\numberline {6.1}obbiettivi}{5}{}%
+\contentsline {subsection}{\numberline {6.2}utilizzo}{5}{}%
+\contentsline {subsection}{\numberline {6.3}limiti}{5}{}%
+\contentsline {section}{\numberline {7}valutazioni}{5}{}%
+\contentsline {subsection}{\numberline {7.1}raggiugimento obbiettivi}{5}{}%
+\contentsline {subsection}{\numberline {7.2}difficolta' riscontrate}{5}{}%
+\contentsline {subsubsection}{\numberline {7.2.1}alto livello di concorrenza e distribuzione}{5}{}%
+\contentsline {subsubsection}{\numberline {7.2.2}modularizzazione}{5}{}%
+\contentsline {subsubsection}{\numberline {7.2.3}implementazione del protocollo raft}{5}{}%
+\contentsline {subsubsection}{\numberline {7.2.4}organizzazione dei test}{5}{}%
+\contentsline {subsubsection}{\numberline {7.2.5}raccolta' dei log}{5}{}%
+\contentsline {subsubsection}{\numberline {7.2.6}automatizzare il processo di deployment (in produzione) del cluster}{5}{}%
+\contentsline {subsubsection}{\numberline {7.2.7}comprensione del cambio di configurazione del protocollo raft}{5}{}%
+\contentsline {subsubsection}{\numberline {7.2.8}riconoscimento dei casi di race condition}{5}{}%
