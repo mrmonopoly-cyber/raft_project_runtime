@@ -1,27 +1,17 @@
 \documentclass[a4paper]{article}
-\usepackage[english]{babel}
+\usepackage[italian]{babel}
 \usepackage[T1]{fontenc}
 \usepackage{amsmath}
 \usepackage{mathtools}
 \usepackage{amssymb}
 \usepackage{stmaryrd}
 
-\newcommand{\newAuthor}[2]{#1\\
-Dipartimento di Matematica "Tullio Levi-Civita"\\
-Universita' di Padova \\
-Padova, Italia,\\
-#2
-}
+\title{PIB: Una soluzione alla complessità di installazione dei cluster moderni}
+\author{Alberto Damo \and Alessandro Pirolo}
+\date{August 30, 2024}
 
 \begin{document}
 
-\author{
-    \newAuthor{Alberto Damo}{alberto.damo@studenti.unipd.it}\and
-    \newAuthor{Alessandro Pirolo}{alessandro.pirolo@studenti.unipd.it}
-}
-\title{PIB: Una soluzione alla complessita' di installazione dei cluster moderni}
-
-\date{\today}
 \maketitle
 
 \newpage
@@ -29,107 +19,112 @@ Padova, Italia,\\
 \newpage
 
 \section{Preambolo}
-Il mondo di oggi e' estremamente interconnesso e complesso, per questa ragione oramai ogni 
-applicativo pensato per il grande pubblico deve essere in grado di  garantire l'affidabilita' 
-del servizio in ogni momento. Per risolvere questi problemi vengono spesso usati dei sistemi
-distribuiti in rete, detti anche \textbf{cluster}, che permettono di garantire la scalabilita' e
-l'affidabilita' del serverzio in ogni momento. Questi ultimi pero' sono estremamente complessi e, 
-soprattutto, difficili da installare. Per rendersene conto e' sufficente seguire la procedura 
-di configurazione di un cluster \textbf{Kubernetes} o \textbf{Ceph}.
-In entrambi i casi la procedura e' delicata e richiede molto tempo per essere conclusa a meno 
-che non si utilizzino strumenti esterni per facilitare il lavoro, per quanto 
-non siano sempre affidabili. Tale complessita' risiede, tra i tanti fattori, nell'architettura 
-scelta per modellare il sistema, la quale, solitamente, e' di tipo \textbf{Orchestrator}. 
-Tale modello offre numerosi vantaggi a un costo pero': i nodi che compongono il cluster non sono 
-omogenei.
-Tale dettaglio, per quanto sembri insignificante, e' cio' che rende complessa la procedura di 
-configurazione, aggiornamento e mantenimento del cluster. In questo paper tratteremo di come 
-abbiamo creato un cluster che garantisca le richieste di affidabilita' necessarie permettendo 
-inoltre una veloce e semplice installazione/configurazione.
-
-\newpage
+Il mondo di oggi è estremamente interconnesso e complesso. Per questa ragione, ogni applicativo pensato per il grande pubblico deve garantire l'affidabilità del servizio in ogni momento. Per risolvere questi problemi, vengono spesso utilizzati sistemi distribuiti in rete, detti anche cluster, che permettono di garantire la scalabilità e l'affidabilità del servizio. Tuttavia, questi sistemi sono estremamente complessi e difficili da installare. Basti pensare alla procedura di configurazione di un cluster Kubernetes o Ceph, che è delicata e richiede molto tempo per essere completata, a meno che non si utilizzino strumenti esterni per facilitare il lavoro, che non sempre sono affidabili. Tale complessità risiede, tra i tanti fattori, nell'architettura scelta per modellare il sistema, solitamente di tipo Orchestrator. Questo modello offre numerosi vantaggi, ma a un costo: i nodi che compongono il cluster non sono omogenei. Questo dettaglio, per quanto sembri insignificante, è ciò che rende complessa la procedura di configurazione, aggiornamento e mantenimento del cluster. In questo paper descriveremo come abbiamo creato un cluster che garantisce le richieste di affidabilità necessarie, permettendo inoltre una veloce e semplice installazione/configurazione.
 
 \section{Composizione di un cluster}
-Prima di poter analizzare quali siano i nostri obbiettivi, come li abbiamo raggiunti
-e del perche' siano state fatte determinate scelte e' necessario descrivere gli elementi 
-che compongono un cluster e le loro caratteristiche:
+Prima di poter analizzare i nostri obiettivi, come li abbiamo raggiunti e perché siano state fatte determinate scelte, è necessario descrivere gli elementi che compongono un cluster e le loro caratteristiche:
+
 \begin{itemize}
-    \item \textbf{nodi}: sono dei computer che si occupano di svolgere la computazione necessaria
-        per mantenere il servizio attivo. 
-        Questi elementi possono essere fisici (servers dedicati)
-        o virtuali (virtual machines, containers).
-    \item \textbf{gestore dei nodi}: questo componente si occupa dell'aggiunta, rimozione
-        e sostituzione dei nodi nel cluster. Puo' essere un \textbf{hypervisor}, nel caso
-        i nodi siamo virtuali, o un \textbf{operatore} nel caso i nodi siano reali server.
-        E' probabile che ci siano piu' gestori, in particolar modo se i nodi sono distanti tra di
-        loro da un punto di vista geografico.
-    \item \textbf{gestore di rete}: questo componente si occupa della gestione delle connessioni 
-        interne ed esterne al cluster. In particolar modo si occupa dell'assegnazione degli 
-        indirizzi di rete ai nodi (e' possibile che ogni nodo abbia piu' interfaccie di rete e 
-        quindi piu' indirizzi IP)
-    \item \textbf{sistema operativo}: nonostante appartenga al nodo il sistema operativo deve essere
-        progettato su misura per il cluster in quanto anche questo componente e' responsabile
-        per la corretta operativita' dell'intera infrastruttura. 
-        In particolar modo dovra':
+    \item \textbf{Nodi}: Sono i computer che si occupano della computazione necessaria per mantenere il servizio attivo. Possono essere fisici (server dedicati) o virtuali (macchine virtuali, container).
+    \item \textbf{Gestore dei nodi}: Questo componente si occupa dell'aggiunta, rimozione e sostituzione dei nodi nel cluster. Può essere un hypervisor, nel caso i nodi siano virtuali, o un operatore, nel caso i nodi siano server reali. È probabile che ci siano più gestori, soprattutto se i nodi sono geograficamente distanti.
+    \item \textbf{Gestore di rete}: Questo componente gestisce le connessioni interne ed esterne al cluster. In particolare, si occupa dell'assegnazione degli indirizzi di rete ai nodi (è possibile che ogni nodo abbia più interfacce di rete e quindi più indirizzi IP).
+    \item \textbf{Sistema operativo}: Sebbene appartenga al nodo, il sistema operativo deve essere progettato su misura per il cluster, poiché anche questo componente è responsabile per la corretta operatività dell'intera infrastruttura. In particolare, dovrà:
     \begin{itemize}
-        \item ottenere gli indirizzi di rete (e' possibile siano piu' di uno per ogni node)
-        \item eseguire una diagnostica interna sullo stato della macchina
-        \item eseguire eventuali programmi o daemon responsabili delle funzionalita' del cluster
-            e degli applicativi
+        \item Ottenere gli indirizzi di rete (è possibile siano più di uno per ogni nodo).
+        \item Eseguire una diagnostica interna sullo stato della macchina.
+        \item Eseguire eventuali programmi o daemon responsabili delle funzionalità del cluster e degli applicativi.
     \end{itemize}
 \end{itemize}
 
+\section{Obiettivi}
+Come già accennato, il nostro obiettivo è realizzare un cluster che sia allo stesso tempo affidabile e semplice da configurare/installare.
 
-\section{Obbiettivi}
-Come gia' accennato il nostro obbiettivo e' di realizzare un cluster che sia allo stesso tempo
-\textbf{affidabile} e \textbf{semplice da configurare}/\textbf{installare}.
-
-\begin{flushleft}
-In particolare il sistema dovra':
-\end{flushleft}
-
+In particolare, il sistema dovrà:
 \begin{itemize}
-    \item{permettere la \textbf{scalabilita'} del servizio aumentando o diminuendo il numero di nodi
-        senza interrompere i servizi forniti.}
-    \item{garantire la \textbf{disponibilita'} del servizio anche in caso di guasti sia a livello fisico 
-        (servers, rete), sia a livello software 
-        (crush del sistema operativo o dell'applicativo stesso).}
-    \item{integrare dei tool per l'\textbf{interazione} dell'amministratore con il cluster.}
-    \item{essere privo di \textbf{single point of failure}}
-    \item{avere tutti i nodi del cluster uguali tra di loro a livello strutturale}
+    \item Permettere la scalabilità del servizio aumentando o diminuendo il numero di nodi senza interrompere i servizi forniti.
+    \item Garantire la disponibilità del servizio anche in caso di guasti sia a livello fisico (server, rete), sia a livello software (crash del sistema operativo o dell'applicativo stesso).
+    \item Integrare tool per l'interazione dell'amministratore con il cluster.
+    \item Essere privo di single point of failure.
+    \item Avere tutti i nodi del cluster uguali tra di loro a livello strutturale.
 \end{itemize}
 
 \section{Soluzioni}
+% Sezione vuota per scaletta
 
 \section{PIB}
-\subsection{elementi}
-\subsubsection{nodi}
-\subsubsection{gestore dei nodi e della rete}
-\subsubsection{sistema operativo}
+\subsection{Elementi}
+\subsubsection{Nodi}
+% Sezione vuota per scaletta
+
+\subsubsection{Gestore dei nodi e della rete}
+% Sezione vuota per scaletta
+
+\subsubsection{Sistema operativo}
+% Sezione vuota per scaletta
+
 \subsection{RAFT per il consenso distribuito}
-\subsubsection{motivazioni}
-\subsubsection{limiti}
-\subsection{dettagli implementativi dell'applicativo}
-\subsubsection{obbiettivi}
-\subsubsection{struttura del codice}
-\subsubsection{funzionamento}
-\subsubsection{limiti}
+\subsubsection{Motivazioni}
+% Sezione vuota per scaletta
 
-\section{tool di configurazione}
-\subsection{obbiettivi}
-\subsection{utilizzo}
-\subsection{limiti}
+\subsubsection{Applicazione}
+% Sezione vuota per scaletta
 
-\section{valutazioni}
-\subsection{raggiugimento obbiettivi}
-\subsection{difficolta' riscontrate}
-\subsubsection{alto livello di concorrenza e distribuzione}
-\subsubsection{modularizzazione}
-\subsubsection{implementazione del protocollo raft}
-\subsubsection{organizzazione dei test}
-\subsubsection{raccolta' dei log}
-\subsubsection{automatizzare il processo di deployment (in produzione) del cluster}
-\subsubsection{comprensione del cambio di configurazione del protocollo raft}
-\subsubsection{riconoscimento dei casi di race condition}
+\subsubsection{Limiti}
+% Sezione vuota per scaletta
+
+\subsection{Dettagli implementativi dell'applicativo}
+\subsubsection{Obiettivi}
+% Sezione vuota per scaletta
+
+\subsubsection{Struttura del codice}
+% Sezione vuota per scaletta
+
+\subsubsection{Funzionamento}
+% Sezione vuota per scaletta
+
+\subsubsection{Limiti}
+% Sezione vuota per scaletta
+
+\section{Tool di configurazione}
+\subsection{Obiettivi}
+% Sezione vuota per scaletta
+
+\subsection{Utilizzo}
+% Sezione vuota per scaletta
+
+\subsection{Limiti}
+% Sezione vuota per scaletta
+
+\section{Valutazioni}
+\subsection{Raggiungimento obiettivi}
+% Sezione vuota per scaletta
+
+\subsection{Difficoltà riscontrate}
+\subsubsection{Alto livello di concorrenza e distribuzione}
+% Sezione vuota per scaletta
+
+\subsubsection{Modularizzazione}
+% Sezione vuota per scaletta
+
+\subsubsection{Implementazione del protocollo RAFT}
+% Sezione vuota per scaletta
+
+\subsubsection{Organizzazione dei test}
+% Sezione vuota per scaletta
+
+\subsubsection{Raccolta dei log}
+% Sezione vuota per scaletta
+
+\subsubsection{Automatizzare il processo di deployment del cluster in produzione}
+% Sezione vuota per scaletta
+
+\subsubsection{Comprensione del cambio di configurazione del protocollo RAFT}
+% Sezione vuota per scaletta
+
+\subsubsection{Riconoscimento dei casi di race condition}
+% Sezione vuota per scaletta
+
+\subsection{Vincoli e miglioramenti realizzabili}
+% Sezione vuota per scaletta
 
 \end{document}
