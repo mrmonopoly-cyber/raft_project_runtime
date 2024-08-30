@@ -21,6 +21,7 @@
 \section{Preambolo}
 Il mondo di oggi è estremamente interconnesso e complesso. Per questa ragione, ogni applicativo pensato per il grande pubblico deve garantire l'affidabilità del servizio in ogni momento. Per risolvere questi problemi, vengono spesso utilizzati sistemi distribuiti in rete, detti anche cluster, che permettono di garantire la scalabilità e l'affidabilità del servizio. Tuttavia, questi sistemi sono estremamente complessi e difficili da installare. Basti pensare alla procedura di configurazione di un cluster Kubernetes o Ceph, che è delicata e richiede molto tempo per essere completata, a meno che non si utilizzino strumenti esterni per facilitare il lavoro, che non sempre sono affidabili. Tale complessità risiede, tra i tanti fattori, nell'architettura scelta per modellare il sistema, solitamente di tipo Orchestrator. Questo modello offre numerosi vantaggi, ma a un costo: i nodi che compongono il cluster non sono omogenei. Questo dettaglio, per quanto sembri insignificante, è ciò che rende complessa la procedura di configurazione, aggiornamento e mantenimento del cluster. In questo paper descriveremo come abbiamo creato un cluster che garantisce le richieste di affidabilità necessarie, permettendo inoltre una veloce e semplice installazione/configurazione.
 
+\newpage
 \section{Composizione di un cluster}
 Prima di poter analizzare i nostri obiettivi, come li abbiamo raggiunti e perché siano state fatte determinate scelte, è necessario descrivere gli elementi che compongono un cluster e le loro caratteristiche:
 
