@@ -1,4 +1,13 @@
-\documentclass[a4paper]{article}
+\documentclass[acmtog]{acmart}
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    Bib\TeX}}}
+
+%%
+%% These commands are for a JOURNAL article.
+
+\citestyle{acmauthoryear}
 \usepackage[italian]{babel}
 \usepackage[T1]{fontenc}
 \usepackage{amsmath}
@@ -7,16 +16,48 @@
 \usepackage{stmaryrd}
 
 \title{PIB: Una soluzione alla complessità di installazione dei cluster moderni}
-\author{Alberto Damo \and Alessandro Pirolo}
-\date{August 30, 2024}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\author{Alberto Damo}
+\authornote{Entrambi gli autori hanno contribuito equamente a questo progetto.}
+\email{alberto.damo@studenti.unipd.it}
+\author{Alessandro Pirolo}
+\authornotemark[1]
+\email{alessandro.pirolo@studenti.unipd.it}
+\affiliation{%
+  \institution{Università degli Studi di Padova}
+  \city{Padova}
+  \state{Veneto}
+  \country{Italia}
+}
 
+%%
+%% By default, the full list of authors will be used in the page
+%% headers. Often, this list is too long, and will overlap
+%% other information printed in the page headers. This command allows
+%% the author to define a more concise list
+%% of authors' names for this purpose.
+\renewcommand{\shortauthors}{Trovato et al.}
+
+%%
+%% The abstract is a short summary of the work to be presented in the
+%% article.
+\begin{abstract}
+  A clear and well-documented \LaTeX\ document is presented as an
+  article formatted for publication by ACM in a conference proceedings
+  or journal publication. Based on the ``acmart'' document class, this
+  article presents and explains many of the common variations, as well
+  as many of the formatting elements an author may use in the
+  preparation of the documentation of their work.
+\end{abstract}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
 \maketitle
 
-\newpage
-\tableofcontents
-\newpage
 
 \section{Preambolo}
 Il mondo di oggi è estremamente interconnesso e complesso. Per questa ragione, ogni applicativo pensato per il grande pubblico deve garantire l'affidabilità del servizio in ogni momento. Per risolvere questi problemi, vengono spesso utilizzati sistemi distribuiti in rete, detti anche cluster, che permettono di garantire la scalabilità e l'affidabilità del servizio. Tuttavia, questi sistemi sono estremamente complessi e difficili da installare. Basti pensare alla procedura di configurazione di un cluster Kubernetes o Ceph, che è delicata e richiede molto tempo per essere completata, a meno che non si utilizzino strumenti esterni per facilitare il lavoro, che non sempre sono affidabili. Tale complessità risiede, tra i tanti fattori, nell'architettura scelta per modellare il sistema, solitamente di tipo Orchestrator. Questo modello offre numerosi vantaggi, ma a un costo: i nodi che compongono il cluster non sono omogenei. Questo dettaglio, per quanto sembri insignificante, è ciò che rende complessa la procedura di configurazione, aggiornamento e mantenimento del cluster. In questo paper descriveremo come abbiamo creato un cluster che garantisce le richieste di affidabilità necessarie, permettendo inoltre una veloce e semplice installazione/configurazione.
