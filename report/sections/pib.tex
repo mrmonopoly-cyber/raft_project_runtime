@@ -6,9 +6,21 @@
 
 \subsubsection{Gestore dei nodi e della rete}
 % Sezione vuota per scaletta
+Abbiamo progettato l'architettura di rete del cluster con due subnet distinte, ciascuna con ruoli specifici per garantire la separazione tra il traffico pubblico rivolto ai client e la comunicazione interna del cluster:
 
+    Subnet Pubblica (192.168.2.0/24): Questa subnet è basata su NAT, il che significa che i nodi nella rete pubblica possono accedere a internet esterno e comunicare con sistemi esterni, ma non possono comunicare direttamente tra loro all'interno della subnet. Il pool di rete pubblica è riservato ai nodi che devono interagire con servizi o client esterni. In questo intervallo, gli indirizzi 1 e 255 sono riservati rispettivamente all'hypervisor e ai messaggi di broadcast, mentre i restanti indirizzi IP sono assegnati dinamicamente alle VM che necessitano di accesso esterno.
+
+    Subnet Privata (10.0.0.0/24): Questa subnet è utilizzata esclusivamente per la comunicazione intra-cluster. L'abbiamo creata utilizzando un bridge virtuale, che consente a tutti i nodi della subnet di comunicare direttamente tra loro. Tuttavia, questa rete non ha accesso a internet esterno, assicurando che il suo unico scopo sia facilitare la comunicazione tra i nodi per compiti correlati al cluster. Come nella subnet pubblica, gli indirizzi 1 e 255 sono riservati, e il resto dell'intervallo è disponibile per i nodi del cluster.
+
+Separando le subnet pubbliche e private, garantiamo che le richieste dei client e i messaggi intra-cluster siano instradati correttamente senza interferenze. La subnet pubblica gestisce le interazioni con i client, mentre la subnet privata è dedicata alle operazioni interne, come il coordinamento e la replica dello stato tra i nodi, come richiesto dal protocollo Raft. Questa separazione non solo migliora la sicurezza e le prestazioni, ma facilita anche la manutenibilità e la scalabilità del cluster.
 \subsubsection{Sistema operativo}
 % Sezione vuota per scaletta
+Nel nostro cluster, ogni VM esegue Arch Linux come sistema operativo. All'avvio, due demoni chiave vengono avviati automaticamente su ogni nodo.
+
+    raft_daemon.service: Questo demone è responsabile dell'esecuzione del codice relativo al protocollo di consenso Raft, che garantisce che il nostro sistema distribuito mantenga la tolleranza ai guasti e la consistenza tra tutti i nodi.
+
+    discovery.service: Questo demone facilita la scoperta degli indirizzi IP degli altri nodi all'interno della subnet 10.0.0.x/24. Lo fa eseguendo scansioni di rete periodiche utilizzando nmap. Ogni 30 secondi, il processo di discovery recupera e memorizza gli indirizzi IP delle interfacce di rete pubbliche e private degli altri nodi. Questa scoperta continua garantisce che ogni nodo rimanga "consapevole" degli altri nodi all'interno della subnet, mantenendo così una comunicazione continua tra loro.
+
 
 \subsection{Raft per il consenso distribuito}
 \subsubsection{Motivazioni}
