@@ -4,14 +4,47 @@
 % Sezione vuota per scaletta
 
 \subsection{Difficoltà riscontrate}
-\subsubsection{Alto livello di concorrenza e distribuzione}
-% Sezione vuota per scaletta
+Inizialmente, la sfida principale consisteva nella gestione di \textit{libvirt}, in particolare nell'
+impostazione delle macchine virtuali (VM) e nella configurazione di sottoreti distinte per separare la rete 
+pubblica dalla rete privata. A causa della complessità di \textit{libvirt}, comprendere i suoi meccanismi 
+intricati richiedese una ripida curva di apprendimento. Come già accennato, il nostro obiettivo era creare un 
+ambiente *snello e manutenibile*, ma raggiungere questo risultato si è rivelato tutt'altro che semplice.
 
+Uno degli aspetti più impegnativi è stato progettare e sviluppare un sistema distribuito. Questo compito è 
+notoriamente difficile, infatti sistemi di questo callibro presentano una complessità 
+intrinseca e dei requisiti stringenti come, per esempio, la consistenza, la resistenza ai guasti e la 
+coordinazione tra nodi. A questo si aggiunge \textit{Raft}:
+tradurre i suoi principi e le sue linee guida presentate nell'articolo (citare articolo) in una soluzione 
+concreta ha richiesto una quantità di tempo considerevole ed è stata, simultaneamente, una sfida impegnativa da 
+un punto di vista mentale.
+Inoltre, puntavamo a sviluppare un sistema scalabile, con diversi livelli di astrazione e composto da 
+componenti scarsamente accoppiati tra loro. Questo era essenziale poiché, 
+con la crescita del progetto, la gestione del codice diventava sempre più difficile, portando a un crescente 
+debito tecnico. Di conseguenza, abbiamo effettuato diverse revisioni del design architettonico per affrontare 
+questi problemi.
+
+Nonostante i nostri sforzi per limitare il debito tecnico, esso è rimasto una sfida costante. La base del codice 
+diventava vasta e complessa, il che complicava la gestione delle \textit{goroutine} e di tutti gli aspetti 
+relativi alla sincronizzazione tra di esse, e persino il semplice compito di seguire il flusso del sistema. 
+Anche i test si sono rivelati difficili a causa di questa complessità. Abbiamo trovato particolarmente 
+complicato progettare il sistema di configurazione, poiché non fu immediatamente chiaro come inserirlo nel 
+sistema già presente. Abbiamo impiegato tempo e sforzi, sia nella rilettura dell'articolo di riferimento, sia nel
+la ristrutturazione del codice, per arrivare ad una soluzione corretta e funzionante
+
+Un altro ostacolo significativo è stato eseguire le operazioni di \textit{testing} sul sistema. Gestire più 
+macchine virtuali ed effettuare \textit{debug} tramite semplici stampe  
+si è rivelato macchinoso e dispendioso in termini di tempo. Un sistema di \textit{logging} distribuito sarebbe 
+stato una 
+soluzione più efficace, ma implementare un tale sistema avrebbe richiesto un progetto aggiuntivo.
+
+In retrospettiva, bilanciare la complessità tecnica mantenendo al contempo modularità, scalabilità e 
+un'architettura pulita è stata la sfida più grande che abbiamo affrontato durante tutto il progetto.
+\subsubsection{Implementazione del protocollo Raft}
+% Sezione vuota per scaletta
 \subsubsection{Modularizzazione}
 % Sezione vuota per scaletta
 
-\subsubsection{Implementazione del protocollo Raft}
-% Sezione vuota per scaletta
+
 
 \subsubsection{Organizzazione dei test}
 % Sezione vuota per scaletta
