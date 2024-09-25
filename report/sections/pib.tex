@@ -6,31 +6,102 @@
 
 \subsubsection{Gestore dei nodi e della rete}
 % Sezione vuota per scaletta
-Abbiamo progettato l'architettura di rete del cluster con due subnet distinte, ciascuna con ruoli specifici per garantire la separazione tra il traffico pubblico rivolto ai client e la comunicazione interna del cluster:
+Abbiamo progettato l'architettura di rete del \textit{cluste}r con due \textit{subnet} distinte, ciascuna con ruoli specifici per garantire la separazione tra il traffico pubblico rivolto ai \textit{client} e la comunicazione interna del \textit{cluster}:
+\begin{itemize}
+  \item \textit{Subnet} Pubblica (192.168.2.0/24): Questa \textit{subnet} è basata su \textit{NAT}, il che significa che i nodi nella rete pubblica possono accedere a \textit{internet} esterno e comunicare con sistemi esterni, 
+    ma non possono comunicare direttamente tra loro all'interno della \textit{subnet}. Il \textit{pool} di rete pubblica è riservato ai nodi che devono interagire con servizi o client esterni. In questo intervallo, 
+    gli indirizzi 1 e 255 sono riservati rispettivamente all'\textit{hypervisor} e ai messaggi di \textit{broadcast}, mentre i restanti indirizzi IP sono assegnati dinamicamente alle macchine virtuali che necessitano di 
+    accesso esterno.
+  \item \textit{Subnet} Privata (10.0.0.0/24): Questa \textit{subnet} è utilizzata esclusivamente per la comunicazione \textit{intra-cluster}. L'abbiamo creata utilizzando un \textit{bridge} virtuale, che consente a tutti i 
+    nodi della \textit{subnet} di comunicare direttamente tra loro. Tuttavia, questa rete non ha accesso a \textit{internet} esterno, assicurando che il suo unico scopo sia facilitare la comunicazione tra i nodi per compiti 
+    correlati al \textit{cluster}. Come nella \textit{subnet} pubblica, gli indirizzi 1 e 255 sono riservati, e il resto dell'intervallo è disponibile per i nodi del \textit{cluster}.
+\end{itemize}
 
-    Subnet Pubblica (192.168.2.0/24): Questa subnet è basata su NAT, il che significa che i nodi nella rete pubblica possono accedere a internet esterno e comunicare con sistemi esterni, ma non possono comunicare direttamente tra loro all'interno della subnet. Il pool di rete pubblica è riservato ai nodi che devono interagire con servizi o client esterni. In questo intervallo, gli indirizzi 1 e 255 sono riservati rispettivamente all'hypervisor e ai messaggi di broadcast, mentre i restanti indirizzi IP sono assegnati dinamicamente alle VM che necessitano di accesso esterno.
+Separando le \textit{subnet} pubbliche e private, garantiamo che le richieste dei \textit{client} e i messaggi \textit{intra-cluster} siano instradati correttamente senza interferenze. La \textit{subnet} pubblica gestisce 
+le interazioni con i \textit{client}, mentre la \textit{subnet} privata è dedicata alle operazioni interne, come il coordinamento e la replica dello stato tra i nodi, come richiesto dal protocollo \textit{Raft}. Questa separazione 
+non solo migliora la sicurezza e le prestazioni, ma facilita anche la manutenibilità e la scalabilità del \textit{cluster}.
 
-    Subnet Privata (10.0.0.0/24): Questa subnet è utilizzata esclusivamente per la comunicazione intra-cluster. L'abbiamo creata utilizzando un bridge virtuale, che consente a tutti i nodi della subnet di comunicare direttamente tra loro. Tuttavia, questa rete non ha accesso a internet esterno, assicurando che il suo unico scopo sia facilitare la comunicazione tra i nodi per compiti correlati al cluster. Come nella subnet pubblica, gli indirizzi 1 e 255 sono riservati, e il resto dell'intervallo è disponibile per i nodi del cluster.
-
-Separando le subnet pubbliche e private, garantiamo che le richieste dei client e i messaggi intra-cluster siano instradati correttamente senza interferenze. La subnet pubblica gestisce le interazioni con i client, mentre la subnet privata è dedicata alle operazioni interne, come il coordinamento e la replica dello stato tra i nodi, come richiesto dal protocollo Raft. Questa separazione non solo migliora la sicurezza e le prestazioni, ma facilita anche la manutenibilità e la scalabilità del cluster.
 \subsubsection{Sistema operativo}
 % Sezione vuota per scaletta
-Nel nostro cluster, ogni VM esegue Arch Linux come sistema operativo. All'avvio, due demoni chiave vengono avviati automaticamente su ogni nodo.
+Nel nostro \textit{cluster}, ogni macchina virtuale esegue \textit{Arch Linux} come sistema operativo. All'avvio, due processi chiave vengono avviati automaticamente su ogni nodo.
+\begin{itemize}
+  \item \textit{\textbf{raft\_daemon.service}}: Questo processo è responsabile dell'esecuzione del codice relativo al protocollo di consenso \textit{Raft}, che garantisce che il nostro sistema distribuito mantenga la tolleranza 
+    ai guasti e la consistenza tra tutti i nodi.
+  \item \textit{\textbf{discovery.service}}: Questo processo facilita la scoperta degli indirizzi IP degli altri nodi all'interno della \textit{subnet} 10.0.0.x/24. Lo fa eseguendo scansioni di rete periodiche utilizzando 
+    \textit{nmap}. Ogni 30 secondi, il processo di \textit{discovery} recupera e memorizza gli indirizzi IP delle interfacce di rete pubbliche e private degli altri nodi. Questa ricerca continua garantisce che ogni nodo 
+    rimanga "consapevole" degli altri nodi all'interno della \textit{subnet}, mantenendo così una comunicazione continua tra loro.
+\end{itemize}
 
-    raft_daemon.service: Questo demone è responsabile dell'esecuzione del codice relativo al protocollo di consenso Raft, che garantisce che il nostro sistema distribuito mantenga la tolleranza ai guasti e la consistenza tra tutti i nodi.
-
-    discovery.service: Questo demone facilita la scoperta degli indirizzi IP degli altri nodi all'interno della subnet 10.0.0.x/24. Lo fa eseguendo scansioni di rete periodiche utilizzando nmap. Ogni 30 secondi, il processo di discovery recupera e memorizza gli indirizzi IP delle interfacce di rete pubbliche e private degli altri nodi. Questa scoperta continua garantisce che ogni nodo rimanga "consapevole" degli altri nodi all'interno della subnet, mantenendo così una comunicazione continua tra loro.
 
 
 \subsection{Raft per il consenso distribuito}
+\textit{Raft} è un algoritmo di consenso distribuito, ovvero un meccanismo che permette a un gruppo di computer (nodi) di raggiungere un accordo su un dato stato, anche in presenza di guasti o latenze di rete. In pratica, 
+\textit{Raft} assicura che tutti i nodi abbiano una copia identica e aggiornata dei dati, garantendo così la coerenza e l'affidabilità di un sistema distribuito.
+
 \subsubsection{Motivazioni}
 % Sezione vuota per scaletta
+Viene spesso preferito per il consenso distribuito per diverse ragioni:
+\begin{itemize}
+  \item \textbf{Semplicità}: \textit{Raft} è stato progettato per essere più comprensibile rispetto ad altri algoritmi di consenso. Un esempio è \textit{Paxos}, che ha acquisito una reputazione per la sua difficoltà sia 
+  nell'implementazione che nella comprensione. È proprio questa semplicità che lo rende accessibile agli sviluppatori.
+  
+  \item \textbf{Tolleranza ai Guasti}: In ambienti distribuiti, è molto probabile che uno o più nodi si guastino. \textit{Raft}, tramite i suoi meccanismi, può garantire che il sistema continuerà a funzionare correttamente 
+  anche se alcuni nodi non sono attivi o non rispondono.
+
+  \item \textbf{Replica Uniforme dei Dati}: \textit{Raft} assicura che i dati siano replicati uniformemente tra i nodi, in modo che essi mantengano copie esatte dello stato condiviso, il che assicura alta disponibilità e resilienza.
+
+  \item \textbf{Leadership Chiaramente Definita}: A differenza di \textit{Paxos}, \textit{Raft} semplifica la gestione del consenso eleggendo un \textit{leader} tra i nodi. Il \textit{leader} organizza la replica dei dati 
+  e coordina le decisioni critiche, riducendo la complessità dell'algoritmo.
+
+  \item \textbf{Efficienza}: \textit{Raft} può raggiungere il consenso in tempi relativamente brevi; pertanto, è adatto per applicazioni che richiedono velocità e bassa latenza, riducendo i ritardi nella replica dei dati.
+
+\end{itemize}
+
 
 \subsubsection{Applicazione}
 % Sezione vuota per scaletta
+Raft si applica a una vasta gamma di applicazioni distribuite, specialmente in scenari che richiedono alta disponibilità, tolleranza ai guasti e coerenza dei dati. Esempi di applicazioni includono:
+
+\begin{itemize}
+  \item \textbf{Database Distribuiti}: \textit{Raft} è utilizzato, come in \textit{Etcd} e \textit{TiKV}, per replicare i dati in modo consistente su più nodi, garantendo che, anche in caso di guasti \textit{hardware} o di rete, 
+  nessun dato venga perso.
+
+ \item \textbf{Sistemi di File Distribuiti}: Per sistemi che distribuiscono \textit{file} su vari nodi, come \textit{HDFS}, \textit{Raft} garantisce che le modifiche ai \textit{file} siano applicate in modo coerente mantenendo 
+ il sistema disponibile durante i guasti dei nodi.
+
+ \item \textbf{Sistemi di Coordinamento e \textit{Registry}}: Il protocollo \textit{Raft} è utilizzato in servizi come \textit{Consul} ed \textit{Etcd} per la configurazione distribuita e la scoperta dei servizi. Permette a un 
+ \textit{cluster} di nodi di raggiungere il consenso sui cambiamenti di stato in modo affidabile.
+
+ \item \textbf{\textit{Blockchain} Private}: Alcune implementazioni di \textit{blockchain} private, come \textit{Hyperledger}, utilizzano \textit{Raft} poiché raggiungere rapidamente il consenso con tolleranza ai guasti per 
+ la validazione delle transazioni è fondamentale.
+
+ \item \textbf{\textit{Cache} Distribuite}: Nei sistemi di \textit{caching} distribuito come \textit{Redis} in modalità \textit{cluster}, \textit{Raft} può essere utilizzato per garantire che gli aggiornamenti 
+ effettuati alla \textit{cache} siano propagati in modo coerente tra i nodi del \textit{cluster}.
+\end{itemize}
 
 \subsubsection{Limiti}
 % Sezione vuota per scaletta
+Sebbene Raft presenti molti vantaggi, ci sono alcune limitazioni da considerare durante il processo di progettazione e implementazione:
+\begin{itemize}
+  \item \textbf{Scalabilità Limitata}: Sebbene \textit{Raft} sia molto più semplice rispetto agli altri algoritmi di consenso, soffre di problemi di scalabilità in grandi \textit{cluster}. Un \textit{leader} centralizzato limita 
+  la capacità di scrittura alla velocità di elaborazione del \textit{leader} stesso. Questo può diventare un collo di bottiglia in ambienti con centinaia o migliaia di nodi.
+
+  \item \textbf{Dipendenza dal \textit{Leader}}: Il meccanismo di elezione del \textit{leader} può risultare problematico se il \textit{leader} cambia frequentemente, come in ambienti instabili. Ogni cambiamento di 
+  \textit{leadership} richiede una fase di riconfigurazione che può bloccare temporaneamente il sistema.
+
+  \item \textbf{Tolleranza ai Guasti Parziale}: Sebbene \textit{Raft} sia tollerante ai guasti, può avere difficoltà a gestire partizioni di rete prolungate, note come "\textit{split-brain}", in cui una parte del \textit{cluster}
+  è completamente isolata dal resto. In questi casi, potrebbe essere difficile garantire che il \textit{leader} eletto in una partizione abbia ancora la maggioranza.
+
+  \item \textbf{\textit{Overhead} di Replica}: Poiché in \textit{Raft} tutti i nodi devono replicare l'intero \textit{log} delle modifiche, ciò può comportare un significativo \textit{overhead} in termini di memoria e 
+  \textit{storage}, specialmente in scenari con grandi volumi di dati.
+
+  \item \textbf{Limitazioni di Latenza}: La latenza di rete nelle applicazioni distribuite geograficamente può aumentare notevolmente i tempi di risposta di \textit{Raft}, poiché ogni decisione deve passare attraverso il 
+  \textit{leader} e ottenere il consenso dalla maggioranza dei nodi. Questo può rappresentare un problema per sistemi distribuiti a livello globale.
+\end{itemize}
+
+
+
+
 
 \subsection{Dettagli implementativi dell'applicativo}
 \subsubsection{Obiettivi}
