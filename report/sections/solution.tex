@@ -3,9 +3,12 @@ Per il raggiungimento degli obbiettivi sopra citati sono stati fatti,
 al momento della progettazione, degli accorgimenti sui diversi 
 elementi che compongono il \textit{cluster}.
 Abbiamo deciso di utilizzare \textbf{libvirt} come \textbf{Gestore dei nodi} cosi' da poter astrarre 
-dall'\textit{\textbf{hypervisor}} e permettere una maggiore scalabilita' del servizio oltre a rimuovere
-la dipendenza da uno specifico \textit{hypervisor}.
-Per la disponibilita' del servizio abbiamo deciso di usare il protocollo \textit{\textbf{Raft}} per la
-gestione del consenso distribuito. 
+dall'\textit{\textbf{hypervisor}} e permettere una maggiore scalabilita' del servizio.
+Per la disponibilita' abbiamo deciso di usare il protocollo \textit{\textbf{Raft}} per la
+gestione del consenso distribuito. L'omogeneita' dei nodi e' garantita dal protocollo appena 
+citato. Per finire sono state anche scritte due \textbf{CLI} (Command Line Interface): 
+una di controllo/configurazione e una di utilizzo finale.
+La prima server al sistemista per gestire il cluster mentre la seconda serve all'utente finale 
+per usufruire delle feature offerte dal cluster.
         
 % Sezione vuota per scaletta
