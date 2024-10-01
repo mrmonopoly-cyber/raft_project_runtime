@@ -190,3 +190,30 @@ Sebbene Raft presenti molti vantaggi, ci sono alcune limitazioni da considerare 
 
 \subsubsection{Limiti}
 % Sezione vuota per scaletta
+Anche se il nostro sistema funziona come descritto nel documento (citare documento), presenta un grave difetto. La Figura 3 illustra la parte del sistema principalmente coinvolta nel processo di \textit{commit} degli indici.
+\\
+\begin{lstlisting}[language=Go]
+func (c *commonMatchImp) 
+    checkUpdateNewMatch(sub *substriber) { 
+  var halfNodeNum = c.numNodes/2 
+  for c.run { 
+    var newMatch = <-sub.Snd 
+    if newMatch > c.commonMatchIndex && 
+        sub.Trd < newMatch { 
+      c.numStable++ 
+      if c.numStable > uint(halfNodeNum) {
+        if c.commitEntryC != nil {
+          c.commitEntryC <- c.commonMatchIndex
+        } 
+        c.commonMatchIndex++
+        c.numStable = 1
+      } 
+    } 
+    sub.Trd = newMatch
+  } 
+}
+\end{lstlisting}
+Il problema deriva da una sezione critica del codice a cui accedono contemporaneamente più Goroutine senza alcun meccanismo di controllo dell'accesso. In particolare, è possibile che una Goroutine 
+superi il controllo iniziale ed esegua le operazioni previste, e che subito dopo una seconda Goroutine superi lo stesso controllo. A questo punto, però, la prima Goroutine ha già modificato i valori condivisi all'interno del 
+corpo dell'istruzione if, il che significa che la seconda Goroutine opera su valori non aggiornati, invalidando di fatto la condizione del guard. Anche se abbiamo eseguito numerosi test (che riconosciamo essere insufficienti 
+per dimostrare l'assenza di bug) e abbiamo trovato difficile riprodurre le condizioni necessarie per far emergere questa condizione di race, non abbiamo ancora osservato questo problema nella pratica.
