@@ -1,0 +1,97 @@
+\subsection{Dettagli implementativi dell'applicativo}
+\subsubsection{Obiettivi}
+% Sezione vuota per scaletta
+%TODO: ingloberei questa sotto sezione alla sezione Obiettivi
+
+\subsubsection{Struttura del codice}
+Il progetto è composto da numerosi moduli di seguito esposti:
+\begin{itemize}
+  \item address: contiene la struttura che rappresenta l'indirizzo di un nodo:
+
+  \item raft\_log: viene definito il sistema di log di Raft, in cui la struttura LogInstance rappresenta una singola voce nel log di Raft. Il pacchetto importa anche una codifica basata su protobuf per serializzare i messaggi 
+    di log per la trasmissione in rete. Una caratteristica chiave di questo pacchetto è il canale ReturnValue, che supporta operazioni asincrone come la ricezione di conferme di commit per le voci del log. \\
+    Contiene l'implementazione principale del log per Raft, utilizzando un sync.RWMutex per gestire l'accesso concorrente ai log. Questo file definisce la struttura logEntryImp, che gestisce un elenco di voci di log, la 
+    dimensione del log e l'indice di commit. \\
+    \'E principalmente costituito da LogEntrySlave e LogEntryMaster. Entrambi condividono lo stesso log, ma con permessi diversi: il LogEntrySlave ha solo permessi di lettura, mentre il LogEntryMaster ha sia permessi di scrittura 
+    che di lettura. Il compito del master è notificare agli slave quando vengono aggiunte nuove entry. Gli slave, invece, notificano al master quando hanno confermato le nuove voci, e, al ricevimento di tutte le conferme, 
+    il master procede con il commit ufficiale delle voci.
+
+  \item rpcs: definisce un'interfaccia generale Rpc, utilizzata in tutto il progetto per astrarre la logica delle varie chiamate RPC nel sistema Raft. \\AppendEntryRpc implementa l'RPC per l'aggiunta delle voci di log. Questa struct 
+    contiene la logica che un leader utilizza per inviare voci di log ai propri follower.\\AppendResponse gestisce le risposte agli RPC di aggiunta delle entry. Quando un follower riceve e processa una richiesta di append di una
+    voce dal leader, questo pacchetto aiuta a convalidare e riconoscere il successo di quell'operazione. Lavora con i componenti del log e della gestione dello stato per garantire una corretta replica. \\RequestVoteRPC gestisce il
+    processo di elezione del leader. Durante le elezioni, questo pacchetto è responsabile della gestione delle richieste di voto inviate dai nodi che cercano di diventare il nuovo leader. Interagisce con lo stato del nodo per 
+    garantire che le richieste di voto siano legittime, un aspetto cruciale per mantenere un processo elettorale affidabile all'interno del protocollo Raft. \\RequestVoteResponse.go processa le risposte alle richieste di voto. 
+    Questa struct gestisce la decisione di concedere o meno il proprio voto a un candidato, basandosi sullo stato e sul log sia del nodo richiedente che del nodo rispondente. Come il pacchetto RequestVoteRPC, garantisce l'integrità
+    dell'elezione del leader.
+
+\end{itemize}
+
+
+
+\subsubsection{Funzionamento}
+% Sezione vuota per scaletta
+All'avvio, il nodo legge la configurazione, che include l'indirizzo IP dei nodi pesenti e del nodo stesso. Viene quindi creato un server Raft che rappresenta il nodo stesso. Questa configurazione è fondamentale per definire la 
+rete di nodi Raft che formeranno il cluster.
+Una volta configurato, il server avvia il nodo Raft, che si mette in ascolto per comunicazioni e richieste. A questo punto, ogni nodo può interagire con gli altri nel cluster, comunicando attraverso RPCs (Remote Procedure Calls).
+
+\textbf{Comunicazione tra Nodi}\\
+Una parte cruciale del flusso è la comunicazione tra nodi, che avviene principalmente attraverso due fasi: replicazione del log e elezioni del leader. Queste interazioni vengono gestite tramite vari tipi di RPC definiti nel progetto.
+Quando un nodo leader deve replicare le voci del log, invia un'RPC AppendEntryRpc ai nodi follower. I follower, una volta ricevuta la richiesta, e, se la richiesta è valida e il log viene replicato correttamente, i follower 
+rispondono confermando la replica.
+Durante il processo di elezione del leader, i nodi inviano una richiesta di voto con l'RPC RequestVoteRPC. I nodi che ricevono questa richiesta processano la decisione di votare o meno per il candidato leader, assicurandosi 
+che i requisiti per il voto (come la consistenza del log) siano soddisfatti.
+
+\textbf{Processo di elezione}\\
+Il sistema Raft monitora costantemente la presenza di un leader attivo. Quando un nodo non riceve messaggi di "heartbeat" (AppendEntry) dal leader entro un determinato timeout, questo evento segnala che il leader potrebbe essere 
+inaccessibile o non funzionante. Ogni nodo follower mantiene un proprio timer, e se scade senza ricevere comunicazioni dal leader, quel nodo considera il leader inattivo e transita in uno stato di candidate.
+In questo stato, il nodo invia richieste di voto agli altri nodi del cluster attraverso l'RPC RequestVoteRPC. Il nodo candidato cercherà di ottenere voti sufficienti per diventare leader. Durante questa fase, 
+ogni nodo che riceve una richiesta di voto valuta se concedere il proprio voto al candidato, basandosi sulla propria situazione di stato e log.
+Se il candidato riceve voti dalla maggioranza dei nodi, assume il ruolo di leader e comincia immediatamente a inviare messaggi AppendEntryRpc ai follower per confermare la propria leadership e mantenere i log sincronizzati. 
+Se invece nessun candidato ottiene la maggioranza, viene avviato un nuovo ciclo elettorale fino a quando non viene selezionato un leader. 
+
+\textbf{Replicazione dei Log, Commit e applicazione allo stato della macchina}\\
+Uno dei flussi operativi principali riguarda la gestione del log, che è il meccanismo attraverso cui Raft garantisce la consistenza dei dati nei nodi. Il log è gestito da due implementazioni separate: una per il leader e una 
+per i follower.
+Quando un leader riceve un nuovo comando, lo aggiunge al suo log interno e invia un'RPC AppendEntry ai follower per replicare questo comando. I follower ricevono questo messaggio, lo aggiungono al loro log, e rispondono al leader. 
+Il leader tiene traccia di quanti follower hanno replicato con successo l'entry e una volta che una voce è stata replicata con successo su una maggioranza di nodi, il leader può committare la voce. Questo processo è gestito 
+attraverso canali asincroni (applyC e NotifyAppendEntryC) definiti nelle implementazioni del log di leader e follower. Il leader invia un commit alla maggior parte dei nodi, e i follower seguono l'ordine di commit. 
+Quando le voci vengono committate, esse vengono applicate allo stato condiviso del sistema.
+Il canale ReturnValue nel log permette di gestire i risultati delle operazioni in maniera asincrona, in modo che il sistema possa continuare ad operare senza attendere che ogni operazione venga completata in modo sincrono.
+
+\textbf{Gestione delle configurazioni}\\
+L'aspetto più importante dell'intero cluster è la gestione delle configurazioni. Il sistema prevede due configurazioni distinte: quella corrente e quella nuova. La presenza simultanea di entrambe indica che il cluster si 
+trova in uno stato di transizione da una configurazione all'altra.\\
+Quando il leader riceve una richiesta da un client per applicare una nuova configurazione, che include un elenco di nodi, aggiorna l'elenco, imposta la nuova configurazione e informa i nuovi nodi che non sono ancora autorizzati
+a votare. Il leader inizia quindi a replicare il proprio log, aggiornando i nuovi nodi follower.\\
+Durante questa procedura, potrebbe accadere che uno dei nuovi nodi non venga trovato a causa della sua assenza nella subnet. In tal caso, le informazioni su quel nodo vengono memorizzate e aggiornate in seguito. Infine, 
+il sistema esegue controlli periodici per verificare se il log di ciascun nodo è sincronizzato; quando un nodo risulta aggiornato, il leader gli concede il diritto di voto.
+
+\subsubsection{Limiti}
+% Sezione vuota per scaletta
+Anche se il nostro sistema funziona come descritto nel documento (citare documento), presenta un grave difetto. La Figura 3 illustra la parte del sistema principalmente coinvolta nel processo di \textit{commit} degli indici.
+\\
+\begin{lstlisting}[language=Go]
+func (c *commonMatchImp) 
+    checkUpdateNewMatch(sub *substriber) { 
+  var halfNodeNum = c.numNodes/2 
+  for c.run { 
+    var newMatch = <-sub.Snd 
+    if newMatch > c.commonMatchIndex && 
+        sub.Trd < newMatch { 
+      c.numStable++ 
+      if c.numStable > uint(halfNodeNum) {
+        if c.commitEntryC != nil {
+          c.commitEntryC <- c.commonMatchIndex
+        } 
+        c.commonMatchIndex++
+        c.numStable = 1
+      } 
+    } 
+    sub.Trd = newMatch
+  } 
+}
+\end{lstlisting}
+Il problema deriva da una sezione critica del codice a cui accedono contemporaneamente più Goroutine senza alcun meccanismo di controllo dell'accesso. In particolare, è possibile che una Goroutine 
+superi il controllo iniziale ed esegua le operazioni previste, e che subito dopo una seconda Goroutine superi lo stesso controllo. A questo punto, però, la prima Goroutine ha già modificato i valori condivisi all'interno del 
+corpo dell'istruzione if, il che significa che la seconda Goroutine opera su valori non aggiornati, invalidando di fatto la condizione del guard. Anche se abbiamo eseguito numerosi test (che riconosciamo essere insufficienti 
+per dimostrare l'assenza di bug) e abbiamo trovato difficile riprodurre le condizioni necessarie per far emergere questa condizione di race, non abbiamo ancora osservato questo problema nella pratica.
