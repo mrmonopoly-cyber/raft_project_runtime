@@ -6,9 +6,13 @@
 \subsubsection{Struttura del codice}
 Il progetto è composto da numerosi moduli di seguito esposti:
 \begin{itemize}
-  \item address: contiene la struttura che rappresenta l'indirizzo di un nodo:
+  \item node: definisce la struttura per un nodo Raft e si occupa della ricezione e dell'invio di messaggi. 
 
-  \item raft\_log: viene definito il sistema di log di Raft, in cui la struttura LogInstance rappresenta una singola voce nel log di Raft. Il pacchetto importa anche una codifica basata su protobuf per serializzare i messaggi 
+  \item localFs: definisce l'astrazione del file system locale e le operazioni di scrittura e lettura su di esso.
+
+  \item pkg: ospita il codice generato per la serializzazione/deserializzazione dei messaggi tra i nodi.
+    
+  \item raft\_log: definisce il sistema di log di Raft, in cui la struttura LogInstance rappresenta una singola voce nel log di Raft. Il pacchetto importa anche una codifica basata su protobuf per serializzare i messaggi 
     di log per la trasmissione in rete. Una caratteristica chiave di questo pacchetto è il canale ReturnValue, che supporta operazioni asincrone come la ricezione di conferme di commit per le voci del log. \\
     Contiene l'implementazione principale del log per Raft, utilizzando un sync.RWMutex per gestire l'accesso concorrente ai log. Questo file definisce la struttura logEntryImp, che gestisce un elenco di voci di log, la 
     dimensione del log e l'indice di commit. \\
@@ -16,13 +20,21 @@ Il progetto è composto da numerosi moduli di seguito esposti:
     che di lettura. Il compito del master è notificare agli slave quando vengono aggiunte nuove entry. Gli slave, invece, notificano al master quando hanno confermato le nuove voci, e, al ricevimento di tutte le conferme, 
     il master procede con il commit ufficiale delle voci.
 
-  \item rpcs: definisce un'interfaccia generale Rpc, utilizzata in tutto il progetto per astrarre la logica delle varie chiamate RPC nel sistema Raft. \\AppendEntryRpc implementa l'RPC per l'aggiunta delle voci di log. Questa struct 
+  \item rpcs: definisce un'interfaccia generale Rpc, utilizzata in tutto il progetto per astrarre la logica delle varie chiamate RPC nel sistema Raft. \\AppendEntryRpc implementa l'RPC per l'aggiunta delle voci di log. Questa 
+    struct 
     contiene la logica che un leader utilizza per inviare voci di log ai propri follower.\\AppendResponse gestisce le risposte agli RPC di aggiunta delle entry. Quando un follower riceve e processa una richiesta di append di una
     voce dal leader, questo pacchetto aiuta a convalidare e riconoscere il successo di quell'operazione. Lavora con i componenti del log e della gestione dello stato per garantire una corretta replica. \\RequestVoteRPC gestisce il
     processo di elezione del leader. Durante le elezioni, questo pacchetto è responsabile della gestione delle richieste di voto inviate dai nodi che cercano di diventare il nuovo leader. Interagisce con lo stato del nodo per 
     garantire che le richieste di voto siano legittime, un aspetto cruciale per mantenere un processo elettorale affidabile all'interno del protocollo Raft. \\RequestVoteResponse.go processa le risposte alle richieste di voto. 
     Questa struct gestisce la decisione di concedere o meno il proprio voto a un candidato, basandosi sullo stato e sul log sia del nodo richiedente che del nodo rispondente. Come il pacchetto RequestVoteRPC, garantisce l'integrità
-    dell'elezione del leader.
+    dell'elezione del leader. 
+
+  \item clusterMetadata: definisce i metadati relativi al cluster, come il term per tracciare la validità della leadership, le informazioni su quale nodo è l'attuale leader, i dettagli sul quorum delle elezioni e il ruolo che 
+    ricopre ciascun nodo.
+
+  \item confPool: gestisce le configurazioni del sistem. Tiene traccia della configurazione principale, che rappresenta lo stato attuale del sistema, e di una o più configurazioni temporanee che potrebbero essere in fase di 
+    valutazione o preparazione per diventare la nuova configurazione principale. Inoltre, si assicura che tutti i nodi del sistema siano d'accordo sulla configurazione corrente. Questo è fondamentale per evitare 
+    incoerenze e garantire un funzionamento corretto del sistema. Infine, tiene traccia di alcuni parametri importanti (nextIndex e matchIndex) dei log di ciascun nodo, al fine di garantire una corretta replicazione del log. \\
 
 \end{itemize}
 
