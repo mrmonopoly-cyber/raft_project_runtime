@@ -34,7 +34,10 @@ Il progetto è composto da numerosi moduli di seguito esposti:
 
   \item confPool: gestisce le configurazioni del sistem. Tiene traccia della configurazione principale, che rappresenta lo stato attuale del sistema, e di una o più configurazioni temporanee che potrebbero essere in fase di 
     valutazione o preparazione per diventare la nuova configurazione principale. Inoltre, si assicura che tutti i nodi del sistema siano d'accordo sulla configurazione corrente. Questo è fondamentale per evitare 
-    incoerenze e garantire un funzionamento corretto del sistema. Infine, tiene traccia di alcuni parametri importanti (nextIndex e matchIndex) dei log di ciascun nodo, al fine di garantire una corretta replicazione del log. \\
+    incoerenze e garantire un funzionamento corretto del sistema. Infine, tiene traccia di alcuni parametri importanti (nextIndex e matchIndex) dei log di ciascun nodo, al fine di garantire una corretta replicazione del log. 
+  
+  \item server: è la componente centrale che viene eseguito su ciascun nodo. Definisce la struttura e il loop principale del lavoro del nodo. Sta in ascolta di messaggi e connessioni in arrivo, delegando la loro gestione alle 
+    rispettive componenti elencate prima.
 
 \end{itemize}
 
