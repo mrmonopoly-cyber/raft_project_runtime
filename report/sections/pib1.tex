@@ -9,55 +9,50 @@ Come gia' accennato i nodi del cluster sono dell \textbf{Virtual Machine(VM)} cr
 \\
 \\
 \begin{lstlisting}[language=XML]
-<domain type='kvm' id='1'>\\
-  <name>RAFT\_NODE\_NAME</name>\\
-  <metadata>\\
-    <libosinfo:libosinfo xmlns:libosinfo=\\"http://libosinfo.org/xmlns/libvirt/domain/1.0">\\
-      <libosinfo:os id="http://archlinux.org/archlinux/rolling"/>\\
-    <\/libosinfo:libosinfo>\\
-  </metadata>\\
-  <memory unit='KiB'>1048576</memory>\\
-  <currentMemory unit='KiB'>1048576</currentMemory>\\
-  <vcpu placement='static'>1</vcpu>\\
-  <resource>\\
-    <partition>/machine</partition>\\
-  </resource>\\
-  <os>\\
-    <type arch='x86\_64' machine='pc-q35-8.2'>hvm</type>\\
-  </os>\\
-  <features>\\
-    <acpi/>\\
-    <apic/>\\
-    <vmport state='off'/>\\
-  </features>\\
-  <cpu mode='host-passthrough' check='none' migratable='on'/>\\
-  <clock offset='utc'>\\
-    <timer name='rtc' tickpolicy='catchup'/>\\
-    <timer name='pit' tickpolicy='delay'/>\\
-    <timer name='hpet' present='no'/>\\
-  </clock>\\
-  <on\_poweroff>destroy</on\_poweroff>\\
-  <on\_reboot>restart</on\_reboot>\\
-  <on\_crash>destroy</on\_crash>\\
-  <!-- Devices section -->\\
-  <devices>\\
-    <emulator>/usr/bin/qemu-system-x86\_64</emulator>\\
-    <disk type='file' device='disk'>\\
-      <driver name='qemu' type='qcow2' discard='unmap'/>\\
-      <source file='PATH\_DISK'/>\\
-      <target dev='vda' bus='virtio'/>\\
-      <boot order='1'/>\\
-    </disk>\\
-    <disk type='file' device='cdrom'>\\
-      <driver name='qemu' type='raw'/>\\
-      <source file='/var/lib/libvirt/images/raft\_live\_install.iso'/>\\
-      <target dev='sda' bus='sata'/>\\
-      <readonly/>\\
-      <boot order='2'/>\\
-    </disk>\\
-    <!-- Other devices omitted for brevity -->\\
-  </devices>\\
-</domain>\\
+<domain type='kvm' id='1'>
+  <name>RAFT\_NODE\_NAME</name>
+  <memory unit='KiB'>1048576</memory>
+  <currentMemory unit='KiB'>1048576</currentMemory>
+  <vcpu placement='static'>1</vcpu>
+  <resource>
+    <partition>/machine</partition>
+  </resource>
+  <os>
+    <type arch='x86\_64' machine='pc-q35-8.2'>hvm</type>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+    <vmport state='off'/>
+  </features>
+  <cpu mode='host-passthrough' check='none' migratable='on'/>
+  <clock offset='utc'>
+    <timer name='rtc' tickpolicy='catchup'/>
+    <timer name='pit' tickpolicy='delay'/>
+    <timer name='hpet' present='no'/>
+  </clock>
+  <on\_poweroff>destroy</on\_poweroff
+  <on\_reboot>restart</on\_reboot>
+  <on\_crash>destroy</on\_crash>
+  <!-- Devices section -->
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86\_64</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' discard='unmap'/>
+      <source file='PATH\_DISK'/>
+      <target dev='vda' bus='virtio'/>
+      <boot order='1'/>
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/var/lib/libvirt/images/raft\_live\_install.iso'/>
+      <target dev='sda' bus='sata'/>
+      <readonly/>
+      <boot order='2'/>
+    </disk>
+    <!-- Other devices omitted for brevity -->
+  </devices>
+</domain>
 \end{lstlisting}
 
 Come precisato nel file di qui sopra ogni nodo e' composto da 1048576KB (1024 MB) di memoria,
@@ -109,71 +104,89 @@ Nel nostro \textit{cluster}, ogni macchina virtuale esegue \textit{Arch Linux} c
 
 
 \subsection{Raft per il consenso distribuito}
-\textit{Raft} è un algoritmo di consenso distribuito, ovvero un meccanismo che permette a un gruppo di computer (nodi) di raggiungere un accordo su un dato stato, anche in presenza di guasti o latenze di rete. In pratica, 
-\textit{Raft} assicura che tutti i nodi abbiano una copia identica e aggiornata dei dati, garantendo così la coerenza e l'affidabilità di un sistema distribuito.
+\textit{Raft} è un algoritmo di consenso distribuito, ovvero un meccanismo che permette 
+a un gruppo di computer (nodi) di raggiungere un accordo su un dato stato, 
+anche in presenza di guasti o latenze di rete. In pratica, 
+\textit{Raft} assicura che tutti i nodi abbiano una copia identica e 
+aggiornata dei dati, garantendo così la coerenza e l'affidabilità di un sistema distribuito.
 
 \subsubsection{Motivazioni}
 % Sezione vuota per scaletta
-Viene spesso preferito per il consenso distribuito per diverse ragioni:
+Abbiamo scelto di usare questo protocollo per la gestione del consenso tra i nodi per
+le seguenti ragioni:
 \begin{itemize}
-  \item \textbf{Semplicità}: \textit{Raft} è stato progettato per essere più comprensibile rispetto ad altri algoritmi di consenso. Un esempio è \textit{Paxos}, che ha acquisito una reputazione per la sua difficoltà sia 
-  nell'implementazione che nella comprensione. È proprio questa semplicità che lo rende accessibile agli sviluppatori.
-  
-  \item \textbf{Tolleranza ai Guasti}: In ambienti distribuiti, è molto probabile che uno o più nodi si guastino. \textit{Raft}, tramite i suoi meccanismi, può garantire che il sistema continuerà a funzionare correttamente 
-  anche se alcuni nodi non sono attivi o non rispondono.
-
-  \item \textbf{Replica Uniforme dei Dati}: \textit{Raft} assicura che i dati siano replicati uniformemente tra i nodi, in modo che essi mantengano copie esatte dello stato condiviso, il che assicura alta disponibilità e resilienza.
-
-  \item \textbf{Leadership Chiaramente Definita}: A differenza di \textit{Paxos}, \textit{Raft} semplifica la gestione del consenso eleggendo un \textit{leader} tra i nodi. Il \textit{leader} organizza la replica dei dati 
-  e coordina le decisioni critiche, riducendo la complessità dell'algoritmo.
-
-  \item \textbf{Efficienza}: \textit{Raft} può raggiungere il consenso in tempi relativamente brevi; pertanto, è adatto per applicazioni che richiedono velocità e bassa latenza, riducendo i ritardi nella replica dei dati.
+    \item \textbf{Omogeneita' dei nodi}: 
+        come gia' detto nei nostri Obbiettivi il cluster deve avere tutti i nodi uguali, 
+        l'utilizzo di RAFT permette di ottenere il risulato richiesto molto semplicemente poiche'
+        il protocollo stesso lo prevede.
+    \item \textbf{Alta tolleranza ai guasti}: 
+        Il cluster, come gia' accennato deve essere privo di \textbf{Single Point Of Failure} e
+        tale protocollo, per definizione dello stesso, ne risulta privo. 
+        Cosi' facendo garatisce anche un alto livello di affidabilita' da noi ricercato per il 
+        cluster.
+    \item \textbf{Configurazione dei nodi dinamica}: 
+        Il protocollo permette anche di cambiare comfigurazione del cluster senza richiedere
+        alcun riavvio o intervento manuale. Per quanto quest'ultima
+        parte non sia necessaria per l'applicazione del protocollo, ci permette di garantire
+        la scalabilita' pemettendoci di aumentare o diminuire il numero di 
+        nodi a nostro piacimento.
+\end{itemize}
 
 \end{itemize}
 
 
 \subsubsection{Applicazione}
 % Sezione vuota per scaletta
-Raft si applica a una vasta gamma di applicazioni distribuite, specialmente in scenari che richiedono alta disponibilità, tolleranza ai guasti e coerenza dei dati. Esempi di applicazioni includono:
+L'applicazione del protocollo nel cluster risiede all'interno del codice da noi sviluppato
+eseguito da ogni nodo. E' intrinsicamente legato al funzionamento dell'intero ecosistema e, per 
+questa ragione, non e' possibile confinarlo ad unico modulo. 
 
+Possiamo tuttavia spiegare come e' stato strutturato, a livello di progettazione, all'interno
+del nostro codice e spiegarne il motivo.
+
+Abbiamo deciso di dividere l'implementazione del protocollo in tre macroaree:
 \begin{itemize}
-  \item \textbf{Database Distribuiti}: \textit{Raft} è utilizzato, come in \textit{Etcd} e \textit{TiKV}, per replicare i dati in modo consistente su più nodi, garantendo che, anche in caso di guasti \textit{hardware} o di rete, 
-  nessun dato venga perso.
-
- \item \textbf{Sistemi di File Distribuiti}: Per sistemi che distribuiscono \textit{file} su vari nodi, come \textit{HDFS}, \textit{Raft} garantisce che le modifiche ai \textit{file} siano applicate in modo coerente mantenendo 
- il sistema disponibile durante i guasti dei nodi.
-
- \item \textbf{Sistemi di Coordinamento e \textit{Registry}}: Il protocollo \textit{Raft} è utilizzato in servizi come \textit{Consul} ed \textit{Etcd} per la configurazione distribuita e la scoperta dei servizi. Permette a un 
- \textit{cluster} di nodi di raggiungere il consenso sui cambiamenti di stato in modo affidabile.
-
- \item \textbf{\textit{Blockchain} Private}: Alcune implementazioni di \textit{blockchain} private, come \textit{Hyperledger}, utilizzano \textit{Raft} poiché raggiungere rapidamente il consenso con tolleranza ai guasti per 
- la validazione delle transazioni è fondamentale.
-
- \item \textbf{\textit{Cache} Distribuite}: Nei sistemi di \textit{caching} distribuito come \textit{Redis} in modalità \textit{cluster}, \textit{Raft} può essere utilizzato per garantire che gli aggiornamenti 
- effettuati alla \textit{cache} siano propagati in modo coerente tra i nodi del \textit{cluster}.
+    \item RPC: le chiamate remote eseguite tra un nodo e l'altro
+    \item gestore dei log: questo componente si occupa di tutto cio' che riguarda il salvataggio 
+        dei log del protocollo
+    \item gestore della configurazione: tale modulo ha il compito di controllare quali siano 
+        le attuali configurazioni attive e agire opportunamente in base alle situazioni.
 \end{itemize}
+
+Tralasciando le RPC che sono uno strumento di servizio, i restanti due blocchi non hanno la stessa
+importanza. Inizialmente abbiamo provato a rendere il gestore dei log controllato o indipentende 
+dal geotore delle configurazioni, ma tutto cio' si e' rivelato alquanto fallimentare.
+In particolar modo il cambio di configurazione risultava troppo complesso da implementare 
+e per questo abbiamo deciso di cambiare approccio usando un altro design. 
+
+Abbiamo quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, contenesse
+il gestore dei log su cui avere controllo.
+Successivamente vengono poi instanziate le diverse configurazioni attive in un suddetto momento
+con accesso, limitato, al log centralizzato.
+Cosi' facendo, per aggiornare la disposizione dei nodi, e' sufficente instanziare una
+nuova configurazione, aspettare la migrazione dei nodi per poi eliminare quella vecchia in favore 
+della nuova. Col precedente approccio non sarebbe stato possibile poiche' la migrazione veniva 
+considerata, erroneamente, come una vera e propria disposizione. 
+Per quanto concerne il committing di un log e' sufficente chiedere alle singole configurazioni
+se tale log e' gia' stato processato per poi avere il gestore delle configurazioni che certifica
+il fatto segnandolo nel log locale della macchina virtuale.
 
 \subsubsection{Limiti}
-% Sezione vuota per scaletta
-Sebbene Raft presenti molti vantaggi, ci sono alcune limitazioni da considerare durante il processo di progettazione e implementazione:
+La struttura sopra descritta permette permette di implementare tutte le nostre necessita' 
+mantenendo un discreto dissociamento tra le varie componenti ma presenta comunque dei limiti
+per nulla irrilevanti:
 \begin{itemize}
-  \item \textbf{Scalabilità Limitata}: Sebbene \textit{Raft} sia molto più semplice rispetto agli altri algoritmi di consenso, soffre di problemi di scalabilità in grandi \textit{cluster}. Un \textit{leader} centralizzato limita 
-  la capacità di scrittura alla velocità di elaborazione del \textit{leader} stesso. Questo può diventare un collo di bottiglia in ambienti con centinaia o migliaia di nodi.
-
-  \item \textbf{Dipendenza dal \textit{Leader}}: Il meccanismo di elezione del \textit{leader} può risultare problematico se il \textit{leader} cambia frequentemente, come in ambienti instabili. Ogni cambiamento di 
-  \textit{leadership} richiede una fase di riconfigurazione che può bloccare temporaneamente il sistema.
-
-  \item \textbf{Tolleranza ai Guasti Parziale}: Sebbene \textit{Raft} sia tollerante ai guasti, può avere difficoltà a gestire partizioni di rete prolungate, note come "\textit{split-brain}", in cui una parte del \textit{cluster}
-  è completamente isolata dal resto. In questi casi, potrebbe essere difficile garantire che il \textit{leader} eletto in una partizione abbia ancora la maggioranza.
-
-  \item \textbf{\textit{Overhead} di Replica}: Poiché in \textit{Raft} tutti i nodi devono replicare l'intero \textit{log} delle modifiche, ciò può comportare un significativo \textit{overhead} in termini di memoria e 
-  \textit{storage}, specialmente in scenari con grandi volumi di dati.
-
-  \item \textbf{Limitazioni di Latenza}: La latenza di rete nelle applicazioni distribuite geograficamente può aumentare notevolmente i tempi di risposta di \textit{Raft}, poiché ogni decisione deve passare attraverso il 
-  \textit{leader} e ottenere il consenso dalla maggioranza dei nodi. Questo può rappresentare un problema per sistemi distribuiti a livello globale.
+    \item \textbf{Complessita'}: il sistema descritto risulta molto complesso nell'implementazione 
+        e nella comprensione. Per quanto counque permetta un veloce aggiornamento non e' 
+        immediato comprenderne il funzionamento per effettuare delle modifiche.
+    \item \textbf{Performance}: uno dei principali problemi della nostra applicazione di RAFT 
+        e' che, come verra' spiegato meglio nelle prossime sezioni, non risulta molto efficente
+        a livello di risorse. 
+    \item \textbf{Compressione dei log}: Nonostante non sia necessaria la compressione dei log
+        e' alquanto utile ma il nostro utilizzo del protocollo non e' pensato per implementare
+        tale funzionalita'. Questo comporta che se fosse necessario implementarla
+        non ci sono garanzie che l'attuale struttura sia predisposta.
 \end{itemize}
-
-
-
+% Sezione vuota per scaletta
 
 
