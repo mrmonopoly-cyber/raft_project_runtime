@@ -1,75 +1,19 @@
-\usepackage{listings}
 
 \section{PIB}
 \subsection{Elementi}
 \subsubsection{Nodi}
 Come gia' accennato i nodi del cluster sono dell \textbf{Virtual Machine(VM)} create trammite 
-\textbf{libvirt} usando il seguente file XML che ne determina le caratteristiche:
-\\
-\\
-\\
-\begin{lstlisting}[language=XML]
-<domain type='kvm' id='1'>
-  <name>RAFT\_NODE\_NAME</name>
-  <memory unit='KiB'>1048576</memory>
-  <currentMemory unit='KiB'>1048576</currentMemory>
-  <vcpu placement='static'>1</vcpu>
-  <resource>
-    <partition>/machine</partition>
-  </resource>
-  <os>
-    <type arch='x86\_64' machine='pc-q35-8.2'>hvm</type>
-  </os>
-  <features>
-    <acpi/>
-    <apic/>
-    <vmport state='off'/>
-  </features>
-  <cpu mode='host-passthrough' check='none' migratable='on'/>
-  <clock offset='utc'>
-    <timer name='rtc' tickpolicy='catchup'/>
-    <timer name='pit' tickpolicy='delay'/>
-    <timer name='hpet' present='no'/>
-  </clock>
-  <on\_poweroff>destroy</on\_poweroff
-  <on\_reboot>restart</on\_reboot>
-  <on\_crash>destroy</on\_crash>
-  <!-- Devices section -->
-  <devices>
-    <emulator>/usr/bin/qemu-system-x86\_64</emulator>
-    <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2' discard='unmap'/>
-      <source file='PATH\_DISK'/>
-      <target dev='vda' bus='virtio'/>
-      <boot order='1'/>
-    </disk>
-    <disk type='file' device='cdrom'>
-      <driver name='qemu' type='raw'/>
-      <source file='/var/lib/libvirt/images/raft\_live\_install.iso'/>
-      <target dev='sda' bus='sata'/>
-      <readonly/>
-      <boot order='2'/>
-    </disk>
-    <!-- Other devices omitted for brevity -->
-  </devices>
-</domain>
-\end{lstlisting}
+\textbf{libvirt} usando un file XML (vm\_creation\/sources\/vm.xml) che ne determina le caratteristiche.
+Poiche' in libvirt un file XML detemina la struttura di una specifica VM abbiamo deciso di rendere
+tale elemento parametrico aggiungendo i seguenti parametri:
+\begin{itemize}
+    \item RAFT\_NODE\_NAME: specifica il nome della VM che verra' creata
+    \item PATH\_DISK: specifica il disco virtuale che verra' fornito alla VM
+\end{itemize}
 
-Come precisato nel file di qui sopra ogni nodo e' composto da 1048576KB (1024 MB) di memoria,
-ha ua'architettura x86\_64, ha un disco virtuale (file \textbf{.qcow2}) la cui \textbf{PATH} 
-non e' specificata in quanto parametrica e determinata al momento dell'allocazione del nodo.
-Inoltre a ogni nodo viene associata l'immagine di sistema \textbf{raft\_live\_install.iso} che 
-contiene il sistema operativo. il parametro \textbf{RAFT\_NODE\_NAME} e' anch'esso determinato
-a tempo di creazione del nodo e per questo risulta, in questo file XML, parametrico.
-
-Prima dell'allocazione di un nodo verranno creati: un XML temporaneo con le caratteristiche 
-specifiche del nuovo nodo e un disco virtuale da associare al nodo. 
-Una volta generati questi file \textbf{libvirt} creera' una VM seguendo le specifiche del 
-nuovo file XML lasciando inalterato l'originale che continuera' ad essere utilizzato come template.
-
-Tale approccio ci permette di generalizzare e personalizzare le specifiche dei nodi garantendone
-un semplice e preciso controllo.
-
+Viene inoltre precisata il percorso all'immagine di sistema che dovra' usata all'avvio della VM
+(\/var\/lib\/libvirt\/images\/raft\_live\_install.iso). Tale immagine e' stata creata e salvata durante la fase 
+di configurazione dell'ambiente.
 
 % Sezione vuota per scaletta
 
