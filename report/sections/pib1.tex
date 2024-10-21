@@ -15,6 +15,7 @@ Viene inoltre precisata il percorso all'immagine di sistema che dovra' usata all
 (\/var\/lib\/libvirt\/images\/raft\_live\_install.iso). Tale immagine e' stata creata e salvata durante la fase 
 di configurazione dell'ambiente.
 
+
 % Sezione vuota per scaletta
 
 \subsubsection{Gestore dei nodi e della rete}
@@ -36,13 +37,34 @@ non solo migliora la sicurezza e le prestazioni, ma facilita anche la manutenibi
 
 \subsubsection{Sistema operativo}
 % Sezione vuota per scaletta
-Nel nostro \textit{cluster}, ogni macchina virtuale esegue \textit{Arch Linux} come sistema operativo. All'avvio, due processi chiave vengono avviati automaticamente su ogni nodo.
+Nel nostro \textit{cluster}, ogni macchina virtuale usa \textit{Arch Linux} come 
+sistema operativo. 
+All'avvio, due servizi chiave vengono avviati automaticamente su ogni nodo.
 \begin{itemize}
-  \item \textit{\textbf{raft\_daemon.service}}: Questo processo è responsabile dell'esecuzione del codice relativo al protocollo di consenso \textit{Raft}, che garantisce che il nostro sistema distribuito mantenga la tolleranza 
-    ai guasti e la consistenza tra tutti i nodi.
-  \item \textit{\textbf{discovery.service}}: Questo processo facilita la scoperta degli indirizzi IP degli altri nodi all'interno della \textit{subnet} 10.0.0.x/24. Lo fa eseguendo scansioni di rete periodiche utilizzando 
-    \textit{nmap}. Ogni 30 secondi, il processo di \textit{discovery} recupera e memorizza gli indirizzi IP delle interfacce di rete pubbliche e private degli altri nodi. Questa ricerca continua garantisce che ogni nodo 
-    rimanga "consapevole" degli altri nodi all'interno della \textit{subnet}, mantenendo così una comunicazione continua tra loro.
+    \item \textit{\textbf{discovery.service}}: Questo processo facilita la scoperta degli indirizzi IP degli altri nodi all'interno della \textit{subnet} 10.0.0.x/24. Lo fa eseguendo scansioni di rete periodiche utilizzando 
+        \textit{nmap}. Ogni 30 secondi, il processo di \textit{discovery} recupera e memorizza gli indirizzi IP delle interfacce di rete pubbliche e private degli altri nodi. Questa ricerca continua garantisce che ogni nodo 
+        rimanga "consapevole" degli altri nodi all'interno della \textit{subnet}, mantenendo così una comunicazione continua tra loro.
+  \item \textit{\textbf{raft\_daemon.service}}: 
+        Questo servizio e' responsabile dell'esecuzione del codice che implementa le funzionalita' 
+        e la sincronizzazione del cluster. Prima di tutto monta il disco fornito alla VM e lo formatta
+        in ext4, questo viene fatto per garantire uno stato consistente ad ogni avvio 
+        indipendentemente da cosa possa essere o meno successo prima.
+        Viene quindi scaricato trammite \textbf{git clone} la versione gia' compilata del codice.
+        Usando questo sitema, in collaborazione con la conformazione dei branch precedentemente
+        descritta, permette un aggiornamento dei nodi a caldo senza la necessita' di ricostruire
+        le VM da zero. Fatto cio' si verifica se \textbf{discovery.service} ha scoperto un altro 
+        nodo oltre a noi stessi, in caso contrario si attende fino alla soddisfazione della condizione.
+        La ragione di questa limitazione e' di garantire l'esecuzione del programma solo dopo 
+        che e' stata completata almeno una ricerca di altri nodi nella rete.
+        Se non venisse garantito cio' potrebbe accadere che un nodo comincia la sua esecuzione senza
+        tener conto di chi altro e' presente nella rete.
+        Tale limitazione pero' e' solamente apparente in quanto, da protocollo \textbf{RAFT}, 
+        un cluster non puo' ritenersi stabile in seguito ai failure a meno che non sia composto da 
+        almeno cinque nodi (numero minimo di nodi di un cluster PIB). Se nella rete
+        e' presente un solo nodo prevenire la disponibilita' di tale nodo non crea alcun limite
+        al protocollo o al cluster stesso. Nel momento in cui nella rete sono presenti almeno due
+        nodi \textbf{raft\_daemon.service} eseguira' il programma scaricato dalla repository prima
+        citata rendendo quindi disponibile a tutti gli effetti il nodo per il cluster.
 \end{itemize}
 
 
@@ -76,9 +98,6 @@ le seguenti ragioni:
         nodi a nostro piacimento.
 \end{itemize}
 
-\end{itemize}
-
-
 \subsubsection{Applicazione}
 % Sezione vuota per scaletta
 \textit{L'applicazione del protocollo nel cluster risiede all'interno del codice da noi sviluppato
@@ -86,7 +105,6 @@ eseguito da ogni nodo. E' intrinsicamente legato al funzionamento dell'intero ec
 questa ragione, non e' possibile confinarlo ad unico modulo. 
 Possiamo tuttavia spiegare come e' stato strutturato, a livello di progettazione, all'interno
 del nostro codice e spiegarne il motivo.
-
 Abbiamo deciso di dividere l'implementazione del protocollo in tre macroaree:
 \begin{itemize}
     \item RPC: le chiamate remote eseguite tra un nodo e l'altro
@@ -95,13 +113,11 @@ Abbiamo deciso di dividere l'implementazione del protocollo in tre macroaree:
     \item gestore della configurazione: tale modulo ha il compito di controllare quali siano 
         le attuali configurazioni attive e agire opportunamente in base alle situazioni.
 \end{itemize}
-
 Tralasciando le RPC che sono uno strumento di servizio, i restanti due blocchi non hanno la stessa
-importanza. Inizialmente abbiamo provato a rendere il gestore dei log controllato o indipentende 
+importanza. Inizialmente abbiamo provato a rendere il gestore dei log indipentende 
 dal geotore delle configurazioni, ma tutto cio' si e' rivelato alquanto fallimentare.
 In particolar modo il cambio di configurazione risultava troppo complesso da implementare 
 e per questo abbiamo deciso di cambiare approccio usando un altro design. 
-
 Abbiamo quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, contenesse
 il gestore dei log su cui avere controllo.
 Successivamente vengono poi instanziate le diverse configurazioni attive in un suddetto momento
