@@ -6,12 +6,11 @@
 \subsubsection{Struttura del codice}
 Il progetto è composto da numerosi moduli di seguito esposti:
 \begin{itemize}
-  \item node: definisce la struttura per un nodo Raft e si occupa della ricezione e dell'invio di messaggi. 
+  \item node: definisce la struttura di un nodo Raft, quindi contenente le informazioni riguardanti la connessione al node e il suo indirizzo. Quest'ultimo è rappresentanto grazio a un sottomodulo di node, chiamato address, 
+    che contiene la string di numeri separati dal punto (IP) e la porta di riferimento.
 
-  \item localFs: definisce l'astrazione del file system locale e le operazioni di scrittura e lettura su di esso.
-
-  \item pkg: ospita il codice generato per la serializzazione/deserializzazione dei messaggi tra i nodi.
-    
+  \item localFs: definisce l'astrazione del file system locale e le operazioni di scrittura e lettura su di esso. Grazie a questo modulo, salviamo i file localmente sui vari nodi.
+ 
   \item raft\_log: definisce il sistema di log di Raft, in cui la struttura LogInstance rappresenta una singola voce nel log di Raft. Il pacchetto importa anche una codifica basata su protobuf per serializzare i messaggi 
     di log per la trasmissione in rete. Una caratteristica chiave di questo pacchetto è il canale ReturnValue, che supporta operazioni asincrone come la ricezione di conferme di commit per le voci del log. \\
     Contiene l'implementazione principale del log per Raft, utilizzando un sync.RWMutex per gestire l'accesso concorrente ai log. Questo file definisce la struttura logEntryImp, che gestisce un elenco di voci di log, la 
@@ -19,28 +18,30 @@ Il progetto è composto da numerosi moduli di seguito esposti:
     \'E principalmente costituito da LogEntrySlave e LogEntryMaster. Entrambi condividono lo stesso log, ma con permessi diversi: il LogEntrySlave ha solo permessi di lettura, mentre il LogEntryMaster ha sia permessi di scrittura 
     che di lettura. Il compito del master è notificare agli slave quando vengono aggiunte nuove entry. Gli slave, invece, notificano al master quando hanno confermato le nuove voci, e, al ricevimento di tutte le conferme, 
     il master procede con il commit ufficiale delle voci.
+  
+  \item clusterMetadata: definisce i metadati relativi al cluster e al nodo stesso, come il proprio indirizzo IP e quello del leader (sia publici che privati), il term per tracciare la validità della leadership, il ruolo 
+    che ricopre, le informazioni sui timer (election e heartbeat) e i dettagli 
+    sull'elezioni come il quorum, il nodo per cui ha votato e se ha il diritto di voto o meno, 
 
-  \item rpcs: definisce un'interfaccia generale Rpc, utilizzata in tutto il progetto per astrarre la logica delle varie chiamate RPC nel sistema Raft. \\AppendEntryRpc implementa l'RPC per l'aggiunta delle voci di log. Questa 
-    struct 
-    contiene la logica che un leader utilizza per inviare voci di log ai propri follower.\\AppendResponse gestisce le risposte agli RPC di aggiunta delle entry. Quando un follower riceve e processa una richiesta di append di una
-    voce dal leader, questo pacchetto aiuta a convalidare e riconoscere il successo di quell'operazione. Lavora con i componenti del log e della gestione dello stato per garantire una corretta replica. \\RequestVoteRPC gestisce il
-    processo di elezione del leader. Durante le elezioni, questo pacchetto è responsabile della gestione delle richieste di voto inviate dai nodi che cercano di diventare il nuovo leader. Interagisce con lo stato del nodo per 
-    garantire che le richieste di voto siano legittime, un aspetto cruciale per mantenere un processo elettorale affidabile all'interno del protocollo Raft. \\RequestVoteResponse.go processa le risposte alle richieste di voto. 
-    Questa struct gestisce la decisione di concedere o meno il proprio voto a un candidato, basandosi sullo stato e sul log sia del nodo richiedente che del nodo rispondente. Come il pacchetto RequestVoteRPC, garantisce l'integrità
-    dell'elezione del leader. 
-
-  \item clusterMetadata: definisce i metadati relativi al cluster, come il term per tracciare la validità della leadership, le informazioni su quale nodo è l'attuale leader, i dettagli sul quorum delle elezioni e il ruolo che 
-    ricopre ciascun nodo.
-
+  \item rpcs: definisce un'interfaccia generale Rpc, utilizzata in tutto il progetto per astrarre la logica delle varie chiamate RPC nel sistema Raft. Il sistema delle rpc è stato progettate per alleggerire il carico di lavoro
+    componente centrale del nodo. Questo è stato fatto implementando il comportamento di risposta in ricezione di una rpc all'interno delle rpc stesse. Per fare ciò, il modulo fa uso del clusterMetadata 
+    per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere il numero di nodi nelle configurazioni) e informazioni sul mittente. Necessitavamo di un sistema il più modulare e scalabile possibile, in quanto,
+    nell'eventualità di aggiungere un nuovo tipo di rpc, non avremo dovuto apportare troppe modifiche. A dimostrazione di ciò, oltre alle rpc definite dal protocollo -- AppendEntryRpc, AppendResponse, RequestVoteRPC, 
+    RequestVoteResponse -- ne troviamo altre, come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client. 
+    
   \item confPool: gestisce le configurazioni del sistem. Tiene traccia della configurazione principale, che rappresenta lo stato attuale del sistema, e di una o più configurazioni temporanee che potrebbero essere in fase di 
     valutazione o preparazione per diventare la nuova configurazione principale. Inoltre, si assicura che tutti i nodi del sistema siano d'accordo sulla configurazione corrente. Questo è fondamentale per evitare 
-    incoerenze e garantire un funzionamento corretto del sistema. Infine, tiene traccia di alcuni parametri importanti (nextIndex e matchIndex) dei log di ciascun nodo, al fine di garantire una corretta replicazione del log. 
+    incoerenze e garantire un funzionamento corretto del sistema. \'E l'unico modulo che ha subito numerose ristrutturazioni: inizialmente abbiamo provato a rendere il gestore dei log indipentende dal gestore delle configurazioni, 
+    ma tutto cio' si e' rivelato alquanto fallimentare. In particolar modo il cambio di configurazione risultava troppo complesso da implementare e per questo abbiamo deciso di cambiare approccio usando un altro design. Abbiamo 
+    quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, contenesse il gestore dei log su cui avere controllo. Così facendo, divenne più semplice gestire molteplici configurazioni, infatti per aggiornare
+    la disposizione dei nodi, è sufficente instanziare una nuova configurazione, aspettare la migrazione dei nodi per poi eliminare quella vecchia in favore della nuova. 
+    Col precedente approccio non sarebbe stato possibile poiche' la migrazione veniva 
+    considerata, erroneamente, come una vera e propria disposizione (adesso è rappresentata dalla coesistenza di due configurazioni). 
   
-  \item server: è la componente centrale che viene eseguito su ciascun nodo. Definisce la struttura e il loop principale del lavoro del nodo. Sta in ascolta di messaggi e connessioni in arrivo, delegando la loro gestione alle 
-    rispettive componenti elencate prima.
+  \item server: è la componente centrale che viene eseguito su ciascun nodo. Definisce la struttura e il loop principale del lavoro del nodo. Fa utilizzo dei moduli sopra descritti per restare in ascolta di messaggi e connessioni 
+    in arrivo, e conseguentemente gestirle.
 
 \end{itemize}
-
 
 
 \subsubsection{Funzionamento}
@@ -65,10 +66,12 @@ Se il candidato riceve voti dalla maggioranza dei nodi, assume il ruolo di leade
 Se invece nessun candidato ottiene la maggioranza, viene avviato un nuovo ciclo elettorale fino a quando non viene selezionato un leader. 
 
 \textbf{Replicazione dei Log, Commit e applicazione allo stato della macchina}\\
-Uno dei flussi operativi principali riguarda la gestione del log, che è il meccanismo attraverso cui Raft garantisce la consistenza dei dati nei nodi. Il log è gestito da due implementazioni separate: una per il leader e una 
-per i follower.
-Quando un leader riceve un nuovo comando, lo aggiunge al suo log interno e invia un'RPC AppendEntry ai follower per replicare questo comando. I follower ricevono questo messaggio, lo aggiungono al loro log, e rispondono al leader. 
-Il leader tiene traccia di quanti follower hanno replicato con successo l'entry e una volta che una voce è stata replicata con successo su una maggioranza di nodi, il leader può committare la voce. Questo processo è gestito 
+Uno dei flussi operativi principali riguarda la gestione del log, che è il meccanismo attraverso cui Raft garantisce la consistenza dei dati nei nodi. Il log è gestito da due componenti separate: una chiamata leader e l'altra 
+chiamata slave e, come descritto nel paragrafo precedente, la prima ha permessi di scrittura, mentre la seconda di sola lettura.
+Quando un leader riceve un nuovo comando, lo aggiunge al suo log interno e, a questo punto, informa le configurazioni attive che ha aggiunto una nuova voce al registro. Dopodiché, ogni configurazione invia un messaggio 
+AppendEntryRPC ai nodi corrispondenti.
+I follower ricevono questo messaggio, lo aggiungono al loro log, e rispondono al leader. 
+Quando il leader riceve una risposta AppendEntryResponse da ciascun nodo, aggiorna i rispettivi indici: nextIndex e matchIndex, mantenendo così allineati i nodi con lo stato corrente del registro.
 attraverso canali asincroni (applyC e NotifyAppendEntryC) definiti nelle implementazioni del log di leader e follower. Il leader invia un commit alla maggior parte dei nodi, e i follower seguono l'ordine di commit. 
 Quando le voci vengono committate, esse vengono applicate allo stato condiviso del sistema.
 Il canale ReturnValue nel log permette di gestire i risultati delle operazioni in maniera asincrona, in modo che il sistema possa continuare ad operare senza attendere che ogni operazione venga completata in modo sincrono.
