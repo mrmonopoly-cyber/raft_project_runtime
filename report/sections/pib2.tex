@@ -25,11 +25,19 @@ Il progetto è composto da numerosi moduli di seguito esposti:
     che ricopre, le informazioni sui timer (election e heartbeat) e i dettagli 
     sull'elezioni come il quorum, il nodo per cui ha votato e se ha il diritto di voto o meno, 
 
-  \item rpcs: definisce un'interfaccia generale Rpc, utilizzata in tutto il progetto per astrarre la logica delle varie chiamate RPC nel sistema Raft. Il sistema delle rpc è stato progettate per alleggerire il carico di lavoro
+  \item rpcs: definisce un'interfaccia generica Rpc, utilizzata in tutto il progetto per astrarre la logica delle varie chiamate RPC nel sistema Raft. Nonostante il nome sia fuorviante, in quanto è acronimo delle Remote Procedure
+    Call, ci teniamo a specificare che non abbiamo progettato questo modulo per lavorare in sincrono, bensì in asincrono.
+    Il sistema delle rpc è stato progettate per alleggerire il carico di lavoro
     componente centrale del nodo. Questo è stato fatto implementando il comportamento di risposta in ricezione di una rpc all'interno delle rpc stesse. Per fare ciò, il modulo fa uso del clusterMetadata 
-    per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere il numero di nodi nelle configurazioni) e informazioni sul mittente. Necessitavamo di un sistema il più modulare e scalabile possibile, in quanto,
+    per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere il numero di nodi nelle configurazioni) e informazioni sul mittente. Necessitavamo di un sistema il più modulare e scalabile possibile,
+    in quanto,
     nell'eventualità di aggiungere un nuovo tipo di rpc, non avremo dovuto apportare troppe modifiche. A dimostrazione di ciò, oltre alle rpc definite dal protocollo -- AppendEntryRpc, AppendResponse, RequestVoteRPC, 
-    RequestVoteResponse -- ne troviamo altre, come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client. 
+    RequestVoteResponse -- ne troviamo altre, come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client. La ragione dietro a questo tipo di 
+    progettazione è stata 
+    fatta a frutto dei futuri cambiamenti che ci sarebbero stati e che sono stati fatti, difatti il modulo è stato pensando fin dall'inizio in questo modo e, a fronte dei cambiamenti che sono stati fatti, non è per nulla cambiato. 
+    La scalabilità è inoltre facilitata dall'utilizzo di uno script e di un rpc template che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali errori di scrittura di nuove rpc). 
+    Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio arriva, il suoo tipo viene controllato, viene estratto il payload e convertito in base al tipo. Questo rappresenta un 
+    debito tecnico (limite), in quanto ad ogni aggiunta di una nuova rpc, bisogna aggiungere un voce nel modulo di conversione. 
     
   \item confPool: gestisce le configurazioni del sistem. Tiene traccia della configurazione principale, che rappresenta lo stato attuale del sistema, e di una o più configurazioni temporanee che potrebbero essere in fase di 
     valutazione o preparazione per diventare la nuova configurazione principale. Inoltre, si assicura che tutti i nodi del sistema siano d'accordo sulla configurazione corrente. Questo è fondamentale per evitare 
@@ -53,7 +61,8 @@ rete di nodi Raft che formeranno il cluster.
 Una volta configurato, il server avvia il nodo Raft, che si mette in ascolto per comunicazioni e richieste. A questo punto, ogni nodo può interagire con gli altri nel cluster, comunicando attraverso RPCs (Remote Procedure Calls).
 
 \textbf{Comunicazione tra Nodi}\\
-Una parte cruciale del flusso è la comunicazione tra nodi, che avviene principalmente attraverso due fasi: replicazione del log e elezioni del leader. Queste interazioni vengono gestite tramite vari tipi di RPC definiti nel progetto.
+Una parte cruciale del flusso è la comunicazione tra nodi, che avviene principalmente attraverso due fasi: replicazione del log e elezioni del leader. Queste interazioni vengono gestite tramite vari tipi di RPC definiti 
+nel progetto.
 Quando un nodo leader deve replicare le voci del log, invia un'RPC AppendEntryRpc ai nodi follower. I follower, una volta ricevuta la richiesta, e, se la richiesta è valida e il log viene replicato correttamente, i follower 
 rispondono confermando la replica.
 Durante il processo di elezione del leader, i nodi inviano una richiesta di voto con l'RPC RequestVoteRPC. I nodi che ricevono questa richiesta processano la decisione di votare o meno per il candidato leader, assicurandosi 
