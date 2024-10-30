@@ -1,11 +1,60 @@
 \subsection{Dettagli implementativi dell'applicativo}
 Ora che e' chiara la struttura del progetto si puo' procedere con la descrizione del
-codice e delle relative funzionalita'.
+codice e delle relative funzionalita'. Per fare cio' e' stato scelto come linguaggio
+di programmazione \textbf{Golang} per la sua semplicita' d'uso e per i thread in user space
+meglio note come \textbf{goroutine}.
+Per non dilungarsi nella inutile spiegazione di come funziona il protocollo RAFT d'ora in avanti
+si assumera' che il lettore abbia conoscenza dell'argomento. In caso contrario si invita
+a leggere il paper di riferimento.
 \subsubsection{Obiettivi}
+Avendo usato gli elementi precendentemente citati per delineare la struttura del cluster tutto
+cio' che deve fare questa parte del progetto e':
+\begin{itemize}
+    \item implementare il protocollo RAFT per sincronizzare i nodi
+    \item soddisfare le richieste inviate dai client distinguendole da quelle dei nodi
+    \item riconoscere se e quando viene aggiunto un nodo nella rete
+    \item implementare il cambio di configurazione secondo i criteri del protocollo RAFT
+    \item riconoscere se e quando un nodo non e' piu' attivo
+    \item permettere il soddisfaciemento di una o piu' delle richieste citate in contemporanea 
+        senza implementare spinlock
+\end{itemize}
 % Sezione vuota per scaletta
 %TODO: ingloberei questa sotto sezione alla sezione Obiettivi
 
-\subsubsection{Struttura del codice}
+\subsubsection{Struttura del codice\\}
+Il codice e' stato strutturato per essere diviso in due fasi: 
+\begin{itemize}
+    \item \textbf{Inizializzazione}: dove vengono caricati tutti gli ip scoperti dal daemon
+        \textbf{discovery.service} (quello del nodo stesso e quelli dei nodi attualmente presenti 
+        nella rete), la directory dove salvare i dati del filesystem distribuito. Fatto 
+        il nodo tenta di instanziare una connessione con gli altri nodi scoperti dal dameon e 
+        ifine instanzia una goroutine per l'accettazione di nuove connessioni in ingresso che 
+        verranno poi smistate in base all'ip di provenienza. Usando questa struttura si garantisce
+        che ogni nodo creera' una connessione, se possibile, con ogni altro nodo nella rete. 
+        E' importante ricordare che instaurare una connessione non implica appartenere 
+        alla stessa configurazione. Inoltre in questa fase fengono instanziati
+        dei clock necessari per l'implementazione del protocollo RAFT.
+        E' importante sottolineare che per ogni connessione accettata verra' creata una 
+        goroutine responsabile di ricevere i messaggi dal nodo di riferimento.
+    \item \textbf{Loop}: In questa fase viene eseguito un loop con una chiamata bloccante che 
+        rilascia la \textbf{CPU} fino a che non si verifica una delle tre condizioni:
+        \begin{itemize}
+            \item il nodo riceve un nuovo messaggio
+            \item scatta il timer responsabile dell'elezione di un nuovo leader
+            \item scatta il timer che indica di dover inviare un nuovo hearthbit
+        \end{itemize}
+        E' importante puntualizzare che ogni qualvolta si dovesse verificare una delle condizioni
+        verra' creata una goroutine che continuera' la computazione liberando il main loop. 
+        Facendo cio' si fornisce un miglior tempo di risposta garentendo inoltre la disponibilita' 
+        del servizio.
+\end{itemize}
+La spiegazione del codice continuera' indagando i tre casi del loop appena citati spiegando i moduli 
+utilizzati man mano.
+
+\subsubsection{il nodo riceve un nuovo messaggio\\}
+\subsubsection{scatta il timer responsabile dell'elezione di un nuovo leader\\}
+\subsubsection{scatta il timer che indica di dover inviare un nuovo hearthbit\\}
+
 Il progetto è composto da numerosi moduli di seguito esposti:
 \begin{itemize}
   \item node: definisce la struttura di un nodo Raft, quindi contenente le informazioni riguardanti la connessione al node e il suo indirizzo. Quest'ultimo è rappresentanto grazio a un sottomodulo di node, chiamato address, 

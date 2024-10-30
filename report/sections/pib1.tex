@@ -100,7 +100,7 @@ le seguenti ragioni:
 
 \subsubsection{Applicazione}
 % Sezione vuota per scaletta
-\textit{L'applicazione del protocollo nel cluster risiede all'interno del codice da noi sviluppato
+L'applicazione del protocollo nel cluster risiede all'interno del codice da noi sviluppato
 eseguito da ogni nodo. E' intrinsicamente legato al funzionamento dell'intero ecosistema e, per 
 questa ragione, non e' possibile confinarlo ad unico modulo. 
 Possiamo tuttavia spiegare come e' stato strutturato, a livello di progettazione, all'interno
@@ -114,21 +114,21 @@ Abbiamo deciso di dividere l'implementazione del protocollo in tre macroaree:
         le attuali configurazioni attive e agire opportunamente in base alle situazioni.
 \end{itemize}
 Tralasciando le RPC che sono uno strumento di servizio, i restanti due blocchi non hanno la stessa
-importanza. Inizialmente abbiamo provato a rendere il gestore dei log indipentende 
-dal geotore delle configurazioni, ma tutto cio' si e' rivelato alquanto fallimentare.
-In particolar modo il cambio di configurazione risultava troppo complesso da implementare 
-e per questo abbiamo deciso di cambiare approccio usando un altro design. 
+importanza. Inizialmente abbiamo provato a mantenere una sola instanza di log per ogni
+VM. Purtroppo questo approccio si e' rivelato alquanto fallimentare non permettendo
+l'implementazione del cambio di configurazione poiche' ognonuna di esse deve 
+poter avere un log privato.
 Abbiamo quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, contenesse
 il gestore dei log su cui avere controllo.
 Successivamente vengono poi instanziate le diverse configurazioni attive in un suddetto momento
-con accesso, limitato, al log centralizzato.
+con accesso, limitato, al log centralizzato e un commit index privato. 
 Cosi' facendo, per aggiornare la disposizione dei nodi, e' sufficente instanziare una
 nuova configurazione, aspettare la migrazione dei nodi per poi eliminare quella vecchia in favore 
 della nuova. Col precedente approccio non sarebbe stato possibile poiche' la migrazione veniva 
 considerata, erroneamente, come una vera e propria disposizione. 
 Per quanto concerne il committing di un log e' sufficente chiedere alle singole configurazioni
 se tale log e' gia' stato processato per poi avere il gestore delle configurazioni che certifica
-il fatto segnandolo nel log locale della macchina virtuale.}
+il fatto segnandolo nel log centralizzto della macchina virtuale.
 
 
 \subsubsection{Limiti}
