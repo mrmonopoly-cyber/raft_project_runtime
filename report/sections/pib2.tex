@@ -1,8 +1,8 @@
 \subsection{Dettagli implementativi dell'applicativo}
 Ora che e' chiara la struttura del progetto si puo' procedere con la descrizione del
 codice e delle relative funzionalita'. Per fare cio' e' stato scelto come linguaggio
-di programmazione \textbf{Golang} per la sua semplicita' d'uso e per i thread in user space
-meglio note come \textbf{goroutine}.
+di programmazione \textbf{Golang} per la sua semplicita' d'uso, per i thread in user space
+meglio note come \textbf{goroutine} e per i suoi channel di comunicazione.
 Per non dilungarsi nella inutile spiegazione di come funziona il protocollo RAFT d'ora in avanti
 si assumera' che il lettore abbia conoscenza dell'argomento. In caso contrario si invita
 a leggere il paper di riferimento.
@@ -24,7 +24,7 @@ cio' che deve fare questa parte del progetto e':
 \subsubsection{Struttura del codice\\}
 Il codice e' stato strutturato per essere diviso in due fasi: 
 \begin{itemize}
-    \item \textbf{Inizializzazione}: dove vengono caricati tutti gli ip scoperti dal daemon
+    \item \textbf{Inizializzazione}: dove vengono caricati tutti gli ip scoperti dal deamon
         \textbf{discovery.service} (quello del nodo stesso e quelli dei nodi attualmente presenti 
         nella rete), la directory dove salvare i dati del filesystem distribuito. Fatto 
         il nodo tenta di instanziare una connessione con gli altri nodi scoperti dal dameon e 
@@ -39,19 +39,58 @@ Il codice e' stato strutturato per essere diviso in due fasi:
     \item \textbf{Loop}: In questa fase viene eseguito un loop con una chiamata bloccante che 
         rilascia la \textbf{CPU} fino a che non si verifica una delle tre condizioni:
         \begin{itemize}
-            \item il nodo riceve un nuovo messaggio
+            \item il nodo riceve una richiesta RPC
             \item scatta il timer responsabile dell'elezione di un nuovo leader
             \item scatta il timer che indica di dover inviare un nuovo hearthbit
         \end{itemize}
         E' importante puntualizzare che ogni qualvolta si dovesse verificare una delle condizioni
-        verra' creata una goroutine che continuera' la computazione liberando il main loop. 
+        verra' creata una goroutine per soddisfare la richiesta liberando il main loop.
         Facendo cio' si fornisce un miglior tempo di risposta garentendo inoltre la disponibilita' 
         del servizio.
 \end{itemize}
 La spiegazione del codice continuera' indagando i tre casi del loop appena citati spiegando i moduli 
-utilizzati man mano.
+utilizzati man mano. Dove ognuna delle condizioni citate consiste nella ricezione di un messaggio
+in uno specifico channel.
 
-\subsubsection{il nodo riceve un nuovo messaggio\\}
+\subsubsection{il nodo riceve una richiesta RPC\\}
+Come gia' accennato in precedenza ad ogni nodo viene assegnata una goroutine responsabile di
+ricevere messaggi da quella connessione. Quando cio' accade l'intero messaggio viene deserializzato
+trammite il protocollo di \textbf{Protobuf} ottenendo il messaggio di riferimento in un formato 
+maggiornmente utilizzabile. Questa procedura accade sia per i messaggi tra elementi del cluster
+sia per le richieste dei clienti che vi ci connettono. Avendo un discreto numero di diversi tipi di
+messaggi gestire ognuna di esse separatamente con una logica dedicata sarebbe stato alquanto
+impraticabile. Per questa ragione abbiamo progettato il nostro sistema di RPC:
+Abbiamo definito una interfaccia comune per una generica RPC che viene poi implementata da
+ogni instanza specifica implementando una inversione delle dipendenze. Nell'interfaccia in questione
+sono stati definite solo le funzione che ogni ADT dovra' rispettare per essere considerato 
+una RPC. In particolare sono state definite le seguenti funzioni:
+\begin{itemize}
+    \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
+    \item Execute: Esegue la funzione relativa a quel messaggio utilizzando il payload del messaggio
+        come variabili
+    \item Encode: Serializza il messaggio in byte
+    \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio con i dati
+        estratti nel processo
+\end{itemize}
+Usando questa interfaccia per astrarre le interfaccie e' possibile delegare la gestione della logica
+all'implementazione delle RPC liberando il gestore dalle RPC da tale compito. 
+Oltre alle rpc definite dal protocollo – AppendEntryRpc, AppendResponse, RequestVo-teRPC, 
+RequestVoteResponse – ne troviamo altre, come l’rpc utilizzato per notificare ai noti che hanno 
+diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client.
+Ergo qualora venga eseguita una goroutine per la ricezione di un messaggio vuol dire
+un nodo ha ricevuto un messaggio, il messaggio e' stato poi deserializzato nell'apposita RPC,
+l'RPC e' stata inviata nel channel che ha scatenato l'inizio della goroutine per gestirlo,
+A questo punto la richiesta deve essere trattata.
+Si ricava l'ip del mittente, informazione necessaria per sapere a chi inviare una risposta se necessario,
+viene eseguita l'RPC, si verifica se la procedura ha ritornato un risposta da inviare al mittente,
+si invia la risposta in caso e si notifica il completamento su un channel dedicato 
+per quel messaggio. Quest'ultima parte e' stata introdotta per garantire che un nodo non possa 
+saturare il leader di messaggi monopolizzandolo. Questa scelta comporta che il leader non accettera' 
+altri messaggi da uno stesso nodo fino a che il precedente non sara' stato trattato. Siamo a 
+conoscenza che questo sia un grande limite ma e' stato il modo migliore che siamo riusciti 
+a trovare per garantire la correttezza dell'esecuzione senza introdurre race condition nell'esecuzione
+dei messaggi di un nodo.
+
 \subsubsection{scatta il timer responsabile dell'elezione di un nuovo leader\\}
 \subsubsection{scatta il timer che indica di dover inviare un nuovo hearthbit\\}
 
@@ -60,7 +99,7 @@ Il progetto è composto da numerosi moduli di seguito esposti:
   \item node: definisce la struttura di un nodo Raft, quindi contenente le informazioni riguardanti la connessione al node e il suo indirizzo. Quest'ultimo è rappresentanto grazio a un sottomodulo di node, chiamato address, 
     che contiene la string di numeri separati dal punto (IP) e la porta di riferimento.
 
-  \item localFs: definisce l'astrazione del file system locale e le operazioni di scrittura e lettura su di esso. Grazie a questo modulo, salviamo i file localmente sui vari nodi.
+  \item localFs: definisce l'astrazione del filesystem locale e le operazioni di scrittura e lettura su di esso. Grazie a questo modulo, salviamo i file localmente sui vari nodi.
  
   \item raft\_log: definisce il sistema di log di Raft, in cui la struttura LogInstance rappresenta una singola voce nel log di Raft. Il pacchetto importa anche una codifica basata su protobuf per serializzare i messaggi 
     di log per la trasmissione in rete. Una caratteristica chiave di questo pacchetto è il canale ReturnValue, che supporta operazioni asincrone come la ricezione di conferme di commit per le voci del log. \\
