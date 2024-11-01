@@ -67,12 +67,12 @@ una RPC. In particolare sono state definite le seguenti funzioni:
 \begin{itemize}
     \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
     \item Execute: Esegue la funzione relativa a quel messaggio utilizzando il payload del messaggio
-        come variabili
+        come variabili insieme ai metadati del cluster, del log e delle configurazioni attive
     \item Encode: Serializza il messaggio in byte
     \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio con i dati
         estratti nel processo
 \end{itemize}
-Usando questa interfaccia per astrarre le interfaccie e' possibile delegare la gestione della logica
+Usando questa interfaccia per astrarre le richieste RPC e' possibile delegare la gestione della logica
 all'implementazione delle RPC liberando il gestore dalle RPC da tale compito. 
 Oltre alle rpc definite dal protocollo – AppendEntryRpc, AppendResponse, RequestVo-teRPC, 
 RequestVoteResponse – ne troviamo altre, come l’rpc utilizzato per notificare ai noti che hanno 
