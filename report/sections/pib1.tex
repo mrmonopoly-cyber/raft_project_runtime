@@ -98,37 +98,37 @@ le seguenti ragioni:
         nodi a nostro piacimento.
 \end{itemize}
 
-\subsubsection{Applicazione}
+%\subsubsection{Applicazione}
 % Sezione vuota per scaletta
-L'applicazione del protocollo nel cluster risiede all'interno del codice da noi sviluppato
-eseguito da ogni nodo. E' intrinsicamente legato al funzionamento dell'intero ecosistema e, per 
-questa ragione, non e' possibile confinarlo ad unico modulo. 
-Possiamo tuttavia spiegare come e' stato strutturato, a livello di progettazione, all'interno
-del nostro codice e spiegarne il motivo.
-Abbiamo deciso di dividere l'implementazione del protocollo in tre macroaree:
-\begin{itemize}
-    \item RPC: le chiamate remote eseguite tra un nodo e l'altro
-    \item gestore dei log: questo componente si occupa di tutto cio' che riguarda il salvataggio 
-        dei log del protocollo
-    \item gestore della configurazione: tale modulo ha il compito di controllare quali siano 
-        le attuali configurazioni attive e agire opportunamente in base alle situazioni.
-\end{itemize}
-Tralasciando le RPC che sono uno strumento di servizio, i restanti due blocchi non hanno la stessa
-importanza. Inizialmente abbiamo provato a mantenere una sola instanza di log per ogni
-VM. Purtroppo questo approccio si e' rivelato alquanto fallimentare non permettendo
-l'implementazione del cambio di configurazione poiche' ognonuna di esse deve 
-poter avere un log privato.
-Abbiamo quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, contenesse
-il gestore dei log su cui avere controllo.
-Successivamente vengono poi instanziate le diverse configurazioni attive in un suddetto momento
-con accesso, limitato, al log centralizzato e un commit index privato. 
-Cosi' facendo, per aggiornare la disposizione dei nodi, e' sufficente instanziare una
-nuova configurazione, aspettare la migrazione dei nodi per poi eliminare quella vecchia in favore 
-della nuova. Col precedente approccio non sarebbe stato possibile poiche' la migrazione veniva 
-considerata, erroneamente, come una vera e propria disposizione. 
-Per quanto concerne il committing di un log e' sufficente chiedere alle singole configurazioni
-se tale log e' gia' stato processato per poi avere il gestore delle configurazioni che certifica
-il fatto segnandolo nel log centralizzto della macchina virtuale.
+%L'applicazione del protocollo nel cluster risiede all'interno del codice da noi sviluppato
+%eseguito da ogni nodo. E' intrinsicamente legato al funzionamento dell'intero ecosistema e, per 
+%questa ragione, non e' possibile confinarlo ad unico modulo. 
+%Possiamo tuttavia spiegare come e' stato strutturato, a livello di progettazione, all'interno
+%del nostro codice e spiegarne il motivo.
+%Abbiamo deciso di dividere l'implementazione del protocollo in tre macroaree:
+%\begin{itemize}
+%    \item RPC: le chiamate remote eseguite tra un nodo e l'altro
+%    \item gestore dei log: questo componente si occupa di tutto cio' che riguarda il salvataggio 
+%        dei log del protocollo
+%    \item gestore della configurazione: tale modulo ha il compito di controllare quali siano 
+%        le attuali configurazioni attive e agire opportunamente in base alle situazioni.
+%\end{itemize}
+%Tralasciando le RPC che sono uno strumento di servizio, i restanti due blocchi non hanno la stessa
+%importanza. Inizialmente abbiamo provato a mantenere una sola instanza di log per ogni
+%VM. Purtroppo questo approccio si e' rivelato alquanto fallimentare non permettendo
+%l'implementazione del cambio di configurazione poiche' ognonuna di esse deve 
+%poter avere un log privato.
+%Abbiamo quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, contenesse
+%il gestore dei log su cui avere controllo.
+%Successivamente vengono poi instanziate le diverse configurazioni attive in un suddetto momento
+%con accesso, limitato, al log centralizzato e un commit index privato. 
+%Cosi' facendo, per aggiornare la disposizione dei nodi, e' sufficente instanziare una
+%nuova configurazione, aspettare la migrazione dei nodi per poi eliminare quella vecchia in favore 
+%della nuova. Col precedente approccio non sarebbe stato possibile poiche' la migrazione veniva 
+%considerata, erroneamente, come una vera e propria disposizione. 
+%Per quanto concerne il committing di un log e' sufficente chiedere alle singole configurazioni
+%se tale log e' gia' stato processato per poi avere il gestore delle configurazioni che certifica
+%il fatto segnandolo nel log centralizzto della macchina virtuale.
 
 
 \subsubsection{Limiti}
@@ -148,10 +148,67 @@ per nulla irrilevanti:
         non ci sono garanzie che l'attuale struttura sia predisposta.
 \end{itemize}
 
-\subsection{Implementazione:\\}
+\subsubsection{Implementazione:\\}
 DECRIVERE QUI COME ABBIAMO IMPLEMENTATO IL PROTOCOLLO CON I RELATIVI MODULI (log, configurazioni) 
 DESCRIVERE INOLTRE COME SONO STATE IMPLEMENTATE LE RPC SPECIFICHE DEL PROTOCOLLO E DEL PERCHE'
 SIANO STATE IMPLEMENTATE IN TALE MODO.
+La nostra implementazione di Raft è caratterizata da diversi moduli: 
+\begin{itemize}
+  \item node: definisce la struttura di un nodo Raft, quindi contenente le informazioni riguardanti la connessione al node e il suo indirizzo. Quest'ultimo è rappresentanto grazio a un sottomodulo di node, chiamato address, 
+    che contiene la string di numeri separati dal punto (IP) e la porta di riferimento.
+
+  \item localFs: definisce l'astrazione del filesystem locale e le operazioni di scrittura e lettura su di esso. Grazie a questo modulo, salviamo i file localmente sui vari nodi.
+  
+  \item clusterMetadata: definisce i metadati relativi al cluster e al nodo stesso, come il proprio indirizzo IP e quello del leader (sia publici che privati), il term per tracciare la validità della leadership, il ruolo 
+    che ricopre, le informazioni sui timer (election e heartbeat) e i dettagli 
+    sull'elezioni come il quorum, il nodo per cui ha votato e se ha il diritto di voto o meno, 
+ 
+  \item raft\_log: definisce il sistema di log di Raft, in cui la struttura LogInstance rappresenta una singola voce nel log di Raft. Il modulo importa anche una codifica basata su protobuf per serializzare i messaggi 
+    di log per la trasmissione in rete. Una caratteristica chiave di questo modulo è il canale ReturnValue, che supporta operazioni asincrone come la ricezione di conferme di commit per le voci del log. \\
+    Contiene l'implementazione principale del log per Raft, utilizzando un sync.RWMutex per gestire l'accesso concorrente ai log. Questo file definisce la struttura logEntryImp, che gestisce un elenco di voci di log, la 
+    dimensione del log e l'indice di commit. \\
+    \'E principalmente costituito da LogEntrySlave e LogEntryMaster. Entrambi condividono lo stesso log, ma con permessi diversi: il LogEntrySlave ha solo permessi di lettura, mentre il LogEntryMaster ha sia permessi di scrittura 
+    che di lettura. Il compito del master è notificare agli slave quando vengono aggiunte nuove entry. Gli slave, invece, notificano al master quando hanno confermato le nuove voci, e, al ricevimento di tutte le conferme, 
+    il master procede con il commit ufficiale delle voci.
+  
+
+  \item rpcs: definisce un'interfaccia generica Rpc, utilizzata in tutto il progetto per astrarre la logica delle varie chiamate RPC nel sistema Raft. Nonostante il nome sia fuorviante, in quanto è acronimo delle Remote Procedure
+    Call, ci teniamo a specificare che non abbiamo progettato questo modulo per lavorare in sincrono, bensì in asincrono.
+    Per alleggerire il carico di lavoro alla goroutine centrale e avendo un discreto numero di RPC diverse da gestire, abbiamo definito una interfaccia comune per una generica RPC che viene poi implementata da ogni 
+    istanza specifica, 
+    implementando così una inversione delle dipendenze. Nell'interfaccia in questione sono stati definite solo le funzione che ogni ADT dovrà rispettare per essere considerato una RPC. In particolare sono state 
+    definite le seguenti funzioni:
+    \begin{itemize}
+      \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
+      \item Execute: Esegue la funzione relativa a quel messaggio utilizzando il payload del messaggio
+          come variabili insieme ai metadati del cluster, del log e delle configurazioni attive
+      \item Encode: Serializza il messaggio in byte
+      \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio con i dati
+        estratti nel processo
+    \end{itemize}
+    Per eseguire il comportamento previsto da una RPC il modulo fa uso del clusterMetadata 
+    per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere il numero di nodi nelle configurazioni) e informazioni sul mittente. \\
+    Necessitavamo di un sistema il più modulare e scalabile possibile, in quanto,
+    nell'eventualità di aggiungere un nuovo tipo di rpc, non avremo dovuto apportare troppe modifiche. A dimostrazione di ciò, oltre alle rpc definite dal protocollo -- AppendEntryRpc, AppendResponse, RequestVoteRPC, 
+    RequestVoteResponse -- ne troviamo altre, come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client. La ragione dietro a questo tipo di 
+    progettazione è stata 
+    fatta a frutto dei futuri cambiamenti che ci sarebbero stati e che sono stati fatti, difatti il modulo è stato pensando fin dall'inizio in questo modo e, a fronte dei cambiamenti che sono stati fatti, non è per nulla cambiato. 
+    La scalabilità è inoltre facilitata dall'utilizzo di uno script e di un rpc template che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali errori di scrittura di nuove rpc). 
+    Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio arriva, il suoo tipo viene controllato, viene estratto il payload e convertito in base al tipo. Questo rappresenta un 
+    debito tecnico (limite), in quanto ad ogni aggiunta di una nuova rpc, bisogna aggiungere un voce nel modulo di conversione. 
+    
+  \item confPool: gestisce le configurazioni del sistema. Tiene traccia della configurazione principale, che rappresenta lo stato attuale del sistema, e di una o più configurazioni temporanee che potrebbero essere in fase di 
+    valutazione o preparazione per diventare la nuova configurazione principale. Inoltre, si assicura che tutti i nodi del sistema siano d'accordo sulla configurazione corrente. Questo è fondamentale per evitare 
+    incoerenze e garantire un funzionamento corretto del sistema. \'E l'unico modulo che ha subito numerose ristrutturazioni: inizialmente abbiamo provato a rendere il gestore dei log indipentende dal gestore delle configurazioni, 
+    ma tutto cio' si e' rivelato alquanto fallimentare. In particolar modo il cambio di configurazione risultava troppo complesso da implementare e per questo abbiamo deciso di cambiare approccio usando un altro design. Abbiamo 
+    quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, contenesse il gestore dei log su cui avere controllo. Così facendo, divenne più semplice gestire molteplici configurazioni, infatti per aggiornare
+    la disposizione dei nodi, è sufficente instanziare una nuova configurazione, aspettare la migrazione dei nodi per poi eliminare quella vecchia in favore della nuova. 
+    Col precedente approccio non sarebbe stato possibile poiche' la migrazione veniva 
+    considerata, erroneamente, come una vera e propria disposizione, mentre adesso è rappresentata dalla coesistenza di due configurazioni. 
+
+\end{itemize}
+
+
 % Sezione vuota per scaletta
 
 

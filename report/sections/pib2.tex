@@ -1,9 +1,5 @@
 \subsection{Dettagli implementativi dell'applicativo}
 
-RIMUOVERE L'ELENCO DEI MODULI SOTTO E CONTINUARE CON IL DISCORSO COUESO SEGUENDO IL FLUSSO DEL
-CODICE DANDO LA PRECEDENTE DESCRIZIONE DELLA NOSTRA IMPLEMENTAZIONE DI RAFT PER ASSODATA E 
-QUINDI FOCALIZZANDOSI SOLO SULLA NOSTRA LOGICA AGGIUNTIVA.
-
 Ora che e' chiara la struttura del progetto si puo' procedere con la descrizione del
 codice e delle relative funzionalita'. Per fare cio' e' stato scelto come linguaggio
 di programmazione \textbf{Golang} per la sua semplicita' d'uso, per i thread in user space
@@ -62,31 +58,8 @@ Come gia' accennato in precedenza ad ogni nodo viene assegnata una goroutine res
 ricevere messaggi da quella connessione. Quando cio' accade l'intero messaggio viene deserializzato
 trammite il protocollo di \textbf{Protobuf} ottenendo il messaggio di riferimento in un formato 
 maggiornmente utilizzabile. Questa procedura accade sia per i messaggi tra elementi del cluster
-sia per le richieste dei clienti che vi ci connettono. Avendo un discreto numero di diversi tipi di
-messaggi gestire ognuna di esse separatamente con una logica dedicata sarebbe stato alquanto
-impraticabile. Per questa ragione abbiamo progettato il nostro sistema di RPC:
-Abbiamo definito una interfaccia comune per una generica RPC che viene poi implementata da
-ogni instanza specifica implementando una inversione delle dipendenze. Nell'interfaccia in questione
-sono stati definite solo le funzione che ogni ADT dovra' rispettare per essere considerato 
-una RPC. In particolare sono state definite le seguenti funzioni:
-\begin{itemize}
-    \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
-    \item Execute: Esegue la funzione relativa a quel messaggio utilizzando il payload del messaggio
-        come variabili insieme ai metadati del cluster, del log e delle configurazioni attive
-    \item Encode: Serializza il messaggio in byte
-    \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio con i dati
-        estratti nel processo
-\end{itemize}
-Usando questa interfaccia per astrarre le richieste RPC e' possibile delegare la gestione della logica
-all'implementazione delle RPC liberando il gestore dalle RPC da tale compito. 
-Oltre alle rpc definite dal protocollo – AppendEntryRpc, AppendResponse, RequestVo-teRPC, 
-RequestVoteResponse – ne troviamo altre, come l’rpc utilizzato per notificare ai noti che hanno 
-diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client.
-Ergo qualora venga eseguita una goroutine per la ricezione di un messaggio vuol dire
-un nodo ha ricevuto un messaggio, il messaggio e' stato poi deserializzato nell'apposita RPC,
-l'RPC e' stata inviata nel channel che ha scatenato l'inizio della goroutine per gestirlo,
-A questo punto la richiesta deve essere trattata.
-Si ricava l'ip del mittente, informazione necessaria per sapere a chi inviare una risposta se necessario,
+sia per le richieste dei clienti che vi ci connettono.
+Dopo aver estratto il messaggio, la procedura ricava l'ip del mittente, informazione necessaria per sapere a chi inviare una risposta se necessario,
 viene eseguita l'RPC, si verifica se la procedura ha ritornato un risposta da inviare al mittente,
 si invia la risposta in caso e si notifica il completamento su un channel dedicato 
 per quel messaggio. Quest'ultima parte e' stata introdotta per garantire che un nodo non possa 
@@ -118,56 +91,6 @@ segnale di vita, dimostrando che il leader è ancora attivo e operativo.
 Una volta creato il messaggio di heartbeat, la funzione lo codifica in un formato che può essere trasmesso sulla rete.
 Infine, il messaggio codificato viene inviato al nodo. 
 Questo viene ripetuto per tutti gli elementi presenti nella configurazione.
-
-
-%\subsubsection{Moduli}
-%Il progetto è composto da numerosi moduli di seguito esposti:
-%\begin{itemize}
-  %\item node: definisce la struttura di un nodo Raft, quindi contenente le informazioni riguardanti la connessione al node e il suo indirizzo. Quest'ultimo è rappresentanto grazio a un sottomodulo di node, chiamato address, 
-  %  che contiene la string di numeri separati dal punto (IP) e la porta di riferimento.
-
-  %\item localFs: definisce l'astrazione del filesystem locale e le operazioni di scrittura e lettura su di esso. Grazie a questo modulo, salviamo i file localmente sui vari nodi.
- 
-  %\item raft\_log: definisce il sistema di log di Raft, in cui la struttura LogInstance rappresenta una singola voce nel log di Raft. Il pacchetto importa anche una codifica basata su protobuf per serializzare i messaggi 
-  %  di log per la trasmissione in rete. Una caratteristica chiave di questo pacchetto è il canale ReturnValue, che supporta operazioni asincrone come la ricezione di conferme di commit per le voci del log. \\
-  %  Contiene l'implementazione principale del log per Raft, utilizzando un sync.RWMutex per gestire l'accesso concorrente ai log. Questo file definisce la struttura logEntryImp, che gestisce un elenco di voci di log, la 
-  %  dimensione del log e l'indice di commit. \\
-  %  \'E principalmente costituito da LogEntrySlave e LogEntryMaster. Entrambi condividono lo stesso log, ma con permessi diversi: il LogEntrySlave ha solo permessi di lettura, mentre il LogEntryMaster ha sia permessi di scrittura 
-  %  che di lettura. Il compito del master è notificare agli slave quando vengono aggiunte nuove entry. Gli slave, invece, notificano al master quando hanno confermato le nuove voci, e, al ricevimento di tutte le conferme, 
-  %  il master procede con il commit ufficiale delle voci.
-  
-  %\item clusterMetadata: definisce i metadati relativi al cluster e al nodo stesso, come il proprio indirizzo IP e quello del leader (sia publici che privati), il term per tracciare la validità della leadership, il ruolo 
-  %  che ricopre, le informazioni sui timer (election e heartbeat) e i dettagli 
-  %  sull'elezioni come il quorum, il nodo per cui ha votato e se ha il diritto di voto o meno, 
-
-  %\item rpcs: definisce un'interfaccia generica Rpc, utilizzata in tutto il progetto per astrarre la logica delle varie chiamate RPC nel sistema Raft. Nonostante il nome sia fuorviante, in quanto è acronimo delle Remote Procedure
-  %  Call, ci teniamo a specificare che non abbiamo progettato questo modulo per lavorare in sincrono, bensì in asincrono.
-  %  Il sistema delle rpc è stato progettate per alleggerire il carico di lavoro
-  %  componente centrale del nodo. Questo è stato fatto implementando il comportamento di risposta in ricezione di una rpc all'interno delle rpc stesse. Per fare ciò, il modulo fa uso del clusterMetadata 
-  %  per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere il numero di nodi nelle configurazioni) e informazioni sul mittente. Necessitavamo di un sistema il più modulare e scalabile possibile,
-  %  in quanto,
-  %  nell'eventualità di aggiungere un nuovo tipo di rpc, non avremo dovuto apportare troppe modifiche. A dimostrazione di ciò, oltre alle rpc definite dal protocollo -- AppendEntryRpc, AppendResponse, RequestVoteRPC, 
-  %  RequestVoteResponse -- ne troviamo altre, come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client. La ragione dietro a questo tipo di 
-  %  progettazione è stata 
-  %  fatta a frutto dei futuri cambiamenti che ci sarebbero stati e che sono stati fatti, difatti il modulo è stato pensando fin dall'inizio in questo modo e, a fronte dei cambiamenti che sono stati fatti, non è per nulla cambiato. 
-  %  La scalabilità è inoltre facilitata dall'utilizzo di uno script e di un rpc template che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali errori di scrittura di nuove rpc). 
-  %  Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio arriva, il suoo tipo viene controllato, viene estratto il payload e convertito in base al tipo. Questo rappresenta un 
-  %  debito tecnico (limite), in quanto ad ogni aggiunta di una nuova rpc, bisogna aggiungere un voce nel modulo di conversione. 
-    
-  %\item confPool: gestisce le configurazioni del sistem. Tiene traccia della configurazione principale, che rappresenta lo stato attuale del sistema, e di una o più configurazioni temporanee che potrebbero essere in fase di 
-  %  valutazione o preparazione per diventare la nuova configurazione principale. Inoltre, si assicura che tutti i nodi del sistema siano d'accordo sulla configurazione corrente. Questo è fondamentale per evitare 
-  %  incoerenze e garantire un funzionamento corretto del sistema. \'E l'unico modulo che ha subito numerose ristrutturazioni: inizialmente abbiamo provato a rendere il gestore dei log indipentende dal gestore delle configurazioni, 
-  %  ma tutto cio' si e' rivelato alquanto fallimentare. In particolar modo il cambio di configurazione risultava troppo complesso da implementare e per questo abbiamo deciso di cambiare approccio usando un altro design. Abbiamo 
-  %  quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, contenesse il gestore dei log su cui avere controllo. Così facendo, divenne più semplice gestire molteplici configurazioni, infatti per aggiornare
-  %  la disposizione dei nodi, è sufficente instanziare una nuova configurazione, aspettare la migrazione dei nodi per poi eliminare quella vecchia in favore della nuova. 
-  %  Col precedente approccio non sarebbe stato possibile poiche' la migrazione veniva 
-  %  considerata, erroneamente, come una vera e propria disposizione (adesso è rappresentata dalla coesistenza di due configurazioni). 
-  
-  %\item server: è la componente centrale che viene eseguito su ciascun nodo. Definisce la struttura e il loop principale del lavoro del nodo. Fa utilizzo dei moduli sopra descritti per restare in ascolta di messaggi e connessioni 
-  %  in arrivo, e conseguentemente gestirle.
-
-%\end{itemize}
-
 
 \subsubsection{Funzionamento}
 % Sezione vuota per scaletta
