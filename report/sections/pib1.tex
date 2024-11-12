@@ -142,25 +142,18 @@ per nulla irrilevanti:
     \item \textbf{Performance}: uno dei principali problemi della nostra applicazione di RAFT 
         e' che, come verra' spiegato meglio nelle prossime sezioni, non risulta molto efficente
         a livello di risorse. 
-    \item \textbf{Compressione dei log}: Nonostante non sia necessaria la compressione dei log
+    \item \textbf{Compressione dei log}: Nonostante non sia necessaria, la compressione dei log
         e' alquanto utile ma il nostro utilizzo del protocollo non e' pensato per implementare
         tale funzionalita'. Questo comporta che se fosse necessario implementarla
         non ci sono garanzie che l'attuale struttura sia predisposta.
 \end{itemize}
 
 \subsubsection{Implementazione:\\}
-La nostra implementazione di Raft è caratterizata da diversi moduli: 
+Per implementare il protocollo sono stati implementati i seguenti moduli, cio' che verra' citato
+fa riferimento solamente alla parte di Raft, il resto verra' descritto nella sezione successiva:
 \begin{itemize}
-  \item node: definisce la struttura di un nodo Raft, quindi contenente le informazioni riguardanti la connessione al node e il suo indirizzo. Quest'ultimo è rappresentanto grazio a un sottomodulo di node, chiamato address, 
-    che contiene la string di numeri separati dal punto (IP) e la porta di riferimento.
-
-  \item localFs: definisce l'astrazione del filesystem locale e le operazioni di scrittura e lettura su di esso. Grazie a questo modulo, salviamo i file localmente sui vari nodi.
-  
-  \item clusterMetadata: definisce i metadati relativi al cluster e al nodo stesso, come il proprio indirizzo IP e quello del leader (sia publici che privati), il term per tracciare la validità della leadership, il ruolo 
-    che ricopre, le informazioni sui timer (election e heartbeat) e i dettagli 
-    sull'elezioni come il quorum, il nodo per cui ha votato e se ha il diritto di voto o meno, 
- 
-  \item raft\_log: definisce il sistema di log di Raft, dove per log intendiamo l'insieme delle entries che rappresentando le operazioni effettuate sul cluster. La prima componente chiave è LogInstance, che 
+    \item \textbf{raft\_log}: si occupa del salvataggio delle LogEntry e del commitIndex.
+    Definisce il sistema di log di Raft, dove per log intendiamo l'insieme delle entries che rappresentando le operazioni effettuate sul cluster. La prima componente chiave è LogInstance, che 
     rappresenta una singola instanza di una voce nel log di Raft ed è composta dalla entry vera e propria e da un channel che rappresenta il valore di ritorno (il risultato) associato a quell'operazione. L'aggiunta di un 
     di questo channel si è rilevata necessaria per non bloccare il sistema durante l'elaborazione di un risultato alla richiesta; infatti nel momento in cui questo risultato è pronto, esso viene inviato nel channel e ricevuto e 
     utilizzato dal modulo Rpc per preparare il messaggio di risposta contente per l'appunto il risultato dell'operazione. \\
@@ -171,42 +164,99 @@ La nostra implementazione di Raft è caratterizata da diversi moduli:
     Come specificheremo meglio in seguito, il nostro sistema di configurazioni non è altri che un gestore di configurazioni, e mentre le singole possiedono una LogEntrySlave, il gestore principale possiede la LogEntryMaster 
     cosicchè quando le singole configurazioni hanno committato una entry, questo può essere notificato al gestore che provvederà al commit ufficiale, rispettando così il protocollo Raft che specifica che in caso di una situazione
     di join config, una voce si ritiene commitatta quando lo è da entrambe le configurazioni.
+    \item \textbf{nodeIndexPool}: 
+        salve gli indirizzi dei nodi attualmente attivi nella rete e anche l'ultimo logEntry
+        che hanno ricevuto. Questo modulo e' utilizzato da un nodo solo quando e' il leader
+        poiche' gli serve per capire quale deve essere il contenuto delle AppendEntry per ogni nodo.
+    \item \textbf{ClusterMetadata}: contiene i metadati del nodo corrente:
+        \begin{itemize}
+            \item leader ip
+            \item ruolo del nodo corrente
+            \item diritto di voto del nodo corrente
+            \item ip del nodo corrente
+            \item term del nodo corrente
+            \item durata del timer degli hearthbit 
+            \item durata del timer delle elezioni
+            \item ultimo voto
+        \end{itemize}
+        Definisce i metadati relativi al cluster e al nodo stesso, come il proprio indirizzo IP e quello del leader (sia publici che privati), il term per tracciare la validità della leadership, il ruolo 
+        che ricopre, le informazioni sui timer (election e heartbeat) e i dettagli 
+        sull'elezioni come il quorum, il nodo per cui ha votato e se ha il diritto di voto o meno, 
 
-  \item rpcs: definisce un'interfaccia generica Rpc, utilizzata in tutto il progetto per astrarre la logica delle varie chiamate RPC nel sistema Raft. Nonostante il nome sia fuorviante, in quanto è acronimo delle Remote Procedure
-    Call, ci teniamo a specificare che non abbiamo progettato questo modulo per lavorare in sincrono, bensì in asincrono.
-    Per alleggerire il carico di lavoro alla goroutine centrale e avendo un discreto numero di RPC diverse da gestire, abbiamo definito una interfaccia comune per una generica RPC che viene poi implementata da ogni 
-    istanza specifica, 
-    implementando così una inversione delle dipendenze. Nell'interfaccia in questione sono stati definite solo le funzione che ogni ADT dovrà rispettare per essere considerato una RPC. In particolare sono state 
-    definite le seguenti funzioni:
-    \begin{itemize}
-      \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
-      \item Execute: Esegue la funzione relativa a quel messaggio utilizzando il payload del messaggio
-          come variabili insieme ai metadati del cluster, del log e delle configurazioni attive
-      \item Encode: Serializza il messaggio in byte
-      \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio con i dati
-        estratti nel processo
-    \end{itemize}
-    Per eseguire il comportamento previsto da una RPC il modulo fa uso del clusterMetadata 
-    per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere il numero di nodi nelle configurazioni) e informazioni sul mittente. \\
-    Necessitavamo di un sistema il più modulare e scalabile possibile, in quanto,
-    nell'eventualità di aggiungere un nuovo tipo di rpc, non avremo dovuto apportare troppe modifiche. A dimostrazione di ciò, oltre alle rpc definite dal protocollo -- AppendEntryRpc, AppendResponse, RequestVoteRPC, 
-    RequestVoteResponse -- ne troviamo altre, come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client. La ragione dietro a questo tipo di 
-    progettazione è stata 
-    fatta a frutto dei futuri cambiamenti che ci sarebbero stati e che sono stati fatti, difatti il modulo è stato pensando fin dall'inizio in questo modo e, a fronte dei cambiamenti che sono stati fatti, non è per nulla cambiato. 
-    La scalabilità è inoltre facilitata dall'utilizzo di uno script e di un rpc template che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali errori di scrittura di nuove rpc). 
-    Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio arriva, il suoo tipo viene controllato, viene estratto il payload e convertito in base al tipo. Questo rappresenta un 
-    debito tecnico (limite), in quanto ad ogni aggiunta di una nuova rpc, bisogna aggiungere un voce nel modulo di conversione. 
-    
-  \item confPool: gestisce le configurazioni del sistema. Tiene traccia della configurazione principale, che rappresenta lo stato attuale del sistema, e di una o più configurazioni temporanee che potrebbero essere in fase di 
-    valutazione o preparazione per diventare la nuova configurazione principale. Inoltre, si assicura che tutti i nodi del sistema siano d'accordo sulla configurazione corrente. Questo è fondamentale per evitare 
-    incoerenze e garantire un funzionamento corretto del sistema. \'E l'unico modulo che ha subito numerose ristrutturazioni: inizialmente abbiamo provato a rendere il gestore dei log indipentende dal gestore delle configurazioni, 
-    ma tutto cio' si e' rivelato alquanto fallimentare. In particolar modo il cambio di configurazione risultava troppo complesso da implementare e per questo abbiamo deciso di cambiare approccio usando un altro design. Abbiamo 
-    quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, contenesse il gestore dei log su cui avere controllo. Così facendo, divenne più semplice gestire molteplici configurazioni, infatti per aggiornare
-    la disposizione dei nodi, è sufficente instanziare una nuova configurazione, aspettare la migrazione dei nodi per poi eliminare quella vecchia in favore della nuova. 
-    Col precedente approccio non sarebbe stato possibile poiche' la migrazione veniva 
-    considerata, erroneamente, come una vera e propria disposizione, mentre adesso è rappresentata dalla coesistenza di due configurazioni. 
+    \item \textbf{ConfPool}: 
+        gestisce le configurazioni del sistema. Tiene traccia della configurazione principale, 
+        che rappresenta lo stato attuale del sistema, e di una o più configurazioni temporanee 
+        che potrebbero essere in fase di valutazione o preparazione per diventare la nuova 
+        configurazione principale. Inoltre, si assicura che tutti i nodi del sistema siano d'accordo 
+        sulla configurazione corrente. Questo è fondamentale per evitare incoerenze e garantire un 
+        funzionamento corretto del sistema. \'E l'unico modulo che ha subito numerose ristrutturazioni:
+        inizialmente abbiamo provato a rendere il gestore dei log indipentende dal gestore delle 
+        configurazioni, ma tutto cio' si e' rivelato alquanto fallimentare. 
+        In particolar modo il cambio di configurazione risultava troppo complesso da implementare e 
+        per questo abbiamo deciso di cambiare approccio usando un altro design. Abbiamo 
+        quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, 
+        contenesse il gestore dei log su cui avere controllo. Così facendo, divenne più semplice 
+        gestire molteplici configurazioni, infatti per aggiornare
+        la disposizione dei nodi, è sufficente instanziare una nuova configurazione, aspettare 
+        la migrazione dei nodi per poi eliminare quella vecchia in favore della nuova. 
+        Col precedente approccio non sarebbe stato possibile poiche' la migrazione veniva 
+        considerata, erroneamente, come una vera e propria disposizione, mentre adesso è 
+        rappresentata dalla coesistenza di due configurazioni. 
 
+    \item \textbf{Rpcs}: 
+        definisce un'interfaccia generica Rpc, utilizzata in tutto il progetto per astrarre la 
+        logica delle varie chiamate RPC nel sistema Raft. Nonostante il nome sia fuorviante, 
+        in quanto è acronimo delle Remote Procedure Call, ci teniamo a specificare che non abbiamo 
+        progettato questo modulo per lavorare in sincrono, bensì in asincrono.
+        Per alleggerire il carico di lavoro alla goroutine centrale e avendo un discreto numero di 
+        RPC diverse da gestire, abbiamo definito una interfaccia comune per una generica RPC che 
+        viene poi implementata da ogni istanza specifica, 
+        implementando così una inversione delle dipendenze. 
+        Nell'interfaccia in questione sono stati definite solo le funzione che ogni ADT dovrà 
+        rispettare per essere considerato una RPC. In particolare sono state definite le seguenti 
+        funzioni:
+        \begin{itemize}
+            \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
+            \item Execute: Esegue la funzione relativa a quel messaggio utilizzando il payload 
+                del messaggio come variabili insieme ai metadati del cluster, del log e 
+                delle configurazioni attive
+            \item Encode: Serializza il messaggio in byte
+            \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio 
+                con i dati estratti nel processo
+        \end{itemize}
+        Per eseguire il comportamento previsto da una RPC il modulo fa uso del clusterMetadata 
+        per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere 
+        il numero di nodi nelle configurazioni) e informazioni sul mittente. \\
+        Necessitavamo di un sistema il più modulare e scalabile possibile, in quanto,
+        nell'eventualità di aggiungere un nuovo tipo di rpc, non avremo dovuto apportare troppe 
+        modifiche. A dimostrazione di ciò, oltre alle rpc definite dal protocollo 
+        -- AppendEntryRpc, AppendResponse, RequestVoteRPC, 
+        RequestVoteResponse -- ne troviamo altre, come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client. La ragione dietro a questo tipo di 
+        progettazione è stata 
+        fatta a frutto dei futuri cambiamenti che ci sarebbero stati e che sono stati fatti, 
+        difatti il modulo è stato pensando fin dall'inizio in questo modo e, a fronte dei 
+        cambiamenti che sono stati fatti, non è per nulla cambiato. 
+        La scalabilità è inoltre facilitata dall'utilizzo di uno script e di un rpc template 
+        che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali errori di 
+        scrittura di nuove rpc). 
+        Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio 
+        arriva, il suoo tipo viene controllato, viene estratto il payload e convertito in base 
+        al tipo. Questo rappresenta un debito tecnico (limite), in quanto ad ogni aggiunta di 
+        una nuova rpc, bisogna aggiungere un voce nel modulo di conversione. 
 \end{itemize}
+Trammite un opportuno uso dei moduli sopra citati siamo riusciti a implementare il protcollo Raft
+in modo che ci permettesse di:
+\begin{itemize}
+    \item Gestire i fallimenti dei nodi o della rete mantenendo il servizio disponibile e 
+        consistente
+    \item Cambiare dinamicamente le dimensioni del cluster senza interrompere il servizio 
+        o compromettere la consistenza
+\end{itemize}
+  % \item node: definisce la struttura di un nodo Raft, quindi contenente le informazioni riguardanti la connessione al node e il suo indirizzo. Quest'ultimo è rappresentanto grazio a un sottomodulo di node, chiamato address, 
+  %   che contiene la string di numeri separati dal punto (IP) e la porta di riferimento.
+
+  % \item localFs: definisce l'astrazione del filesystem locale e le operazioni di scrittura e lettura su di esso. Grazie a questo modulo, salviamo i file localmente sui vari nodi.
+
 
 
 % Sezione vuota per scaletta
