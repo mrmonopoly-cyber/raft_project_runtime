@@ -149,9 +149,6 @@ per nulla irrilevanti:
 \end{itemize}
 
 \subsubsection{Implementazione:\\}
-DECRIVERE QUI COME ABBIAMO IMPLEMENTATO IL PROTOCOLLO CON I RELATIVI MODULI (log, configurazioni) 
-DESCRIVERE INOLTRE COME SONO STATE IMPLEMENTATE LE RPC SPECIFICHE DEL PROTOCOLLO E DEL PERCHE'
-SIANO STATE IMPLEMENTATE IN TALE MODO.
 La nostra implementazione di Raft è caratterizata da diversi moduli: 
 \begin{itemize}
   \item node: definisce la struttura di un nodo Raft, quindi contenente le informazioni riguardanti la connessione al node e il suo indirizzo. Quest'ultimo è rappresentanto grazio a un sottomodulo di node, chiamato address, 
@@ -163,14 +160,17 @@ La nostra implementazione di Raft è caratterizata da diversi moduli:
     che ricopre, le informazioni sui timer (election e heartbeat) e i dettagli 
     sull'elezioni come il quorum, il nodo per cui ha votato e se ha il diritto di voto o meno, 
  
-  \item raft\_log: definisce il sistema di log di Raft, in cui la struttura LogInstance rappresenta una singola voce nel log di Raft. Il modulo importa anche una codifica basata su protobuf per serializzare i messaggi 
-    di log per la trasmissione in rete. Una caratteristica chiave di questo modulo è il canale ReturnValue, che supporta operazioni asincrone come la ricezione di conferme di commit per le voci del log. \\
-    Contiene l'implementazione principale del log per Raft, utilizzando un sync.RWMutex per gestire l'accesso concorrente ai log. Questo file definisce la struttura logEntryImp, che gestisce un elenco di voci di log, la 
-    dimensione del log e l'indice di commit. \\
-    \'E principalmente costituito da LogEntrySlave e LogEntryMaster. Entrambi condividono lo stesso log, ma con permessi diversi: il LogEntrySlave ha solo permessi di lettura, mentre il LogEntryMaster ha sia permessi di scrittura 
-    che di lettura. Il compito del master è notificare agli slave quando vengono aggiunte nuove entry. Gli slave, invece, notificano al master quando hanno confermato le nuove voci, e, al ricevimento di tutte le conferme, 
-    il master procede con il commit ufficiale delle voci.
-  
+  \item raft\_log: definisce il sistema di log di Raft, dove per log intendiamo l'insieme delle entries che rappresentando le operazioni effettuate sul cluster. La prima componente chiave è LogInstance, che 
+    rappresenta una singola instanza di una voce nel log di Raft ed è composta dalla entry vera e propria e da un channel che rappresenta il valore di ritorno (il risultato) associato a quell'operazione. L'aggiunta di un 
+    di questo channel si è rilevata necessaria per non bloccare il sistema durante l'elaborazione di un risultato alla richiesta; infatti nel momento in cui questo risultato è pronto, esso viene inviato nel channel e ricevuto e 
+    utilizzato dal modulo Rpc per preparare il messaggio di risposta contente per l'appunto il risultato dell'operazione. \\
+    Il sistem dei log è poi formato da il LogEntrySlave e il LogEntryMaster. Entrambi condividono lo stesso log, ma il primo ha permessi di sola lettura, mentre il secondo ha anche permessi di scrittura; il compito principale 
+    del LogEntryMaster è notificare alle LogEntrySlave l'aggiunta di nuove entry, mentre quest'ultima notifica a sua volta il LogEntryMaster quando queste nuove voci sono state commitate, dando il via libera al master per la 
+    procedura di commit ufficiale delle entry. \\
+    Il sistema è stato concepito per meglio adeguarsi al sistema delle configurazioni e, più precisamente, la ragione dietro alla predisposizione di due log è che le configurazioni da gestire possono essere più di una per volta. 
+    Come specificheremo meglio in seguito, il nostro sistema di configurazioni non è altri che un gestore di configurazioni, e mentre le singole possiedono una LogEntrySlave, il gestore principale possiede la LogEntryMaster 
+    cosicchè quando le singole configurazioni hanno committato una entry, questo può essere notificato al gestore che provvederà al commit ufficiale, rispettando così il protocollo Raft che specifica che in caso di una situazione
+    di join config, una voce si ritiene commitatta quando lo è da entrambe le configurazioni.
 
   \item rpcs: definisce un'interfaccia generica Rpc, utilizzata in tutto il progetto per astrarre la logica delle varie chiamate RPC nel sistema Raft. Nonostante il nome sia fuorviante, in quanto è acronimo delle Remote Procedure
     Call, ci teniamo a specificare che non abbiamo progettato questo modulo per lavorare in sincrono, bensì in asincrono.
