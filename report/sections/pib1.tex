@@ -325,11 +325,3 @@ Per implementare il protocollo sono stati implementati i seguenti moduli, :
         al tipo. Questo rappresenta un debito tecnico (limite), in quanto ad ogni aggiunta di 
         una nuova rpc, bisogna aggiungere un voce nel modulo di conversione. 
 \end{itemize}
-Trammite un opportuno uso dei moduli sopra citati siamo riusciti a implementare il protcollo Raft
-in modo che ci permettesse di:
-\begin{itemize}
-    \item Gestire i fallimenti dei nodi o della rete mantenendo il servizio disponibile e 
-        consistente
-    \item Cambiare dinamicamente le dimensioni del cluster senza interrompere il servizio 
-        o compromettere la consistenza
-\end{itemize}
