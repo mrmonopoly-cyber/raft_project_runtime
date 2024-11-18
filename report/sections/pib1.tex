@@ -149,23 +149,41 @@ per nulla irrilevanti:
 \end{itemize}
 
 \subsubsection{Implementazione:\\}
-Per implementare il protocollo sono stati implementati i seguenti moduli, cio' che verra' citato
-fa riferimento solamente alla parte di Raft, il resto verra' descritto nella sezione successiva:
+Cio' che verra' citato
+fa riferimento solamente alla parte di Raft, il resto verra' descritto nella sezione successiva.
+Va fatto notare che in tutto il codice non e' mai stato implementato alcuna forma di 
+\textbf{SpinLock} o \textbf{BusyWait}, qualora si fosse presentata la necessita' e' stato
+creato un loop che veniva sospeso trammite la lettura bloccante di un messaggio su un channel.
+Per implementare il protocollo sono stati implementati i seguenti moduli, :
 \begin{itemize}
     \item \textbf{raft\_log}: si occupa del salvataggio delle LogEntry e del commitIndex.
-    Definisce il sistema di log di Raft, dove per log intendiamo l'insieme delle entries che rappresentando le operazioni effettuate sul cluster. La prima componente chiave è LogInstance, che 
-    rappresenta una singola instanza di una voce nel log di Raft ed è composta dalla entry vera e propria e da un channel che rappresenta il valore di ritorno (il risultato) associato a quell'operazione. L'aggiunta di un 
-    di questo channel si è rilevata necessaria per non bloccare il sistema durante l'elaborazione di un risultato alla richiesta; infatti nel momento in cui questo risultato è pronto, esso viene inviato nel channel e ricevuto e 
-    utilizzato dal modulo Rpc per preparare il messaggio di risposta contente per l'appunto il risultato dell'operazione. \\
-    Il sistem dei log è poi formato da il LogEntrySlave e il LogEntryMaster. Entrambi condividono lo stesso log, ma il primo ha permessi di sola lettura, mentre il secondo ha anche permessi di scrittura; il compito principale 
-    del LogEntryMaster è notificare alle LogEntrySlave l'aggiunta di nuove entry, mentre quest'ultima notifica a sua volta il LogEntryMaster quando queste nuove voci sono state commitate, dando il via libera al master per la 
-    procedura di commit ufficiale delle entry. \\
-    Il sistema è stato concepito per meglio adeguarsi al sistema delle configurazioni e, più precisamente, la ragione dietro alla predisposizione di due log è che le configurazioni da gestire possono essere più di una per volta. 
-    Come specificheremo meglio in seguito, il nostro sistema di configurazioni non è altri che un gestore di configurazioni, e mentre le singole possiedono una LogEntrySlave, il gestore principale possiede la LogEntryMaster 
-    cosicchè quando le singole configurazioni hanno committato una entry, questo può essere notificato al gestore che provvederà al commit ufficiale, rispettando così il protocollo Raft che specifica che in caso di una situazione
-    di join config, una voce si ritiene commitatta quando lo è da entrambe le configurazioni.
+    Definisce il sistema di log di Raft, dove per log intendiamo l'insieme delle entries 
+    che rappresentando le operazioni effettuate sul cluster. La prima componente chiave è 
+    LogInstance, che 
+    rappresenta una singola instanza di una voce nel log di Raft ed è composta dalla entry vera 
+    e propria e da un channel che rappresenta il valore di ritorno (il risultato) associato a 
+    quell'operazione. L'aggiunta di un 
+    di questo channel si è rilevata necessaria per non bloccare il sistema durante l'elaborazione 
+    di un risultato alla richiesta; infatti nel momento in cui questo risultato è pronto, esso 
+    viene inviato nel channel e che inoltrato al nodo corrispondente.
+    Il sistem dei log è poi formato dal \textbf{LogEntrySlave} e il \textbf{LogEntryMaster}. 
+    Entrambi condividono 
+    lo stesso log, ma il primo ha permessi di sola lettura, mentre il secondo ha anche permessi 
+    di scrittura; 
+    Detto cio' qualora si volesse aggiungere una LogEntry si procede chiamando la funzione
+    di \textbf{AppendEntry} che controllera' se la entry non e' gia' presente nel logo, in 
+    caso affermativo aggiungera' in coda l'elemento. L'aggiunta di una entry nel log non ha alcuna
+    implicazione sul \textbf{CommitIndex} il quale rimane invariato. Durante 
+    tutta la fase di inserimento delle entry viene usato un mutex per bloccare race condition
+    nell'inserimento di piu' entry allo stesso momento.
+    Per incrementare il commmit index esiste una funzione apposita funziona 
+    (\textbf{IncreaseCommitIndex}).
+    Entrambi queste operazioni sono riservate al \textbf{LogEntryMaster}.
+    Lo scopo del \textbf{LogEntrySlave} sara' chiara quando verra' spiegato il 
+    cambio di configurazione.
+
     \item \textbf{nodeIndexPool}: 
-        salve gli indirizzi dei nodi attualmente attivi nella rete e anche l'ultimo logEntry
+        salva gli indirizzi dei nodi attualmente attivi nella rete e anche l'ultimo logEntry
         che hanno ricevuto. Questo modulo e' utilizzato da un nodo solo quando e' il leader
         poiche' gli serve per capire quale deve essere il contenuto delle AppendEntry per ogni nodo.
     \item \textbf{ClusterMetadata}: contiene i metadati del nodo corrente:
@@ -187,21 +205,84 @@ fa riferimento solamente alla parte di Raft, il resto verra' descritto nella sez
         gestisce le configurazioni del sistema. Tiene traccia della configurazione principale, 
         che rappresenta lo stato attuale del sistema, e di una o più configurazioni temporanee 
         che potrebbero essere in fase di valutazione o preparazione per diventare la nuova 
-        configurazione principale. Inoltre, si assicura che tutti i nodi del sistema siano d'accordo 
-        sulla configurazione corrente. Questo è fondamentale per evitare incoerenze e garantire un 
-        funzionamento corretto del sistema. \'E l'unico modulo che ha subito numerose ristrutturazioni:
-        inizialmente abbiamo provato a rendere il gestore dei log indipentende dal gestore delle 
-        configurazioni, ma tutto cio' si e' rivelato alquanto fallimentare. 
-        In particolar modo il cambio di configurazione risultava troppo complesso da implementare e 
-        per questo abbiamo deciso di cambiare approccio usando un altro design. Abbiamo 
-        quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, 
-        contenesse il gestore dei log su cui avere controllo. Così facendo, divenne più semplice 
-        gestire molteplici configurazioni, infatti per aggiornare
-        la disposizione dei nodi, è sufficente instanziare una nuova configurazione, aspettare 
-        la migrazione dei nodi per poi eliminare quella vecchia in favore della nuova. 
-        Col precedente approccio non sarebbe stato possibile poiche' la migrazione veniva 
-        considerata, erroneamente, come una vera e propria disposizione, mentre adesso è 
-        rappresentata dalla coesistenza di due configurazioni. 
+        configurazione principale. 
+
+        Tale modulo e' l'unico elemento ad avere accesso di scrittura su \textbf{raft\_log},
+        lasciando che le instanze delle configurazioni abbiamo permessi di sola lettura.
+
+        La ragione di cio' e' presto detta: 
+        Durante una fase di transizione (\textbf{joint configuration}) tra da una configurazione 
+        ad un'altra nessuna delle due
+        deve essere in grado di prendere decisioni unilaterali sullo stato del cluster autonomamente
+
+        Ergo qualora dovesse essere necessario aggiungere una nuova entry ConfPool aggiungera'
+        al log la nuova entry e notifichera' le configurazioni attive che c'e' una nuova entry
+        da committare.
+
+        Dopodiche' aspettera' che entrambe le configurazioni siano pronte a committare la entry
+        e solo a quel punto verra' realmente incrementato il commitIndex del log. Dato che il commit
+        delle entry avviene sempre in ordine di arrivo non e' possibile che una entry venga 
+        committata prima di una arrivata prima rispettando l'ordine di arrivo e la consistenza dei
+        log tra i nodi del cluster.
+        Questa parte e' comune sia per il leader che per i follower, cio' che gli differenzia 
+        e' come le singole instanze delle configurazione dichiarano che sono pronti a committare
+        una entry nel log in base se il nodo e un Follower o un Leader.
+
+        In particolare:
+        \begin{itemize}
+            \item Follower: Dichiara la entry committata in automantico non appena ricevuta
+                e notifica la ConfPool che tale si puo' committare la prossima entry.
+            \item Leader: invia una AppendEntry a tutti i nodi nella configurazione.
+                In seguito, quando la maggioranza dei Follower appartente a quella configurazione
+                avra' notificato il leader che hanno committato la entry, notifichera' la ConfPool
+                che si puo' procedere con il commit.
+        \end{itemize}
+        Nel caso ci siano due configurazioni attive nello stesso momento, la procedura sopra
+        citata viene applicata per ambedue le configurazioni e il commit avviene solo quando
+        tutte e due hanno notitificato alla ConfPool che si puo' procedere con il commit.
+
+        La notifica viene effettuata trammite channel a una goroutine della ConfPool che rimane
+        in attesa sui channel delle configurazioni prima di incrementare il commitIndex.
+
+        Va fatto notare che quando viene si aggiunge delle LogEntry nel log della ConfPool
+        la procedura e' bloccante solo per la parte di aggiunta delle entry nel log, in seguito
+        si limita a notificare, trammite un channel, una goroutine interna che si occupa, per 
+        ognuna delle entry eggiunte, di continuare con la procedura di commit.
+        Cosi' facendo l'aggiunta di una o piu' logEntry non richiede l'attesa del completamento
+        della procedura di commit prima di poter continuare con altre operazioni.
+        Il risultato e' che la procedura di commit e' completamente asincrona rispetto all'
+        inserimento.
+
+        Dopo che un'antry risulta essere pronta per essere committata viene inviato un messagio
+        in un altro channel che risveglia una funziona che si occupa di applicare l'entry in 
+        questione.
+
+        Il sistema attualmente descritto non e' in grado di committare contemporaneamente 
+        piu' log entry nello stesso momento, puo' solo aggiungerne multiple nello stesso momento.
+        Va inoltre segnalato che l'utilizzo di un mutex all'interno della procedura 
+        di AppendEntry per coordinare gli inserimenti non e' sufficente. Dato infatti che 
+        la gestione di ogni RPC ricevuta e' gestita asincronamente da una goroutine
+        e' possibile che due o piu' di esse rimangano in attesa sul mutex creando cosi una race
+        condition su quale delle due inserisce le sue entry per prime. Per sistemare questo 
+        problema servirebbe implementare un sistema con doppia coda di priorita'
+        (\textbf{egg shell model}) per mantenere l'ordine di arrivo delle goroutine.
+        Purtroppo cio' non e' stato fatto in quanto e' vista da noi come una ottimizzazione da
+        implementare in secondo luogo avendo gia' una versiona stabile e funzionante del cluster.
+
+        Nella ConfPool c'e' ancora una goroutine che normalmente e' sospesa da un channel che ne
+        interrompe l'esecuzione: \textbf{checkNodeToUpdate}.
+        Tale funzione ha lo scopo gestire uno dei casi limiti citati dal protocollo: l'aggiungta
+        di un nuovo nodo quando il cluster e' gia' avviato e che quindi deve essere portato a 
+        uno stato consitente.
+
+        Per fare cio' ogni qualvolta si vuole inviare una AppendEntry ad un nodo, riconosciuto
+        trammite il sup IP, si verifica se il nodo e' presente nella rete. Nel caso non sia presente
+        si salve il suo IP in un vettore.
+        Quando e se quel nodo entra nella rete viene inviato il suo IP su un channel che risveglia
+        la funzione sopra citata. Tale funzione verifica se il nodo che si e' aggiunto deve essere
+        aggiornato e in tal caso chiama una RPC con la quale gli toglie il diritto di voto in accordo
+        con il protocollo, quando poi quel nodo risulta essere arrivato a uno stato consistente
+        il suo diritto di voto viene ripristinato trammite la medesima RPC.
 
     \item \textbf{Rpcs}: 
         definisce un'interfaccia generica Rpc, utilizzata in tutto il progetto per astrarre la 
@@ -252,13 +333,3 @@ in modo che ci permettesse di:
     \item Cambiare dinamicamente le dimensioni del cluster senza interrompere il servizio 
         o compromettere la consistenza
 \end{itemize}
-  % \item node: definisce la struttura di un nodo Raft, quindi contenente le informazioni riguardanti la connessione al node e il suo indirizzo. Quest'ultimo è rappresentanto grazio a un sottomodulo di node, chiamato address, 
-  %   che contiene la string di numeri separati dal punto (IP) e la porta di riferimento.
-
-  % \item localFs: definisce l'astrazione del filesystem locale e le operazioni di scrittura e lettura su di esso. Grazie a questo modulo, salviamo i file localmente sui vari nodi.
-
-
-
-% Sezione vuota per scaletta
-
-
