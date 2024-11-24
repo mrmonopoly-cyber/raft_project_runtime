@@ -68,6 +68,33 @@ All'avvio, due servizi chiave vengono avviati automaticamente su ogni nodo.
 \end{itemize}
 
 
+\subsection{RPC module}
+Nell'implementare il nostro codice l'utilizzo di un sistema di RPC (Remote Procedure Call) e' stato
+fondamentale. Vista l'importanza di un tale modulo abbiamo pensato di crearne uno ad hoc per le 
+nostre necessita'. 
+\subsubsection{Obbiettivi::\\}
+\begin{itemize}
+    \item Fornire una comune interfaccia per tutte le RPC cosi' da poterle trattare tutte 
+        allo stesso modo senza dover gestire manualmente ognuna di loro.
+    \item Avere un sistema comune per la serializzazione e desirealizzazione dei dati
+    \item Introdurre un sistema che permettesse di inserire, modificare, eliminare una o piu' RPC
+        senza impattare gravemente nella logica del codice.
+\end{itemize}
+\subsubsection{Soluzioni:\\}
+Per realizzare questo modulo abbiamo ci siamo appoggiati a un protocollo comunemente utilizzato 
+per la serilizzazione degli Abstract Data Type (ADT): \textbf{Protobuf}.
+Di questo protocollo esiste gia' una implementazione per \textbf{golang}.
+Procedendo in ordine con l'elenco sopra definito abbiamo definito una interfaccia comune
+a tutti i messaggi delle RPC definendo delle funzioni comuni ad ognuno di essi. In particolare:
+\begin{itemize}
+    \item ToString: fornisce una descrizione dello stato dell'RPC (utile per Debug)
+    \item Execute: Esegue la computazione legata all'RPC
+    \item Encode: Serializza l'RPC in un array di byte
+    \item Decode: Data un messagge non popolato di una RPC riempe i valori dell'oggetto partendo
+        da un array di byte.
+\end{itemize}
+
+
 
 \subsection{Raft per il consenso distribuito}
 \textit{Raft} è un algoritmo di consenso distribuito, ovvero un meccanismo che permette 
