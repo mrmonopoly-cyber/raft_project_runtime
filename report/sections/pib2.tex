@@ -120,8 +120,8 @@ chiamata slave e, come descritto nel paragrafo precedente, la prima ha permessi 
 Quando un leader riceve un nuovo comando, lo aggiunge al suo log interno e, a questo punto, informa le configurazioni attive che ha aggiunto una nuova voce al registro. Dopodiché, ogni configurazione invia un messaggio 
 AppendEntryRPC ai nodi corrispondenti.
 I follower ricevono questo messaggio, lo aggiungono al loro log, e rispondono al leader. 
-Quando il leader riceve una risposta AppendEntryResponse da ciascun nodo, aggiorna i rispettivi indici: nextIndex e matchIndex, mantenendo così allineati i nodi con lo stato corrente del registro.
-attraverso canali asincroni (applyC e NotifyAppendEntryC) definiti nelle implementazioni del log di leader e follower. Il leader invia un commit alla maggior parte dei nodi, e i follower seguono l'ordine di commit. 
+Quando il leader riceve una risposta AppendEntryResponse da ciascun nodo, aggiorna i rispettivi indici: nextIndex e matchIndex, mantenendo così allineati i nodi con lo stato corrente del registro. Successivamente,
+notifica l'avvenuta aggiunta di una entry al log system attraverso canali asincroni (NotifyAppendEntryC) definiti nelle implementazioni del log. Il leader invia un commit alla maggior parte dei nodi, e i follower seguono l'ordine di commit. 
 Quando le voci vengono committate, esse vengono applicate allo stato condiviso del sistema.
 Il canale ReturnValue nel log permette di gestire i risultati delle operazioni in maniera asincrona, in modo che il sistema possa continuare ad operare senza attendere che ogni operazione venga completata in modo sincrono.
 

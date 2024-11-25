@@ -338,8 +338,9 @@ Per implementare il protocollo sono stati implementati i seguenti moduli, :
         e dell'attuale matchIndex del nodo. In caso positivo, l'interfaccia incrementa il numero di nodi "stabili",
         ossia quelli con l'indice aggiornato. Se questo numero supera la metà dei nodi presenti nella configurazione, 
         la entry associata all'indice si può considerare committata e il CommonMatchIndex viene incrementato.\\ 
-        Questo sistema è necessario alle singole configurazioni per comunicare al gestore delle configurazioni che hanno committato 
-        una nuova entry: in questo modo il gestore delle configurazioni può procedere ad incrementare il commit 
-        globalmente. Tutto questo procedimento è infine effettuato solamente dal leader per aggiornare il commit index.  
+        Questo sistema è necessario alle singole configurazioni per comunicare al gestore delle configurazioni 
+        che hanno committato una nuova entry: in questo modo il gestore delle configurazioni può procedere
+        ad incrementare il commit globalmente. Tutto questo procedimento è infine effettuato solamente dal leader 
+        per aggiornare il commit index.  
       
 \end{itemize}
