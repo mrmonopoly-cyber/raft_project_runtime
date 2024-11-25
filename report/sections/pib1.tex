@@ -71,7 +71,11 @@ All'avvio, due servizi chiave vengono avviati automaticamente su ogni nodo.
 \subsection{RPC module}
 Nell'implementare il nostro codice l'utilizzo di un sistema di RPC (Remote Procedure Call) e' stato
 fondamentale. Vista l'importanza di un tale modulo abbiamo pensato di crearne uno ad hoc per le 
-nostre necessita'. 
+nostre necessita'. Va specificato che l'utilizzo dell'acronimo RPC, in questo caso, è improprio: 
+infatti a differenza delle vere e prioprie RPC, che sono sincrone e consentono di chiamare 
+delle procedure sulle altre macchine, i nostri messaggi sono asincroni (il mittente non rimane 
+in attesa di una risposta) e provocano un comportamento di risposta nel nodo remoto più che un 
+chiamata ad una procedura.  
 \subsubsection{Obbiettivi::\\}
 \begin{itemize}
     \item Fornire una comune interfaccia per tutte le RPC cosi' da poterle trattare tutte 
@@ -81,19 +85,42 @@ nostre necessita'.
         senza impattare gravemente nella logica del codice.
 \end{itemize}
 \subsubsection{Soluzioni:\\}
-Per realizzare questo modulo abbiamo ci siamo appoggiati a un protocollo comunemente utilizzato 
+Per realizzare questo modulo abbiamo ci siamo appoggiati a un meccanismo comunemente utilizzato 
 per la serilizzazione degli Abstract Data Type (ADT): \textbf{Protobuf}.
-Di questo protocollo esiste gia' una implementazione per \textbf{golang}.
+Di questo meccanismo esiste già una implementazione per \textbf{golang}.
+
 Procedendo in ordine con l'elenco sopra definito abbiamo definito una interfaccia comune
 a tutti i messaggi delle RPC definendo delle funzioni comuni ad ognuno di essi. In particolare:
 \begin{itemize}
-    \item ToString: fornisce una descrizione dello stato dell'RPC (utile per Debug)
-    \item Execute: Esegue la computazione legata all'RPC
-    \item Encode: Serializza l'RPC in un array di byte
-    \item Decode: Data un messagge non popolato di una RPC riempe i valori dell'oggetto partendo
-        da un array di byte.
+  \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
+  \item Execute: Esegue la funzione relativa a quel messaggio utilizzando il payload 
+    del messaggio come variabili insieme ai metadati del cluster, del log e 
+    delle configurazioni attive
+  \item Encode: Serializza il messaggio in byte
+  \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio 
+     con i dati estratti nel processo
 \end{itemize}
+Inoltre, ogni messaggio è un wrapper del corrispondente messaggio protobuf. 
 
+Per eseguire il comportamento previsto da una RPC il modulo fa uso del clusterMetadata 
+per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere 
+il numero di nodi nelle configurazioni) e informazioni sul mittente. \\
+Grazie alla progettazione di un sistema modulare e scalabile, gli obiettivi sono stati raggiunti 
+appieno, infatti nel corso dello sviluppo ci siamo imbattuti nella necessità di aggiungere nuovi 
+tipi di messaggio. Infatti nella fatispecie del nostro progetto, oltre alle rpc definite dal protocollo 
+-- AppendEntryRpc, AppendResponse, RequestVoteRPC, RequestVoteResponse -- ne troviamo altre, 
+come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono 
+i messaggi che possiamo ricevere dal client. Questi bisogni sono emersi durante la fase di 
+sviluppo e non prima, e senza alcun dubbio, la strutturazione di un modulo RPC ad hoc 
+ha contribuito a rendere queste modifiche poco invasive e impattanti. \\
+La scalabilità è inoltre facilitata dall'utilizzo di uno script e di un rpc template 
+che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali errori di 
+scrittura di nuove rpc). 
+
+Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio 
+arriva, il suoo tipo viene controllato, viene estratto il payload e convertito in base 
+al tipo. Questo rappresenta un debito tecnico (limite), in quanto ad ogni aggiunta di 
+una nuova rpc, bisogna aggiungere un voce nel modulo di conversione.
 
 
 \subsection{Raft per il consenso distribuito}
@@ -311,46 +338,48 @@ Per implementare il protocollo sono stati implementati i seguenti moduli, :
         con il protocollo, quando poi quel nodo risulta essere arrivato a uno stato consistente
         il suo diritto di voto viene ripristinato trammite la medesima RPC.
 
-    \item \textbf{Rpcs}: 
-        definisce un'interfaccia generica Rpc, utilizzata in tutto il progetto per astrarre la 
-        logica delle varie chiamate RPC nel sistema Raft. Nonostante il nome sia fuorviante, 
-        in quanto è acronimo delle Remote Procedure Call, ci teniamo a specificare che non abbiamo 
-        progettato questo modulo per lavorare in sincrono, bensì in asincrono.
-        Per alleggerire il carico di lavoro alla goroutine centrale e avendo un discreto numero di 
-        RPC diverse da gestire, abbiamo definito una interfaccia comune per una generica RPC che 
-        viene poi implementata da ogni istanza specifica, 
-        implementando così una inversione delle dipendenze. 
-        Nell'interfaccia in questione sono stati definite solo le funzione che ogni ADT dovrà 
-        rispettare per essere considerato una RPC. In particolare sono state definite le seguenti 
-        funzioni:
-        \begin{itemize}
-            \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
-            \item Execute: Esegue la funzione relativa a quel messaggio utilizzando il payload 
-                del messaggio come variabili insieme ai metadati del cluster, del log e 
-                delle configurazioni attive
-            \item Encode: Serializza il messaggio in byte
-            \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio 
-                con i dati estratti nel processo
-        \end{itemize}
-        Per eseguire il comportamento previsto da una RPC il modulo fa uso del clusterMetadata 
-        per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere 
-        il numero di nodi nelle configurazioni) e informazioni sul mittente. \\
-        Necessitavamo di un sistema il più modulare e scalabile possibile, in quanto,
-        nell'eventualità di aggiungere un nuovo tipo di rpc, non avremo dovuto apportare troppe 
-        modifiche. A dimostrazione di ciò, oltre alle rpc definite dal protocollo 
-        -- AppendEntryRpc, AppendResponse, RequestVoteRPC, 
-        RequestVoteResponse -- ne troviamo altre, come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client. La ragione dietro a questo tipo di 
-        progettazione è stata 
-        fatta a frutto dei futuri cambiamenti che ci sarebbero stati e che sono stati fatti, 
-        difatti il modulo è stato pensando fin dall'inizio in questo modo e, a fronte dei 
-        cambiamenti che sono stati fatti, non è per nulla cambiato. 
-        La scalabilità è inoltre facilitata dall'utilizzo di uno script e di un rpc template 
-        che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali errori di 
-        scrittura di nuove rpc). 
-        Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio 
-        arriva, il suoo tipo viene controllato, viene estratto il payload e convertito in base 
-        al tipo. Questo rappresenta un debito tecnico (limite), in quanto ad ogni aggiunta di 
-        una nuova rpc, bisogna aggiungere un voce nel modulo di conversione.
+   % \item \textbf{Rpcs}: 
+        % definisce un'interfaccia generica Rpc, utilizzata in tutto il progetto per astrarre la 
+%        logica delle varie chiamate RPC nel sistema Raft. Nonostante il nome sia fuorviante, 
+ %       in quanto è acronimo delle Remote Procedure Call, ci teniamo a specificare che non abbiamo 
+ %       progettato questo modulo per lavorare in sincrono, bensì in asincrono.
+ %       Per alleggerire il carico di lavoro alla goroutine centrale e avendo un discreto numero di 
+ %       RPC diverse da gestire, abbiamo definito una interfaccia comune per una generica RPC che 
+ %       viene poi implementata da ogni istanza specifica, 
+ %       implementando così una inversione delle dipendenze. 
+ %       Nell'interfaccia in questione sono stati definite solo le funzione che ogni ADT dovrà 
+ %       rispettare per essere considerato una RPC. In particolare sono state definite le seguenti 
+ %       funzioni:
+ %       \begin{itemize}
+ %           \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
+ %           \item Execute: Esegue la funzione relativa a quel messaggio utilizzando il payload 
+ %               del messaggio come variabili insieme ai metadati del cluster, del log e 
+ %               delle configurazioni attive
+ %           \item Encode: Serializza il messaggio in byte
+ %           \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio 
+ %               con i dati estratti nel processo
+ %       \end{itemize}
+ %       Per eseguire il comportamento previsto da una RPC il modulo fa uso del clusterMetadata 
+ %       per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere 
+ %       il numero di nodi nelle configurazioni) e informazioni sul mittente. \\
+ %       Necessitavamo di un sistema il più modulare e scalabile possibile, in quanto,
+ %       nell'eventualità di aggiungere un nuovo tipo di rpc, non avremo dovuto apportare troppe 
+ %       modifiche. A dimostrazione di ciò, oltre alle rpc definite dal protocollo 
+ %       -- AppendEntryRpc, AppendResponse, RequestVoteRPC, 
+ %       RequestVoteResponse -- ne troviamo altre, come l'rpc utilizzato per notificare ai noti 
+ %       che hanno diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client. 
+ %       La ragione dietro a questo tipo di 
+ %       progettazione è stata 
+ %       fatta a frutto dei futuri cambiamenti che ci sarebbero stati e che sono stati fatti, 
+ %       difatti il modulo è stato pensando fin dall'inizio in questo modo e, a fronte dei 
+ %       cambiamenti che sono stati fatti, non è per nulla cambiato. 
+ %       La scalabilità è inoltre facilitata dall'utilizzo di uno script e di un rpc template 
+ %       che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali errori di 
+ %       scrittura di nuove rpc). 
+ %       Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio 
+ %       arriva, il suoo tipo viene controllato, viene estratto il payload e convertito in base 
+ %       al tipo. Questo rappresenta un debito tecnico (limite), in quanto ad ogni aggiunta di 
+ %       una nuova rpc, bisogna aggiungere un voce nel modulo di conversione.
 
     \item \textbf{CommonMatchIndex}:
         definisce un'interfaccia che si occupa di monitorare l'ultimo indice su cui tutti i nodi 
