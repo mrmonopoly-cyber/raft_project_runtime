@@ -118,9 +118,15 @@ che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali e
 scrittura di nuove rpc). 
 
 Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio 
-arriva, il suoo tipo viene controllato, viene estratto il payload e convertito in base 
-al tipo. Questo rappresenta un debito tecnico (limite), in quanto ad ogni aggiunta di 
-una nuova rpc, bisogna aggiungere un voce nel modulo di conversione.
+arriva, esso viene deserializzato in un tipo di messagio generico che contiene TIPO e PAYLOAD. 
+Il tipo ci indica quale Rpc è stata ricevuta e conseguentemente quale metodo di decodifica utilizzare. 
+Dopo averne verificato il tipo, viene estratto il payload e convertito. 
+Questo succede perché non è possibile convertire automaticamente un messaggio in formato byte nel suo 
+corrispondente protobuf perché ogni protobuf ha il suo metodo di decodifica. Seppure siamo 
+consapevole che questi rappresenta un debito tecnico (limite), in quanto ad ogni aggiunta di 
+una nuova rpc bisogna aggiungere un voce nel modulo di conversione, abbiamo trovato 
+necessario stabilire un formato generale che potesse essere capito da tutti i nodi i quali 
+in seguito avrebbe proseguito estraendone il payload e convertendolo internamente.
 
 
 \subsection{Raft per il consenso distribuito}

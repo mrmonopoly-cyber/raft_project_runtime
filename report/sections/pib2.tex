@@ -56,10 +56,9 @@ in uno specifico channel.
 \paragraph{il nodo riceve una richiesta RPC}
 Come gia' accennato in precedenza ad ogni nodo viene assegnata una goroutine responsabile di
 ricevere messaggi da quella connessione. Quando cio' accade l'intero messaggio viene deserializzato
-trammite il protocollo di \textbf{Protobuf} ottenendo il messaggio di riferimento in un formato 
-maggiornmente utilizzabile. Questa procedura accade sia per i messaggi tra elementi del cluster
-sia per le richieste dei clienti che vi ci connettono.
-Dopo aver estratto il messaggio, la procedura ricava l'ip del mittente, informazione necessaria per sapere a chi inviare una risposta se necessario,
+con \textbf{Protobuf}.
+Dopo aver estratto il messaggio, la procedura ricava l'ip del mittente, informazione necessaria per 
+sapere a chi inviare una risposta se necessario,
 viene eseguita l'RPC, si verifica se la procedura ha ritornato un risposta da inviare al mittente,
 si invia la risposta in caso e si notifica il completamento su un channel dedicato 
 per quel messaggio. Quest'ultima parte e' stata introdotta per garantire che un nodo non possa 
