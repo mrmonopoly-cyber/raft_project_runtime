@@ -1,0 +1,23 @@
+\subsubsection{File System abstraction}
+Il cluster è progettato con l'obiettivo principale di fornire un file system distribuito. In questo contesto, abbiamo ritenuto 
+indispensabile definire un livello di astrazione del file system per ogni nodo, al fine di facilitare l'interazione con esso e 
+garantire un'implementazione più modulare e gestibile.\\
+L'astrazione del file system di ciascun nodo rappresenta un'interfaccia standardizzata che consente di eseguire operazioni sui 
+file in modo uniforme, indipendentemente dalle specificità del nodo. Questo approccio consente di mantenere
+un elevato grado di coerenza e semplicità nella gestione del file system distribuito.
+Il cuore dell'astrazione risiede in un singolo metodo principale, chiamato ApplyLogEntry, che svolge un ruolo centrale nell'elaborazione
+delle operazioni sui file. Questo metodo è progettato per accettare una "log entry" come input e 
+gestire le seguenti funzioni: il metodo analizza la log entry per identificare il tipo di operazione da eseguire: creazione 
+di un nuovo file, scrittura su un file, rinomina di un file, eliminazione di un file; in seguito, procede con 
+l'esecuzione dell'operazione corrispondente sul file system del nodo.
+
+\subsubsection{Instaurazione connessione tra nodi}
+All'avvio, il nodo lancia diverse goroutine: innanzitutto, si mette in ascolto di nuove connessioni su una porta 
+e comincia a connettersi ai nodi della configurazione iniziale
+(ciascun nodo parte con una configurazione iniziale, questo per evitare la complessità di costruire una configurazione iniziale strada 
+facendo). Dopodichè rimane in ascolto di nuove connessioni e ogni volta che ne arriva una nuova, il nodo controlla
+l'indirizzo IP, lo distingue tra indirizzo "interno" ed "esterno" e lancia una goroutine per ciascuna di queste
+categorie e, infine, aspetta di ricevere messaggi da queste connessioni. \\
+Per l'instaurazione delle connesioni, il nostro sistema fa uso di un modulo apposito, chiamato \texttt{Node}, che 
+rappresenta un singolo nodo e la sua connessione di riferimenot, ed espone i metodi per comunicare 
+con esso (invio e ricezione) e gestire la connesione (chiusura e aggiunta).
