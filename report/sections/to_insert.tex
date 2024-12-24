@@ -13,11 +13,20 @@ l'esecuzione dell'operazione corrispondente sul file system del nodo.
 
 \subsubsection{Instaurazione connessione tra nodi}
 All'avvio, il nodo lancia diverse goroutine: innanzitutto, si mette in ascolto di nuove connessioni su una porta 
-e comincia a connettersi ai nodi della configurazione iniziale
-(ciascun nodo parte con una configurazione iniziale, questo per evitare la complessità di costruire una configurazione iniziale strada 
-facendo). Dopodichè rimane in ascolto di nuove connessioni e ogni volta che ne arriva una nuova, il nodo controlla
+e attende che gli venga comunicato la sua appartiane a una qualche configurazione.
+Cio' puo' accadere in diversi modi:
+\begin{itemize}
+    \item il master instaura una connesione con il nodo seguente e gli invia un AppendEntry con la
+    configurazione di riferimento. Il nodo diventa follower e applica l'AppendEntry ricevuta
+
+    \item richiesta dall'amministratore di sistema: l'operatore invia un messaggio a quel nodo dove 
+    gli specifica la configurazione di appartenenza. Quando cio' accade il nodo diventa master.
+    Questa situazione si verifica solamente nella fase di creazione del server ed e' necessaria per 
+    definire un primo master che dia il via al servizio.
+\end{itemize}
+Dopodichè rimane in ascolto di nuove connessioni e ogni volta che ne arriva una nuova, il nodo controlla
 l'indirizzo IP, lo distingue tra indirizzo "interno" ed "esterno" e lancia una goroutine per ciascuna di queste
 categorie e, infine, aspetta di ricevere messaggi da queste connessioni. \\
 Per l'instaurazione delle connesioni, il nostro sistema fa uso di un modulo apposito, chiamato \texttt{Node}, che 
-rappresenta un singolo nodo e la sua connessione di riferimenot, ed espone i metodi per comunicare 
+rappresenta un singolo nodo e la sua connessione di riferimento, ed espone i metodi per comunicare 
 con esso (invio e ricezione) e gestire la connesione (chiusura e aggiunta).

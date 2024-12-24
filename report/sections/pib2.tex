@@ -69,25 +69,42 @@ a trovare per garantire la correttezza dell'esecuzione senza introdurre race con
 dei messaggi di un nodo.
 
 \subsubsection{scatta il timer responsabile dell'elezione di un nuovo leader}
-Non appena il timer per l'elezione segnala nel proprio channel la sua scadenza, il main loop avvia una goroutine startElection che segnala l'inizio di una nuuova elezione e resetta alcune variabili interne, come il numero di 
-sostenitori e dei non sostenitori. In questo modo, si prepara il terreno per una nuova competizione per la leadership.
-Successivamente, startElection incrementa il termine corrente del nodo, indicando che il nodo sta cercando di diventare il leader in un nuovo ciclo di elezione. Questa operazione è fondamentale per garantire che ogni nodo 
-possa riconoscere il progresso delle elezioni e sapere che il nodo che sta tentando di diventare leader ha un "termine" più alto rispetto agli altri nodi, il che è un requisito essenziale per la validità della richiesta di voto.
-Un altro passo importante è il voto per se stesso. Il nodo si autovota, esprimendo così la sua intenzione di diventare leader. Questo è un passaggio fondamentale nel protocollo Raft, dove ogni nodo deve cercare di ottenere il 
-consenso degli altri nodi.
-Dopo essersi autovotato, il nodo crea un messaggio RPC di richiesta di voto, preparandosi a inviarlo agli altri nodi del cluster. Questo messaggio contiene informazioni sullo stato corrente del nodo e la sua richiesta di voto, e viene codificato in un formato che può essere compreso dagli altri nodi.
-Infine, startElection invia questa richiesta di voto a tutti i nodi nel cluster. Utilizzando una goroutine per ogni invio, la funzione si assicura che le richieste vengano inviate in parallelo, ottimizzando così il tempo di 
-attesa e aumentando le probabilità di ricevere risposte rapide.
+Non appena il timer per l'elezione segnala nel proprio channel la sua scadenza, il main loop avvia 
+una goroutine startElection che segnala l'inizio di una nuuova elezione e resetta alcune variabili 
+interne, come il numero di sostenitori e dei non sostenitori. In questo modo, si prepara il terreno 
+per una nuova competizione per la leadership.
+Successivamente, startElection incrementa il termine corrente del nodo, indicando che il nodo sta 
+cercando di diventare il leader in un nuovo ciclo di elezione. Questa operazione è fondamentale per 
+garantire che ogni nodo possa riconoscere il progresso delle elezioni e sapere che il nodo che sta 
+tentando di diventare leader ha un "termine" più alto rispetto agli altri nodi, il che è un 
+requisito essenziale per la validità della richiesta di voto.
+Un altro passo importante è il voto per se stesso. Il nodo si autovota, esprimendo così la sua 
+intenzione di diventare leader. Questo è un passaggio fondamentale nel protocollo Raft, dove ogni 
+nodo deve cercare di ottenere il consenso degli altri nodi.
+Dopo essersi autovotato, il nodo crea un messaggio RPC di richiesta di voto, preparandosi a 
+inviarlo agli altri nodi del cluster. Questo messaggio contiene informazioni sullo stato corrente 
+del nodo e la sua richiesta di voto, e viene codificato in un formato che può essere compreso 
+dagli altri nodi.
+Infine, startElection invia questa richiesta di voto a tutti i nodi nel cluster. Utilizzando una 
+goroutine per ogni invio, la funzione si assicura che le richieste vengano inviate in parallelo, 
+ottimizzando così il tempo di attesa e aumentando le probabilità di ricevere risposte rapide.
 
 \subsubsection{scatta il timer che indica di dover inviare un nuovo heartbit}
-Allo scadere del timer per l'heartbit, un'ulteriore goroutine viene lanciata e attraversa tutti gli indirizzi IP dei nodi elencati nella configurazione. Per ogni indirizzo IP, la funzione verifica che il nodo esista (ossia esiste 
-nella subnet) e
-se il nodo è stato trovato, la funzione procede a ottenere lo stato attuale di quel nodo. Questo metodo è vitale perché fornisce informazioni aggiornate, come l'indice della prossima voce di log da elaborare. 
-Con il nodo trovato e le informazioni recuperate, la funzione determina se il nodo richiede nuove voci di log. Se l'indice della prossima voce (nextIndex) è inferiore al numero totale di voci di log disponibili, significa che ci
-sono aggiornamenti da inviare. In questo caso, viene creato un messaggio di tipo AppendEntryRpc.
-Questa creazione di messaggi è fondamentale per garantire che i follower siano sempre allineati con il leader. Se, invece, non ci sono nuove voci da inviare, viene generato un messaggio di heartbeat generico che funge da 
-segnale di vita, dimostrando che il leader è ancora attivo e operativo.
-Una volta creato il messaggio di heartbeat, la funzione lo codifica in un formato che può essere trasmesso sulla rete.
+Allo scadere del timer per l'heartbit, un'ulteriore goroutine viene lanciata e attraversa tutti 
+gli indirizzi IP dei nodi elencati nella configurazione. Per ogni indirizzo IP, la funzione 
+verifica che il nodo esista (ossia esiste nella subnet) e se il nodo è stato trovato, la funzione 
+procede a ottenere lo stato attuale di quel nodo. Questo metodo è vitale perché fornisce 
+informazioni aggiornate, come l'indice della prossima voce di log da elaborare. 
+Con il nodo trovato e le informazioni recuperate, la funzione determina se il nodo richiede nuove 
+voci di log. Se l'indice della prossima voce (nextIndex) è inferiore al numero totale di voci di 
+log disponibili, significa che ci sono aggiornamenti da inviare. 
+In questo caso, viene creato un messaggio di tipo AppendEntryRpc.
+Questa creazione di messaggi è fondamentale per garantire che i follower siano sempre allineati 
+con il leader. Se, invece, non ci sono nuove voci da inviare, viene generato un messaggio di 
+heartbeat generico che funge da segnale di vita, dimostrando che il leader è ancora attivo e 
+operativo.
+Una volta creato il messaggio di heartbeat, la funzione lo codifica in un formato che può essere 
+trasmesso sulla rete.
 Infine, il messaggio codificato viene inviato al nodo. 
 Questo viene ripetuto per tutti gli elementi presenti nella configurazione.
 
