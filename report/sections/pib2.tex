@@ -25,18 +25,13 @@ cio' che deve fare questa parte del progetto e':
 \subsubsection{Funzionamento}
 Il codice e' stato strutturato per essere diviso in due fasi: 
 \begin{itemize}
-    \item \textbf{Inizializzazione}: dove vengono caricati tutti gli ip scoperti dal deamon
+    \item \textbf{Inizializzazione}:in questa fase vengono caricati tutti gli ip scoperti dal deamon
         \textbf{discovery.service} (quello del nodo stesso e quelli dei nodi attualmente presenti 
-        nella rete), la directory dove salvare i dati del filesystem distribuito. Fatto 
-        il nodo tenta di instanziare una connessione con gli altri nodi scoperti dal dameon e 
-        ifine instanzia una goroutine per l'accettazione di nuove connessioni in ingresso che 
-        verranno poi smistate in base all'ip di provenienza. Usando questa struttura si garantisce
-        che ogni nodo creera' una connessione, se possibile, con ogni altro nodo nella rete. 
-        E' importante ricordare che instaurare una connessione non implica appartenere 
-        alla stessa configurazione. Inoltre in questa fase fengono instanziati
-        dei clock necessari per l'implementazione del protocollo RAFT.
-        E' importante sottolineare che per ogni connessione accettata verra' creata una 
-        goroutine responsabile di ricevere i messaggi dal nodo di riferimento.
+        nella rete) e la directory dove salvare i dati del filesystem distribuito. Fatto cio'
+        il nodo tenta di instanziare una connessione con ogni indirizzo ip scoperto.
+        Inoltre in questa fase fengono instanziati dei clock necessari per l'implementazione 
+        del protocollo RAFT anche se rimangono disattivati fino a che il nodo non appartiene a una
+        configurazione
     \item \textbf{Loop}: In questa fase viene eseguito un loop con una chiamata bloccante che 
         rilascia la \textbf{CPU} fino a che non si verifica una delle tre condizioni:
         \begin{itemize}
@@ -49,9 +44,47 @@ Il codice e' stato strutturato per essere diviso in due fasi:
         Facendo cio' si fornisce un miglior tempo di risposta garentendo inoltre la disponibilita' 
         del servizio.
 \end{itemize}
-La spiegazione del codice continuera' indagando i tre casi del loop appena citati spiegando i moduli 
-utilizzati man mano. Dove ognuna delle condizioni citate consiste nella ricezione di un messaggio
-in uno specifico channel.
+La spiegazione del codice continuera' indagando come vengono instaurate nuove connessioni 
+al di fuori della fase di inizializzazione, come un nodo riconosce di appartenere ad una specifica
+configurazione e i tre casi del loop appena citati spiegando i moduli utilizzati man mano. 
+Dove ognuna delle condizioni citate consiste nella ricezione di un messaggio in uno specifico 
+channel.
+
+\paragraph{Instaurazione di una nuova connessione}
+Come accennato sopra, nella fase di inizializzazione ogni nodo cerca di connettersi a tutti i
+nodi scoperti dal daemon dello stesso. 
+Dopodichè viene lanciata un goroutine che rimane in ascolto di nuove connessioni e 
+ogni volta che ne arriva una nuova, il nodo 
+controlla l'indirizzo IP, lo distingue tra indirizzo "interno" (nodo) ed "esterno" (client),
+lancia una goroutine per ciascuna di queste categorie e, infine, aspetta di ricevere messaggi 
+da queste connessioni. \\
+La distinzione delle richieste avviene guardando la provenienza della richiesta: 
+\begin{itemize}
+    \item 192.168.2.X: nodo esterno (client): se il nodo che riceve la richiesta dal client e' il
+        server viene servito, se e' un follower ritorna al client l'indirizzo del master 
+        da conttattare.
+    \item 10.0.0.X: nodo interno: viene salvata la connessione nella memoria del nodo se non e'
+        gia' presente
+\end{itemize}
+Trammite questo sistema ogni nuovo nodo interno comunica a tutti 
+i nodi attualmente esistenti la sua esistenza e se e' gia' presente nella rete verra' contattato 
+dai nuovi nodi instaurando cosi' una connessione.
+
+\paragraph{Instaurazione delle connessione tra i nodi e appartenenza ad una configurazione}
+All'inizio ogni nodo attende che gli venga comunicato se appartiane a una qualche configurazione.
+Cio' puo' accadere in diversi modi:
+\begin{itemize}
+    \item l'attuale master instaura una connesione con il nodo seguente e gli invia un 
+        AppendEntry con la configurazione di riferimento. 
+        Il nodo diventa follower e applica l'AppendEntry ricevuta con la configurazione del 
+        cluster attiva
+
+    \item richiesta dall'amministratore di sistema: l'operatore invia un messaggio a quel nodo dove 
+        gli specifica la configurazione di appartenenza. Quando cio' accade il nodo diventa master.
+        Questa situazione si verifica solamente nella fase di creazione di un nuovo cluster 
+        ed e' necessaria per definire un primo master che dia il via al servizio.
+\end{itemize}
+Quando si verifica una delle due situazioni i timer precedentemente disabilitati vengono attivati.
 
 \paragraph{il nodo riceve una richiesta RPC}
 Come gia' accennato in precedenza ad ogni nodo viene assegnata una goroutine responsabile di
@@ -108,58 +141,33 @@ trasmesso sulla rete.
 Infine, il messaggio codificato viene inviato al nodo. 
 Questo viene ripetuto per tutti gli elementi presenti nella configurazione.
 
-\subsubsection{Funzionamento}
-% Sezione vuota per scaletta
-All'avvio, il nodo legge la configurazione, che include l'indirizzo IP dei nodi pesenti e del nodo stesso. Viene quindi creato un server Raft che rappresenta il nodo stesso. Questa configurazione è fondamentale per definire la 
-rete di nodi Raft che formeranno il cluster.
-Una volta configurato, il server avvia il nodo Raft, che si mette in ascolto per comunicazioni e richieste. A questo punto, ogni nodo può interagire con gli altri nel cluster, comunicando attraverso RPCs (Remote Procedure Calls).
-
-\textbf{Comunicazione tra Nodi}\\
-Una parte cruciale del flusso è la comunicazione tra nodi, che avviene principalmente attraverso due fasi: replicazione del log e elezioni del leader. Queste interazioni vengono gestite tramite vari tipi di RPC definiti 
-nel progetto.
-Quando un nodo leader deve replicare le voci del log, invia un'RPC AppendEntryRpc ai nodi follower. I follower, una volta ricevuta la richiesta, e, se la richiesta è valida e il log viene replicato correttamente, i follower 
-rispondono confermando la replica.
-Durante il processo di elezione del leader, i nodi inviano una richiesta di voto con l'RPC RequestVoteRPC. I nodi che ricevono questa richiesta processano la decisione di votare o meno per il candidato leader, assicurandosi 
-che i requisiti per il voto (come la consistenza del log) siano soddisfatti.
-
-\textbf{Processo di elezione}\\
-Il sistema Raft monitora costantemente la presenza di un leader attivo. Quando un nodo non riceve messaggi di "heartbeat" (AppendEntry) dal leader entro un determinato timeout, questo evento segnala che il leader potrebbe essere 
-inaccessibile o non funzionante. Ogni nodo follower mantiene un proprio timer, e se scade senza ricevere comunicazioni dal leader, quel nodo considera il leader inattivo e transita in uno stato di candidate.
-In questo stato, il nodo invia richieste di voto agli altri nodi del cluster attraverso l'RPC RequestVoteRPC. Il nodo candidato cercherà di ottenere voti sufficienti per diventare leader. Durante questa fase, 
-ogni nodo che riceve una richiesta di voto valuta se concedere il proprio voto al candidato, basandosi sulla propria situazione di stato e log.
-Se il candidato riceve voti dalla maggioranza dei nodi, assume il ruolo di leader e comincia immediatamente a inviare messaggi AppendEntryRpc ai follower per confermare la propria leadership e mantenere i log sincronizzati. 
-Se invece nessun candidato ottiene la maggioranza, viene avviato un nuovo ciclo elettorale fino a quando non viene selezionato un leader. 
-
-\textbf{Replicazione dei Log, Commit e applicazione allo stato della macchina}\\
-Uno dei flussi operativi principali riguarda la gestione del log, che è il meccanismo attraverso cui Raft garantisce la consistenza dei dati nei nodi. Il log è gestito da due componenti separate: una chiamata leader e l'altra 
-chiamata slave e, come descritto nel paragrafo precedente, la prima ha permessi di scrittura, mentre la seconda di sola lettura.
-Quando un leader riceve un nuovo comando, lo aggiunge al suo log interno e, a questo punto, informa le configurazioni attive che ha aggiunto una nuova voce al registro. Dopodiché, ogni configurazione invia un messaggio 
-AppendEntryRPC ai nodi corrispondenti.
-I follower ricevono questo messaggio, lo aggiungono al loro log, e rispondono al leader. 
-Quando il leader riceve una risposta AppendEntryResponse da ciascun nodo, aggiorna i rispettivi indici: nextIndex e matchIndex, mantenendo così allineati i nodi con lo stato corrente del registro. Successivamente,
-notifica l'avvenuta aggiunta di una entry al log system attraverso canali asincroni (NotifyAppendEntryC) definiti nelle implementazioni del log. Il leader invia un commit alla maggior parte dei nodi, e i follower seguono l'ordine di commit. 
-Quando le voci vengono committate, esse vengono applicate allo stato condiviso del sistema.
-Il canale ReturnValue nel log permette di gestire i risultati delle operazioni in maniera asincrona, in modo che il sistema possa continuare ad operare senza attendere che ogni operazione venga completata in modo sincrono.
-
-\textbf{Gestione delle configurazioni}\\
-L'aspetto più importante dell'intero cluster è la gestione delle configurazioni. Il sistema prevede due configurazioni distinte: quella corrente e quella nuova. La presenza simultanea di entrambe indica che il cluster si 
-trova in uno stato di transizione da una configurazione all'altra.\\
-Quando il leader riceve una richiesta da un client per applicare una nuova configurazione, che include un elenco di nodi, aggiorna l'elenco, imposta la nuova configurazione e informa i nuovi nodi che non sono ancora autorizzati
-a votare. Il leader inizia quindi a replicare il proprio log, aggiornando i nuovi nodi follower.\\
-Durante questa procedura, potrebbe accadere che uno dei nuovi nodi non venga trovato a causa della sua assenza nella subnet. In tal caso, le informazioni su quel nodo vengono memorizzate e aggiornate in seguito. Infine, 
-il sistema esegue controlli periodici per verificare se il log di ciascun nodo è sincronizzato; quando un nodo risulta aggiornato, il leader gli concede il diritto di voto.
+\subsubsection{File System abstraction}
+Come definito negli obbiettivi il cluster implementa un filesystem distribuito.
+In questo contesto, abbiamo ritenuto indispensabile definire un livello di astrazione del file 
+system per ogni nodo, al fine di facilitare l'interazione con esso e garantire un'implementazione 
+più modulare e gestibile.\\
+L'astrazione del file system di ciascun nodo rappresenta un'interfaccia standardizzata che consente di eseguire operazioni sui 
+file in modo uniforme, indipendentemente dalle specificità del nodo. Questo approccio consente di mantenere
+un elevato grado di coerenza e semplicità nella gestione del file system distribuito.
+Il cuore dell'astrazione risiede in un singolo metodo principale, chiamato ApplyLogEntry, che svolge un ruolo centrale nell'elaborazione
+delle operazioni sui file. Questo metodo è progettato per accettare una "log entry" come input e 
+gestire le seguenti funzioni: il metodo analizza la log entry per identificare il tipo di operazione da eseguire: creazione 
+di un nuovo file, scrittura su un file, rinomina di un file, eliminazione di un file; in seguito, procede con 
+l'esecuzione dell'operazione corrispondente sul file system del nodo.
 
 \subsubsection{Limiti}
-% Sezione vuota per scaletta
-Anche se il nostro sistema funziona come descritto nel documento (citare documento), presenta un grave difetto. La Figura 3 illustra la parte del sistema principalmente coinvolta nel processo di \textit{commit} degli indici.
-\\
+grave difetto. 
+Anche se il nostro sistema funziona come descritto nel documento (citare documento), presenta un 
+grave difetto. 
+La Figura 3 illustra la parte del sistema principalmente coinvolta nel processo di \textit{commit} 
+degli indici.
+degli indici.
+main.c"
 \begin{lstlisting}[language=Go]
 func (c *commonMatchImp) 
-    checkUpdateNewMatch(sub *substriber) { 
-  var halfNodeNum = c.numNodes/2 
   for c.run { 
-    var newMatch = <-sub.Snd 
     if newMatch > c.commonMatchIndex && 
+    ${}}
         sub.Trd < newMatch { 
       c.numStable++ 
       if c.numStable > uint(halfNodeNum) {
@@ -174,7 +182,12 @@ func (c *commonMatchImp)
   } 
 }
 \end{lstlisting}
-Il problema deriva da una sezione critica del codice a cui accedono contemporaneamente più Goroutine senza alcun meccanismo di controllo dell'accesso. In particolare, è possibile che una Goroutine 
-superi il controllo iniziale ed esegua le operazioni previste, e che subito dopo una seconda Goroutine superi lo stesso controllo. A questo punto, però, la prima Goroutine ha già modificato i valori condivisi all'interno del 
-corpo dell'istruzione if, il che significa che la seconda Goroutine opera su valori non aggiornati, invalidando di fatto la condizione del guard. Anche se abbiamo eseguito numerosi test (che riconosciamo essere insufficienti 
-per dimostrare l'assenza di bug) e abbiamo trovato difficile riprodurre le condizioni necessarie per far emergere questa condizione di race, non abbiamo ancora osservato questo problema nella pratica.
+Il problema deriva da una sezione critica del codice a cui accedono contemporaneamente più 
+Goroutine senza alcun meccanismo di controllo dell'accesso. In particolare, è possibile che una Goroutine 
+superi il controllo iniziale ed esegua le operazioni previste, e che subito dopo una seconda 
+Goroutine superi lo stesso controllo. A questo punto, però, la prima Goroutine ha già modificato i 
+valori condivisi all'interno del corpo dell'istruzione if, il che significa che la seconda Goroutine 
+opera su valori non aggiornati, invalidando di fatto la condizione della guardia. Anche se abbiamo 
+eseguito numerosi test (che riconosciamo essere insufficienti per dimostrare l'assenza di bug) e 
+abbiamo trovato difficile riprodurre le condizioni necessarie per far emergere questa condizione di 
+race, non abbiamo ancora osservato questo problema nella pratica.

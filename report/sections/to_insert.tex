@@ -1,7 +1,8 @@
 \subsubsection{File System abstraction}
-Il cluster è progettato con l'obiettivo principale di fornire un file system distribuito. In questo contesto, abbiamo ritenuto 
-indispensabile definire un livello di astrazione del file system per ogni nodo, al fine di facilitare l'interazione con esso e 
-garantire un'implementazione più modulare e gestibile.\\
+Il cluster è progettato con l'obiettivo principale di fornire un file system distribuito. 
+In questo contesto, abbiamo ritenuto indispensabile definire un livello di astrazione del file 
+system per ogni nodo, al fine di facilitare l'interazione con esso e garantire un'implementazione 
+più modulare e gestibile.\\
 L'astrazione del file system di ciascun nodo rappresenta un'interfaccia standardizzata che consente di eseguire operazioni sui 
 file in modo uniforme, indipendentemente dalle specificità del nodo. Questo approccio consente di mantenere
 un elevato grado di coerenza e semplicità nella gestione del file system distribuito.
@@ -12,8 +13,8 @@ di un nuovo file, scrittura su un file, rinomina di un file, eliminazione di un 
 l'esecuzione dell'operazione corrispondente sul file system del nodo.
 
 \subsubsection{Instaurazione connessione tra nodi}
-All'avvio, il nodo lancia diverse goroutine: innanzitutto, si mette in ascolto di nuove connessioni su una porta 
-e attende che gli venga comunicato la sua appartiane a una qualche configurazione.
+All'avvio, il nodo lancia diverse goroutine: innanzitutto, si mette in ascolto di nuove connessioni 
+su una porta e attende che gli venga comunicato la sua appartiane a una qualche configurazione.
 Cio' puo' accadere in diversi modi:
 \begin{itemize}
     \item il master instaura una connesione con il nodo seguente e gli invia un AppendEntry con la
@@ -24,9 +25,9 @@ Cio' puo' accadere in diversi modi:
     Questa situazione si verifica solamente nella fase di creazione del server ed e' necessaria per 
     definire un primo master che dia il via al servizio.
 \end{itemize}
-Dopodichè rimane in ascolto di nuove connessioni e ogni volta che ne arriva una nuova, il nodo controlla
-l'indirizzo IP, lo distingue tra indirizzo "interno" ed "esterno" e lancia una goroutine per ciascuna di queste
-categorie e, infine, aspetta di ricevere messaggi da queste connessioni. \\
-Per l'instaurazione delle connesioni, il nostro sistema fa uso di un modulo apposito, chiamato \texttt{Node}, che 
-rappresenta un singolo nodo e la sua connessione di riferimento, ed espone i metodi per comunicare 
-con esso (invio e ricezione) e gestire la connesione (chiusura e aggiunta).
+Dopodichè rimane in ascolto di nuove connessioni e ogni volta che ne arriva una nuova, il nodo 
+controlla l'indirizzo IP, lo distingue tra indirizzo "interno" ed "esterno" e lancia una goroutine 
+per ciascuna di queste categorie e, infine, aspetta di ricevere messaggi da queste connessioni. \\
+Per l'instaurazione delle connesioni, il nostro sistema fa uso di un modulo apposito, chiamato 
+\texttt{Node}, che rappresenta un singolo nodo e la sua connessione di riferimento, ed espone i 
+metodi per comunicare con esso (invio e ricezione) e gestire la connesione (chiusura e aggiunta).

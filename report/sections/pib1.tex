@@ -20,13 +20,13 @@ di configurazione dell'ambiente.
 
 \subsubsection{Gestore dei nodi e della rete}
 % Sezione vuota per scaletta
-Abbiamo progettato l'architettura di rete del \textit{cluste}r con due \textit{subnet} distinte, ciascuna con ruoli specifici per garantire la separazione tra il traffico pubblico rivolto ai \textit{client} e la comunicazione interna del \textit{cluster}:
+Abbiamo progettato l'architettura di rete del \textit{cluster} con due \textit{subnet} distinte, ciascuna con ruoli specifici per garantire la separazione tra il traffico pubblico rivolto ai \textit{client} e la comunicazione interna del \textit{cluster}:
 \begin{itemize}
-  \item \textit{Subnet} Pubblica (192.168.2.0/24): Questa \textit{subnet} è basata su \textit{NAT}, il che significa che i nodi nella rete pubblica possono accedere a \textit{internet} esterno e comunicare con sistemi esterni, 
+  \item \textit{Subnet} Pubblica (192.168.2.0\/24): Questa \textit{subnet} è basata su \textit{NAT}, il che significa che i nodi nella rete pubblica possono accedere a \textit{internet} esterno e comunicare con sistemi esterni, 
     ma non possono comunicare direttamente tra loro all'interno della \textit{subnet}. Il \textit{pool} di rete pubblica è riservato ai nodi che devono interagire con servizi o client esterni. In questo intervallo, 
     gli indirizzi 1 e 255 sono riservati rispettivamente all'\textit{hypervisor} e ai messaggi di \textit{broadcast}, mentre i restanti indirizzi IP sono assegnati dinamicamente alle macchine virtuali che necessitano di 
     accesso esterno.
-  \item \textit{Subnet} Privata (10.0.0.0/24): Questa \textit{subnet} è utilizzata esclusivamente per la comunicazione \textit{intra-cluster}. L'abbiamo creata utilizzando un \textit{bridge} virtuale, che consente a tutti i 
+  \item \textit{Subnet} Privata (10.0.0.0\/24): Questa \textit{subnet} è utilizzata esclusivamente per la comunicazione \textit{intra-cluster}. L'abbiamo creata utilizzando un \textit{bridge} virtuale, che consente a tutti i 
     nodi della \textit{subnet} di comunicare direttamente tra loro. Tuttavia, questa rete non ha accesso a \textit{internet} esterno, assicurando che il suo unico scopo sia facilitare la comunicazione tra i nodi per compiti 
     correlati al \textit{cluster}. Come nella \textit{subnet} pubblica, gli indirizzi 1 e 255 sono riservati, e il resto dell'intervallo è disponibile per i nodi del \textit{cluster}.
 \end{itemize}
