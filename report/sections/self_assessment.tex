@@ -2,6 +2,33 @@
 \section{Valutazioni}
 \subsection{Raggiungimento obiettivi}
 % Sezione vuota per scaletta
+Il progetto ha centrato con successo gli obiettivi principali definiti inizialmente, ponendo le basi per un sistema 
+cluster affidabile, scalabile e di facile configurazione. Tra i risultati più rilevanti si evidenzia:
+\begin{enumerate}
+  \item Affidabilità e Tolleranza ai Guasti: L'adozione del protocollo Raft ha permesso di garantire 
+  un consenso distribuito tra i nodi, eliminando qualsiasi single point of failure. Questo approccio assicura 
+  che, anche in caso di guasti a livello fisico (server, rete) o software (crash del sistema operativo), 
+  il cluster continui a funzionare in maniera coerente, mantenendo l'integrità dello stato condiviso.
+  
+  \item Scalabilità Dinamica: Il sistema consente l'aggiunta o la rimozione di nodi senza interrompere
+  i servizi forniti. L'uso di libvirt come gestore dei nodi ha reso possibile l’astrazione dell’hypervisor,
+  semplificando la gestione delle macchine virtuali e supportando facilmente la scalabilità del cluster.
+
+  \item Configurazione Automatizzata: La creazione di script bash ha semplificato e automatizzato la fase 
+  di setup dell’ambiente e delle immagini di sistema. Questo approccio riduce significativamente 
+  i tempi di configurazione e garantisce consistenza nelle installazioni.
+
+  \item Strumenti di Interazione: Lo sviluppo di tool CLI ha introdotto un'interfaccia intuitiva per 
+  amministratori e utenti finali. La CLI consente di monitorare lo stato del cluster, gestire 
+  configurazioni dinamiche e inviare richieste specifiche, come il recupero o la modifica di file.
+
+  \item Architettura Modulare: La progettazione del sistema è stata effettuata con un focus sulla modularità
+  e sull’isolamento delle componenti. Moduli dedicati, come il raft\_log, ConfPool e RPC module, hanno permesso
+  di ottenere un sistema organizzato e manutenibile, facilitando future estensioni e miglioramenti.
+
+  \item Ottimizzazione delle Risorse: La scelta di Arch Linux come sistema operativo ha permesso di minimizzare l’uso delle 
+  risorse, grazie a un’immagine di sistema snella e personalizzata con componenti leggeri come Syslinux al posto di GRUB.
+\end{enumerate}
 
 \subsection{Difficoltà riscontrate}
 Inizialmente, la sfida principale consisteva nella gestione di \textit{libvirt}, in particolare nell'
@@ -39,27 +66,41 @@ soluzione più efficace, ma implementare un tale sistema avrebbe richiesto un pr
 
 In retrospettiva, bilanciare la complessità tecnica mantenendo al contempo modularità, scalabilità e 
 un'architettura pulita è stata la sfida più grande che abbiamo affrontato durante tutto il progetto.
-\subsubsection{Implementazione del protocollo Raft}
-% Sezione vuota per scaletta
-\subsubsection{Modularizzazione}
-% Sezione vuota per scaletta
 
+\subsection{Miglioramenti realizzabili}
+Nonostante i risultati significativi, il progetto presenta alcune criticità e aree di miglioramento che 
+potrebbero essere affrontate per rendere il sistema più robusto, efficiente e accessibile.
+\begin{enumerate}
+  \item Gestione dei Log Distribuiti: Attualmente, il debugging del sistema e la raccolta dei 
+  log risultano macchinosi, in quanto basati su semplici stampe. L’implementazione di un sistema 
+  di logging distribuito permetterebbe di centralizzare la raccolta dei log, facilitando il 
+  monitoraggio delle macchine virtuali e l’identificazione dei problemi in tempo reale. 
+  
+  \item Risoluzione della Data Race: È stata identificata una possibile data race che povocherebbe 
+  una race condition all'interno della procedura di commit dei log, dove più goroutine possono accedere 
+  contemporaneamente a risorse condivise senza un meccanismo di controllo adeguato. Per 
+  risolvere questo problema, si potrebbe implementare una coda di priorità a doppia struttura,
+  garantendo così l'ordine di esecuzione delle operazioni senza 
+  introdurre ulteriori overhead o spinlock.
 
+  \item Ottimizzazione delle Performance: Sebbene il sistema funzioni correttamente, 
+  alcune operazioni del protocollo Raft potrebbero essere ottimizzate ulteriormente. 
+  Ad esempio, la compressione dei log non è attualmente supportata, il che può portare 
+  a un aumento delle risorse utilizzate nel tempo. Introdurre una strategia di snapshot
+  o di compressione permetterebbe di ridurre lo spazio occupato dai log e migliorare 
+  le performance complessive.
 
-\subsubsection{Organizzazione dei test}
-% Sezione vuota per scaletta
+  \item Automazione del Deployment in Produzione: Anche se è stata realizzata 
+  un’automazione per la configurazione iniziale, il deployment del cluster in ambienti 
+  di produzione richiede ancora un certo intervento manuale. 
 
-\subsubsection{Raccolta dei log}
-% Sezione vuota per scaletta
+  \item Interfaccia Grafica (GUI): L'uso esclusivo della CLI per interagire con il 
+  cluster potrebbe risultare poco accessibile per utenti meno esperti o non tecnici. 
+  Lo sviluppo di un’interfaccia grafica semplificata permetterebbe di visualizzare lo stato 
+  dei nodi, monitorare le metriche del sistema e gestire le configurazioni con maggiore intuitività.
 
-\subsubsection{Automatizzare il processo di deployment del cluster in produzione}
-% Sezione vuota per scaletta
-
-\subsubsection{Comprensione del cambio di configurazione del protocollo Raft}
-% Sezione vuota per scaletta
-
-\subsubsection{Riconoscimento dei casi di race condition}
-% Sezione vuota per scaletta
-
-\subsection{Vincoli e miglioramenti realizzabili}
-% Sezione vuota per scaletta
+  \item Testing e Validazione del Sistema: La complessità del sistema ha reso difficoltosa 
+  l’esecuzione dei test e la validazione delle funzionalità. Potrebbe essere utile introdurre 
+  una suite di test automatizzati, anche se non sarebbero sufficienti a garantire un 
+  comportamento corretto.
+\end{enumerate}

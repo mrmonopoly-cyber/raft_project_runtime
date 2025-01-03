@@ -75,7 +75,8 @@ nostre necessita'. Va specificato che l'utilizzo dell'acronimo RPC, in questo ca
 infatti a differenza delle vere e prioprie RPC, che sono sincrone e consentono di chiamare 
 delle procedure sulle altre macchine, i nostri messaggi sono asincroni (il mittente non rimane 
 in attesa di una risposta) e provocano un comportamento di risposta nel nodo remoto più che un 
-chiamata ad una procedura.  
+chiamata ad una procedura. Il nostro intento e' stato semplicemente di mantenere la nomenclatura
+utilizzata nell'articolo di riferimento.
 \subsubsection{Obbiettivi::\\}
 \begin{itemize}
     \item Fornire una comune interfaccia per tutte le RPC cosi' da poterle trattare tutte 
@@ -87,24 +88,21 @@ chiamata ad una procedura.
 \subsubsection{Soluzioni:\\}
 Per realizzare questo modulo abbiamo ci siamo appoggiati a un meccanismo comunemente utilizzato 
 per la serilizzazione degli Abstract Data Type (ADT): \textbf{Protobuf}.
-Di questo meccanismo esiste già una implementazione per \textbf{golang}.
+Di questo meccanismo esiste già una implementazione.
 
 Procedendo in ordine con l'elenco sopra definito abbiamo definito una interfaccia comune
 a tutti i messaggi delle RPC definendo delle funzioni comuni ad ognuno di essi. In particolare:
 \begin{itemize}
   \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
-  \item Execute: Esegue la funzione relativa a quel messaggio utilizzando il payload 
-    del messaggio come variabili insieme ai metadati del cluster, del log e 
-    delle configurazioni attive
+  \item Execute: Esegue il comportamento previsto dall'RPC, e a tal fine il modulo fa uso 
+    del clusterMetadata per le informazioni sul nodo, i metadati 
+    del cluster (serve in particolare per conoscere 
+    il numero di nodi nelle configurazioni) e informazioni sul mittente.
   \item Encode: Serializza il messaggio in byte
   \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio 
      con i dati estratti nel processo
 \end{itemize}
-Inoltre, ogni messaggio è un wrapper del corrispondente messaggio protobuf. 
-
-Per eseguire il comportamento previsto da una RPC il modulo fa uso del clusterMetadata 
-per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere 
-il numero di nodi nelle configurazioni) e informazioni sul mittente. \\
+Inoltre, ogni messaggio è un wrapper del corrispondente messaggio protobuf. \\
 Grazie alla progettazione di un sistema modulare e scalabile, gli obiettivi sono stati raggiunti 
 appieno, infatti nel corso dello sviluppo ci siamo imbattuti nella necessità di aggiungere nuovi 
 tipi di messaggio. Infatti nella fatispecie del nostro progetto, oltre alle rpc definite dal protocollo 
@@ -143,12 +141,11 @@ Di seguito, esponiamo le rpc utilizzate e come esse funzionano:
     se il messaggio è un heartbit msg oppure un tentativo da parte del leader di replicare il proprio
     log. Nel secondo caso, si procede con un controllo di consistenza, che può fallire nei seguenti casi:
     \begin{enumerate}
-      \item Il registro del follower è vuoto e il registro del leader contiene almeno due voci.
       \item Il follower ha meno voci rispetto al leader, senza considerare le nuove voci 
         (di conseguenza il leader deve decrementare il nextIndex e matchIndex riferiti a questo nodo e ritentare l'invio).
       \item Alla stessa posizione (index), il follower e il leader hanno termini diversi.
     \end{enumerate} 
-    Se una di queste tre casistiche si verifica, il nodo risponde false, includendo l'indice della voce incoerente, altrimenti
+    Se una di queste casistiche si verifica, il nodo risponde false, includendo l'indice della voce incoerente, altrimenti
     risponde con true indicando il successo dell'operazione. \\
     Infine, il nodo resetta il suo timeout delle elezioni.
 
@@ -295,7 +292,7 @@ Per implementare il protocollo sono stati implementati i seguenti moduli, :
     di \textbf{AppendEntry} che controllera' se la entry non e' gia' presente nel logo, in 
     caso affermativo aggiungera' in coda l'elemento. L'aggiunta di una entry nel log non ha alcuna
     implicazione sul \textbf{CommitIndex} il quale rimane invariato. Durante 
-    tutta la fase di inserimento delle entry viene usato un mutex per bloccare race condition
+    tutta la fase di inserimento delle entry viene usato un mutex per bloccare data races
     nell'inserimento di piu' entry allo stesso momento.
     Per incrementare il commmit index esiste una funzione apposita funziona 
     (\textbf{IncreaseCommitIndex}).
@@ -385,8 +382,8 @@ Per implementare il protocollo sono stati implementati i seguenti moduli, :
         la gestione di ogni RPC ricevuta e' gestita asincronamente da una goroutine
         e' possibile che due o piu' di esse rimangano in attesa sul mutex creando cosi una race
         condition su quale delle due inserisce le sue entry per prime. Per sistemare questo 
-        problema servirebbe implementare un sistema con doppia coda di priorita'
-        (\textbf{egg shell model}) per mantenere l'ordine di arrivo delle goroutine.
+        problema servirebbe un sistema di avoidance synchronization
+        per mantenere l'ordine di arrivo delle goroutine.
         Purtroppo cio' non e' stato fatto in quanto e' vista da noi come una ottimizzazione da
         implementare in secondo luogo avendo gia' una versiona stabile e funzionante del cluster.
 

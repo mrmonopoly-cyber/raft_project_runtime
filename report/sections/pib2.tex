@@ -115,9 +115,7 @@ Un altro passo importante è il voto per se stesso. Il nodo si autovota, esprime
 intenzione di diventare leader. Questo è un passaggio fondamentale nel protocollo Raft, dove ogni 
 nodo deve cercare di ottenere il consenso degli altri nodi.
 Dopo essersi autovotato, il nodo crea un messaggio RPC di richiesta di voto, preparandosi a 
-inviarlo agli altri nodi del cluster. Questo messaggio contiene informazioni sullo stato corrente 
-del nodo e la sua richiesta di voto, e viene codificato in un formato che può essere compreso 
-dagli altri nodi.
+inviarlo agli altri nodi del cluster.\\ 
 Infine, startElection invia questa richiesta di voto a tutti i nodi nel cluster. Utilizzando una 
 goroutine per ogni invio, la funzione si assicura che le richieste vengano inviate in parallelo, 
 ottimizzando così il tempo di attesa e aumentando le probabilità di ricevere risposte rapide.
@@ -189,5 +187,5 @@ Goroutine superi lo stesso controllo. A questo punto, però, la prima Goroutine 
 valori condivisi all'interno del corpo dell'istruzione if, il che significa che la seconda Goroutine 
 opera su valori non aggiornati, invalidando di fatto la condizione della guardia. Anche se abbiamo 
 eseguito numerosi test (che riconosciamo essere insufficienti per dimostrare l'assenza di bug) e 
-abbiamo trovato difficile riprodurre le condizioni necessarie per far emergere questa condizione di 
-race, non abbiamo ancora osservato questo problema nella pratica.
+abbiamo trovato difficile riprodurre le condizioni necessarie per far emergere race conditions,
+non abbiamo ancora osservato questo problema nella pratica.
