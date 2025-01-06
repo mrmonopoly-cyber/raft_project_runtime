@@ -105,21 +105,27 @@ a tutti i messaggi delle RPC definendo delle funzioni comuni ad ognuno di essi. 
 Inoltre, ogni messaggio è un wrapper del corrispondente messaggio protobuf. \\
 Grazie alla progettazione di un sistema modulare e scalabile, gli obiettivi sono stati raggiunti 
 appieno, infatti nel corso dello sviluppo ci siamo imbattuti nella necessità di aggiungere nuovi 
-tipi di messaggio. Infatti nella fatispecie del nostro progetto, oltre alle rpc definite dal protocollo 
--- AppendEntryRpc, AppendResponse, RequestVoteRPC, RequestVoteResponse -- ne troviamo altre, 
-come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono 
-i messaggi che possiamo ricevere dal client. Questi bisogni sono emersi durante la fase di 
-sviluppo e non prima, e senza alcun dubbio, la strutturazione di un modulo RPC ad hoc 
-ha contribuito a rendere queste modifiche poco invasive e impattanti. \\
+tipi di messaggio. 
+
+% Infatti nella fatispecie del nostro progetto, oltre alle rpc definite dal protocollo 
+% -- AppendEntryRpc, AppendResponse, RequestVoteRPC, RequestVoteResponse -- ne troviamo altre, 
+% come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono 
+% i messaggi che possiamo ricevere dal client. 
+% Questi bisogni sono emersi durante la fase di 
+% sviluppo e non prima, e senza alcun dubbio, 
+% La strutturazione di un modulo RPC ad hoc 
+% ha contribuito a rendere queste modifiche poco invasive e impattanti. \\
 La scalabilità è inoltre facilitata dall'utilizzo di uno script e di un rpc template 
 che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali errori di 
 scrittura di nuove rpc). 
 
 Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio 
 arriva, esso viene deserializzato in un tipo di messagio generico che contiene TIPO e PAYLOAD. 
-Il tipo ci indica quale Rpc è stata ricevuta e conseguentemente quale metodo di decodifica utilizzare. 
+Il tipo ci indica quale Rpc è stata ricevuta e conseguentemente quale metodo di decodifica 
+utilizzare. 
 Dopo averne verificato il tipo, viene estratto il payload e convertito. 
-Questo succede perché non è possibile convertire automaticamente un messaggio in formato byte nel suo 
+Questo succede perché non è possibile convertire automaticamente un messaggio in formato byte 
+nel suo 
 corrispondente protobuf perché ogni protobuf ha il suo metodo di decodifica. Seppure siamo 
 consapevole che questi rappresenta un debito tecnico (limite), in quanto ad ogni aggiunta di 
 una nuova rpc bisogna aggiungere un voce nel modulo di conversione, abbiamo trovato 
@@ -127,65 +133,6 @@ necessario stabilire un formato generale che potesse essere capito da tutti i no
 in seguito avrebbe proseguito estraendone il payload e convertendolo internamente.
 
 Di seguito, esponiamo le rpc utilizzate e come esse funzionano:
-\begin{itemize}
-  \item AppendEntryRpc: viene inviata dal leader in due occasioni: quando deve inviare il proprio segnale di vita ai 
-    nodi follower, ooppure quando ci sono delle entry nel log ancora da replicare. \\
-    Una volta che il follower riceve qeusto messaggio, esegue dapprima un controllo sul term del mittente: se esso è minore l'operazione
-    di replicazione fallisce e invia un appendResponse con esito negativo. Se supera il controllo, invece, il nodo 
-    procede cambiando il proprio ruolo a quello di follower e impostando il leaderIp con l'indirizzo del mittente. Questo 
-    è necessario principalmente per due motivi: solo il leader può inviare appendEntry, quindi il mittente è necessariamente il leader;
-    inoltre, esiste la possibilità che anche il ricevente sia leader, ma di un term minore (quindi un leader vecchio), che
-    quindi deve essere riportato allo stato di follower (in questo caso il leader vecchio può essere andato offline e 
-    nel frattempo una nuova elezione ha avuto luogo e quindi il term dei restanti nodi è aumentato). \\
-    A questo punto, il nodo effettua un controllo sulla lunghezza del vettore di entries ricevuto, stabilendo 
-    se il messaggio è un heartbit msg oppure un tentativo da parte del leader di replicare il proprio
-    log. Nel secondo caso, si procede con un controllo di consistenza, che può fallire nei seguenti casi:
-    \begin{enumerate}
-      \item Il follower ha meno voci rispetto al leader, senza considerare le nuove voci 
-        (di conseguenza il leader deve decrementare il nextIndex e matchIndex riferiti a questo nodo e ritentare l'invio).
-      \item Alla stessa posizione (index), il follower e il leader hanno termini diversi.
-    \end{enumerate} 
-    Se una di queste casistiche si verifica, il nodo risponde false, includendo l'indice della voce incoerente, altrimenti
-    risponde con true indicando il successo dell'operazione. \\
-    Infine, il nodo resetta il suo timeout delle elezioni.
-
-  \item AppendEntryResponse: viene inviata da ciascun nodo follower al leader, in risposta ad una AppendEntry. 
-    Il leader controlla se l'esito dell'appendEntry è positivo o negativo, nel primo caso procedere ad incrementare i parametri del nodo:
-    nextIndex e matchIndex. \\
-    Il secondo caso si divide in due: la riposta può essere negativa perché il term del leader è minore rispetto a quello
-    del mittente, in questo caso il leader aggiusta il proprio term e torna allo stato di follower; la risposta può
-    essere negativa per via dia qualche incosistenza con il log del noto mittente, in questo caso il leader 
-    aggiusta il parametro nextIndex corrispondente. In questo modo, alla prossima appendEntry, il leader invierà 
-    risolverà l'inconsistenza.
-
-  \item VoteRequest: inviato da qualsiasi nodo il cui election timer è scaduto e serve a richiedere il voto ad altri nodi. Quando 
-    un nodo lo riceve, effettua tre controlli:
-    \begin{enumerate}
-      \item Se il term del mittente è al meno tanto quanto il term del nodo. 
-      \item Se il nodo ricevente ha già votato per il mittente o se non ha votato affatto. 
-      \item Se l'indice e il relativo term dell'ultima entry del log del mittente sono maggiori o uguali a quelli 
-        del nodo ricevente.
-    \end{enumerate}
-    In caso positivo, il ricevente concede il suo voto al mittente, altrimenti no. 
-
-  \item VoteResponse: la risposta che i nodi inviano a seguito di una richiesta di voto. Il nodo ricevente,
-    a seconda dell'esito della richiesta, incrementa il numero di sostenitori oppure li decrementa; calcola
-    la maggioranza da raggiungere, e se il numero di sostenitori la supera, cambia il suo ruolo in quello 
-    di leader; in caso contrario, rimane follower e resetta i parametri relativi alle elezioni (numero di 
-    sostenitori e non, e il candidato per cui ha votato).  
-
-  \item UpdateNode: usata dal leader per conferire il diritto di voto ad un nodo follower. 
-
-  \item ClientRequest: rappresenta il messaggio che il leader riceve da un client. Il leader traduce questa Rpc in 
-    una entry, la aggiunge al proprio log e dopo che il cluster l'ha processata, ottiene il risultato che 
-    verrà inviato al client. Per ottenere il risultato, si fa utilizzo del channel della singola entry: ad ogni entry è 
-    un channel di "ritorno del risultato"; e la goroutine che si occupa delle rpc rimane in attesa di questo ritorno.
-
-  \item ClientReturnValue: rappresenta il messaggio che contiene il risultato di una clientRequest che il leader 
-    invia al client. 
-
-  \item NewConf 
-\end{itemize}
 
 \subsection{Raft per il consenso distribuito}
 \textit{Raft} è un algoritmo di consenso distribuito, ovvero un meccanismo che permette 
@@ -462,5 +409,68 @@ Per implementare il protocollo sono stati implementati i seguenti moduli, :
         che hanno committato una nuova entry: in questo modo il gestore delle configurazioni può procedere
         ad incrementare il commit globalmente. Tutto questo procedimento è infine effettuato solamente dal leader 
         per aggiornare il commit index.  
-      
+\end{itemize}
+
+Nella sua implementazione vengono anche definite delle Rpc usando il modulo precedentemtente 
+definito. Di seguito le definizioni:
+
+\begin{itemize}
+  \item AppendEntryRpc: viene inviata dal leader in due occasioni: quando deve inviare il proprio segnale di vita ai 
+    nodi follower, ooppure quando ci sono delle entry nel log ancora da replicare. \\
+    Una volta che il follower riceve qeusto messaggio, esegue dapprima un controllo sul term del mittente: se esso è minore l'operazione
+    di replicazione fallisce e invia un appendResponse con esito negativo. Se supera il controllo, invece, il nodo 
+    procede cambiando il proprio ruolo a quello di follower e impostando il leaderIp con l'indirizzo del mittente. Questo 
+    è necessario principalmente per due motivi: solo il leader può inviare appendEntry, quindi il mittente è necessariamente il leader;
+    inoltre, esiste la possibilità che anche il ricevente sia leader, ma di un term minore (quindi un leader vecchio), che
+    quindi deve essere riportato allo stato di follower (in questo caso il leader vecchio può essere andato offline e 
+    nel frattempo una nuova elezione ha avuto luogo e quindi il term dei restanti nodi è aumentato). \\
+    A questo punto, il nodo effettua un controllo sulla lunghezza del vettore di entries ricevuto, stabilendo 
+    se il messaggio è un heartbit msg oppure un tentativo da parte del leader di replicare il proprio
+    log. Nel secondo caso, si procede con un controllo di consistenza, che può fallire nei seguenti casi:
+    \begin{enumerate}
+      \item Il follower ha meno voci rispetto al leader, senza considerare le nuove voci 
+        (di conseguenza il leader deve decrementare il nextIndex e matchIndex riferiti a questo nodo e ritentare l'invio).
+      \item Alla stessa posizione (index), il follower e il leader hanno termini diversi.
+    \end{enumerate} 
+    Se una di queste casistiche si verifica, il nodo risponde false, includendo l'indice della voce incoerente, altrimenti
+    risponde con true indicando il successo dell'operazione. \\
+    Infine, il nodo resetta il suo timeout delle elezioni.
+
+  \item AppendEntryResponse: viene inviata da ciascun nodo follower al leader, in risposta ad una AppendEntry. 
+    Il leader controlla se l'esito dell'appendEntry è positivo o negativo, nel primo caso procedere ad incrementare i parametri del nodo:
+    nextIndex e matchIndex. \\
+    Il secondo caso si divide in due: la riposta può essere negativa perché il term del leader è minore rispetto a quello
+    del mittente, in questo caso il leader aggiusta il proprio term e torna allo stato di follower; la risposta può
+    essere negativa per via dia qualche incosistenza con il log del noto mittente, in questo caso il leader 
+    aggiusta il parametro nextIndex corrispondente. In questo modo, alla prossima appendEntry, il leader invierà 
+    risolverà l'inconsistenza.
+
+  \item VoteRequest: inviato da qualsiasi nodo il cui election timer è scaduto e serve a richiedere il voto ad altri nodi. Quando 
+    un nodo lo riceve, effettua tre controlli:
+    \begin{enumerate}
+      \item Se il term del mittente è al meno tanto quanto il term del nodo. 
+      \item Se il nodo ricevente ha già votato per il mittente o se non ha votato affatto. 
+      \item Se l'indice e il relativo term dell'ultima entry del log del mittente sono maggiori o uguali a quelli 
+        del nodo ricevente.
+    \end{enumerate}
+    In caso positivo, il ricevente concede il suo voto al mittente, altrimenti no. 
+
+  \item VoteResponse: la risposta che i nodi inviano a seguito di una richiesta di voto. Il nodo ricevente,
+    a seconda dell'esito della richiesta, incrementa il numero di sostenitori oppure li decrementa; calcola
+    la maggioranza da raggiungere, e se il numero di sostenitori la supera, cambia il suo ruolo in quello 
+    di leader; in caso contrario, rimane follower e resetta i parametri relativi alle elezioni (numero di 
+    sostenitori e non, e il candidato per cui ha votato).  
+
+  \item UpdateNode: usata dal leader per conferire il diritto di voto ad un nodo follower. 
+
+  \item ClientRequest: rappresenta il messaggio che il leader riceve da un client. Il leader traduce questa Rpc in 
+    una entry, la aggiunge al proprio log e dopo che il cluster l'ha processata, ottiene il risultato che 
+    verrà inviato al client. Per ottenere il risultato, si fa utilizzo del channel della singola entry: ad ogni entry è 
+    un channel di "ritorno del risultato"; e la goroutine che si occupa delle rpc rimane in attesa di questo ritorno.
+
+  \item ClientReturnValue: rappresenta il messaggio che contiene il risultato di una clientRequest che il leader 
+    invia al client. 
+
+  \item NewConf: e' un messaggio inviato dall'operatore per dichiarare l'iniziale configurazione 
+      del cluster
 \end{itemize}
