@@ -76,7 +76,7 @@ infatti a differenza delle vere e prioprie RPC, che sono sincrone e consentono d
 delle procedure sulle altre macchine, i nostri messaggi sono asincroni (il mittente non rimane 
 in attesa di una risposta) e provocano un comportamento di risposta nel nodo remoto più che un 
 chiamata ad una procedura. Il nostro intento e' stato semplicemente di mantenere la nomenclatura
-utilizzata nell'articolo di riferimento.
+utilizzata nell'articolo di riferimento \cite{1}.
 \subsubsection{Obbiettivi::\\}
 \begin{itemize}
     \item Fornire una comune interfaccia per tutte le RPC cosi' da poterle trattare tutte 
@@ -88,7 +88,7 @@ utilizzata nell'articolo di riferimento.
 \subsubsection{Soluzioni:\\}
 Per realizzare questo modulo abbiamo ci siamo appoggiati a un meccanismo comunemente utilizzato 
 per la serilizzazione degli Abstract Data Type (ADT): \textbf{Protobuf}.
-Di questo meccanismo esiste già una implementazione.
+Di questo meccanismo esiste già una implementazione \cite{5}.
 
 Procedendo in ordine con l'elenco sopra definito abbiamo definito una interfaccia comune
 a tutti i messaggi delle RPC definendo delle funzioni comuni ad ognuno di essi. In particolare:
