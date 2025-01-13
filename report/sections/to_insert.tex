@@ -31,3 +31,20 @@ per ciascuna di queste categorie e, infine, aspetta di ricevere messaggi da ques
 Per l'instaurazione delle connesioni, il nostro sistema fa uso di un modulo apposito, chiamato 
 \texttt{Node}, che rappresenta un singolo nodo e la sua connessione di riferimento, ed espone i 
 metodi per comunicare con esso (invio e ricezione) e gestire la connesione (chiusura e aggiunta).
+
+\subsubsection{Migliorie}
+\begin{itemize}
+    \item Ecosistema di test: Sviluppare una infrastruttura di test che permetta una validazione 
+        software accurata e mirata trammite test automatici. Non e' stato sviluppato a causa della
+        complessita' di sviluppare una architettura di test per una codice altamente asincrono e
+        parallelo come il nostro
+    \item Interfaccia funzionalita': Una interffaccia standardizzata per il plug and play di moduli
+        i quali determinino le funzionalita' che il cluster offre in quel momento. L'ideale sarebbe
+        nel permettere poi all'utente di utilizzare altri moduli per permettere al cluster di 
+        compiere diverse mansioni non solo quella di filesystem.
+    \item Eliminazione dei lock: in varie parti del codice sono presenti dei mutex per evitare 
+        race condition. Questi sistemi non offrono una grande protezione contro le race condition 
+        e risultano inoltre estremamente inefficenti. Eliminarli con l'idea di utilizzare 
+        costrutti \textbf{lock free}, esempio stdatomic.h di C\/C\+\+, o di interamente rimuovere
+        blocchi interamente sarebbe ottimale.
+\end{itemize}
