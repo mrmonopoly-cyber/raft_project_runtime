@@ -1,9 +1,20 @@
 
-\section{Preambolo}
-Il mondo di oggi è estremamente interconnesso e complesso. Per questa ragione, ogni applicativo pensato per il grande pubblico deve garantire l'affidabilità del servizio in ogni momento. Per risolvere questi problemi %TODO: prima non descrivi un problema, più una caratteristica che devono avere certi sistemi, cambierei la parola problema
-, vengono spesso utilizzati sistemi distribuiti in rete, detti anche \textit{cluster}, che permettono di garantire la scalabilità e l'affidabilità del servizio. Tuttavia, questi sistemi sono estremamente complessi e difficili 
-da installare. Basti pensare alla procedura di configurazione di un \textit{cluster} \textit{Kubernetes} o \textit{Ceph}, che è delicata e richiede molto tempo per essere completata, a meno che non si utilizzino strumenti esterni %TODO: tipo quali strumenti?
-per facilitare il lavoro, che non sempre sono affidabili. Tale complessità risiede, tra i tanti fattori, nell'architettura scelta per modellare il sistema, solitamente di tipo \textit{Orchestrator}. Questo modello offre numerosi 
-vantaggi, ma a un costo: i nodi che compongono il \textit{cluster} non sono omogenei. %TODO: cosa si intende per omogenei
-Questo dettaglio, per quanto sembri insignificante, è ciò che rende complessa la procedura di configurazione, aggiornamento e mantenimento del \textit{cluster}. In questa relazione descriveremo come abbiamo creato un 
-\textit{cluster} che garantisce le richieste di affidabilità necessarie, permettendo inoltre una veloce e semplice installazione/configurazione.
+\section{Abstract}
+The world today is highly interconnected and complex. For this reason, every application 
+designed for the general public must ensure reliable service at all times. To address 
+these challenges, networked distributed systems, also known as \textit{clusters}, are 
+often used. These systems enable scalability and reliability of services. However, they 
+are inherently complex and challenging to set up. Consider, for instance, the configuration 
+process of a \textit{Kubernetes} or \textit{Ceph} cluster, which is intricate and 
+time-consuming unless external tools are used to simplify the task—tools that are not always 
+trustworthy.  
+
+This complexity is due, among other factors, to the architecture chosen to model the system, 
+typically an \textit{Orchestrator}-based model. While this model offers numerous advantages, 
+it comes at a cost: the nodes within the cluster are not homogeneous.  
+
+This seemingly minor detail is, in fact, the root cause of the complexity in configuring, 
+updating, and maintaining the cluster.  
+
+In this report, we will describe how we created a cluster that meets the necessary reliability 
+requirements while also allowing for quick and straightforward installation and configuration.

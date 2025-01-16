@@ -1,476 +1,398 @@
 
 \section{PIB}
-\subsection{Elementi}
-\subsubsection{Nodi}
-Come gia' accennato i nodi del cluster sono dell \textbf{Virtual Machine(VM)} create trammite 
-\textbf{libvirt} usando un file XML (vm\_creation\/sources\/vm.xml) che ne determina le caratteristiche.
-Poiche' in libvirt un file XML detemina la struttura di una specifica VM abbiamo deciso di rendere
-tale elemento parametrico aggiungendo i seguenti parametri:
+\subsection{Components}
+\subsubsection{Nodes}
+As previously mentioned, the cluster nodes are Virtual Machines (VMs) created using \textit{libvirt} with an XML file
+(\texttt{vm\_creation/} \texttt{sources/vm.xml}) that defines their characteristics.
+In \textit{libvirt}, an XML file determines the structure of a specific VM. To make this element flexible, we added 
+the following parameters to the XML configuration:
 \begin{itemize}
-    \item RAFT\_NODE\_NAME: specifica il nome della VM che verra' creata
-    \item PATH\_DISK: specifica il disco virtuale che verra' fornito alla VM
+  \item \texttt{RAFT\_NODE\_NAME}: Specifies the name of the VM to be created.
+  \item \texttt{PATH\_DISK}: Specifies the virtual disk to be assigned to the VM.
+\end{itemize}
+Additionally, the path to the system image that must be used when booting the VM is specified as 
+\texttt{/var/lib/}\texttt{libvirt/images/}\\ \texttt{raft\_live\_install.iso}. This image was created and saved during the 
+environment configuration phase.
+
+\subsubsection{Node and network manager}
+We designed the network architecture of the cluster using two distinct subnets, each with specific 
+roles to ensure separation between public client-facing traffic and internal cluster communication:
+\begin{itemize}
+	\item \textbf{Public Subnet (192.168.2.0/24)}:
+    This subnet is configured with NAT, meaning nodes in the public network can access the external 
+    internet and communicate with external systems but cannot directly communicate with each other within the subnet.
+    The public network pool is reserved for nodes that need to interact with external services or 
+    clients. Within this range, IP addresses 1 and 255 are reserved for the hypervisor and broadcast 
+    messages, respectively, while the remaining IPs are dynamically assigned to virtual machines that require external access.
+
+  \item \textbf{Private Subnet (10.0.0.0/24)}:
+    This subnet is dedicated exclusively to intra-cluster communication. It is implemented using 
+    a virtual bridge, which allows all nodes in the subnet to directly communicate with each other. 
+    However, this network has no external internet access, ensuring its sole purpose is to facilitate 
+    communication among nodes for cluster-related tasks.
+    Similar to the public subnet, IP addresses 1 and 255 are reserved, while the remaining range 
+    is available for cluster nodes.
+\end{itemize}
+By separating the public and private subnets, we ensure that client requests and intra-cluster messages
+are routed correctly without interference. The public subnet handles client interactions, while the 
+private subnet is used for internal operations, such as coordination and state replication among nodes,
+as required by the Raft protocol.
+This separation enhances security, performance, maintainability, and scalability of the cluster.
+
+\subsubsection{Operating system}
+In our cluster, each virtual machine uses Arch Linux as the operating system. Upon boot, two key 
+services are automatically started on each node:
+\begin{itemize}
+  \item \textbf{\texttt{discovery.service}}:
+    This service facilitates the discovery of the IP addresses of other nodes within the 10.0.0.x/24 
+    subnet. It performs periodic network scans using nmap. Every 30 seconds, the discovery process 
+    retrieves and stores the public and private network interface IPs of other nodes. This continuous 
+    scanning ensures that each node remains "aware" of other nodes in the subnet, maintaining seamless communication.
+
+  \item \textbf{\texttt{raft\_daemon.service}}:
+    This service is responsible for running the code that implements the cluster's functionality and 
+    synchronization. Its main tasks include:
+    \begin{itemize}
+      \item Mounting and formatting the disk provided to the VM as \texttt{ext4}. This ensures a consistent
+        state at every boot, regardless of previous events.
+      \item Cloning the precompiled code version from the repository via git clone. This approach, 
+        combined with the branch structure previously described, allows for hot updates to nodes 
+        without requiring VM reconstruction.
+      \item Checking if \texttt{discovery.service} has detected at least one other node in the network. 
+        If no other node is found, the service waits until the condition is met. This ensures 
+        that the program only executes after at least one network scan has been completed.
+    \end{itemize}
+    The last task seems a limitation, but it's crucial to prevent a node from starting execution 
+    without considering the presence of other nodes in the network. However, this restriction is 
+    not impactful, as the Raft protocol requires a cluster to have at least five nodes to ensure
+    stability following failures (the minimum number for a PIB cluster). 
+    If only one node exists in the network, delaying its availability does not limit the protocol
+    or the cluster. Once at least two nodes are present, \texttt{raft\_daemon.service} executes the program 
+    fetched from the repository, making the node fully available to the cluster.
 \end{itemize}
 
-Viene inoltre precisata il percorso all'immagine di sistema che dovra' usata all'avvio della VM
-(\/var\/lib\/libvirt\/images\/raft\_live\_install.iso). Tale immagine e' stata creata e salvata durante la fase 
-di configurazione dell'ambiente.
 
+\subsection{RPC Module}
+The implementation of an RPC (Remote Procedure Call) system was a fundamental aspect of our project. 
+Given the importance of this module, we developed a custom solution tailored to our specific needs. 
+It is worth noting that the use of the acronym RPC here is somewhat improper: unlike traditional RPCs, 
+which are synchronous and allow procedures to be invoked on other machines, our messages are 
+asynchronous (the sender does not wait for a response). These messages trigger a response behavior 
+on the remote node rather than directly invoking a procedure. Our decision to use the term RPC 
+was simply to maintain consistency with the terminology in the reference article \cite{1}.
 
-% Sezione vuota per scaletta
-
-\subsubsection{Gestore dei nodi e della rete}
-% Sezione vuota per scaletta
-Abbiamo progettato l'architettura di rete del \textit{cluster} con due \textit{subnet} distinte, ciascuna con ruoli specifici per garantire la separazione tra il traffico pubblico rivolto ai \textit{client} e la comunicazione interna del \textit{cluster}:
+\subsubsection{Goals:\\}
+The primary objectives of our RPC module were as follows:
 \begin{itemize}
-  \item \textit{Subnet} Pubblica (192.168.2.0\/24): Questa \textit{subnet} è basata su \textit{NAT}, il che significa che i nodi nella rete pubblica possono accedere a \textit{internet} esterno e comunicare con sistemi esterni, 
-    ma non possono comunicare direttamente tra loro all'interno della \textit{subnet}. Il \textit{pool} di rete pubblica è riservato ai nodi che devono interagire con servizi o client esterni. In questo intervallo, 
-    gli indirizzi 1 e 255 sono riservati rispettivamente all'\textit{hypervisor} e ai messaggi di \textit{broadcast}, mentre i restanti indirizzi IP sono assegnati dinamicamente alle macchine virtuali che necessitano di 
-    accesso esterno.
-  \item \textit{Subnet} Privata (10.0.0.0\/24): Questa \textit{subnet} è utilizzata esclusivamente per la comunicazione \textit{intra-cluster}. L'abbiamo creata utilizzando un \textit{bridge} virtuale, che consente a tutti i 
-    nodi della \textit{subnet} di comunicare direttamente tra loro. Tuttavia, questa rete non ha accesso a \textit{internet} esterno, assicurando che il suo unico scopo sia facilitare la comunicazione tra i nodi per compiti 
-    correlati al \textit{cluster}. Come nella \textit{subnet} pubblica, gli indirizzi 1 e 255 sono riservati, e il resto dell'intervallo è disponibile per i nodi del \textit{cluster}.
+	\item Provide a common interface for all RPCs to enable uniform handling without requiring individual management for each message type.
+	\item Implement a standardized system for data serialization and deserialization.
+	\item Introduce a system that allows adding, modifying, or removing one or more RPCs without significantly impacting the code logic.
 \end{itemize}
 
-Separando le \textit{subnet} pubbliche e private, garantiamo che le richieste dei \textit{client} e i messaggi \textit{intra-cluster} siano instradati correttamente senza interferenze. La \textit{subnet} pubblica gestisce 
-le interazioni con i \textit{client}, mentre la \textit{subnet} privata è dedicata alle operazioni interne, come il coordinamento e la replica dello stato tra i nodi, come richiesto dal protocollo \textit{Raft}. Questa separazione 
-non solo migliora la sicurezza e le prestazioni, ma facilita anche la manutenibilità e la scalabilità del \textit{cluster}.
+\subsubsection{Solutions:\\}
+To build this module, we relied on a widely used mechanism for serializing Abstract Data Types 
+(ADTs): \textit{Protobuf}. An existing implementation of this mechanism was utilized \cite{5}.
 
-\subsubsection{Sistema operativo}
-% Sezione vuota per scaletta
-Nel nostro \textit{cluster}, ogni macchina virtuale usa \textit{Arch Linux} come 
-sistema operativo. 
-All'avvio, due servizi chiave vengono avviati automaticamente su ogni nodo.
+The following steps outline our approach to achieving the defined goals:
 \begin{itemize}
-    \item \textit{\textbf{discovery.service}}: Questo processo facilita la scoperta degli indirizzi IP degli altri nodi all'interno della \textit{subnet} 10.0.0.x/24. Lo fa eseguendo scansioni di rete periodiche utilizzando 
-        \textit{nmap}. Ogni 30 secondi, il processo di \textit{discovery} recupera e memorizza gli indirizzi IP delle interfacce di rete pubbliche e private degli altri nodi. Questa ricerca continua garantisce che ogni nodo 
-        rimanga "consapevole" degli altri nodi all'interno della \textit{subnet}, mantenendo così una comunicazione continua tra loro.
-  \item \textit{\textbf{raft\_daemon.service}}: 
-        Questo servizio e' responsabile dell'esecuzione del codice che implementa le funzionalita' 
-        e la sincronizzazione del cluster. Prima di tutto monta il disco fornito alla VM e lo formatta
-        in ext4, questo viene fatto per garantire uno stato consistente ad ogni avvio 
-        indipendentemente da cosa possa essere o meno successo prima.
-        Viene quindi scaricato trammite \textbf{git clone} la versione gia' compilata del codice.
-        Usando questo sitema, in collaborazione con la conformazione dei branch precedentemente
-        descritta, permette un aggiornamento dei nodi a caldo senza la necessita' di ricostruire
-        le VM da zero. Fatto cio' si verifica se \textbf{discovery.service} ha scoperto un altro 
-        nodo oltre a noi stessi, in caso contrario si attende fino alla soddisfazione della condizione.
-        La ragione di questa limitazione e' di garantire l'esecuzione del programma solo dopo 
-        che e' stata completata almeno una ricerca di altri nodi nella rete.
-        Se non venisse garantito cio' potrebbe accadere che un nodo comincia la sua esecuzione senza
-        tener conto di chi altro e' presente nella rete.
-        Tale limitazione pero' e' solamente apparente in quanto, da protocollo \textbf{RAFT}, 
-        un cluster non puo' ritenersi stabile in seguito ai failure a meno che non sia composto da 
-        almeno cinque nodi (numero minimo di nodi di un cluster PIB). Se nella rete
-        e' presente un solo nodo prevenire la disponibilita' di tale nodo non crea alcun limite
-        al protocollo o al cluster stesso. Nel momento in cui nella rete sono presenti almeno due
-        nodi \textbf{raft\_daemon.service} eseguira' il programma scaricato dalla repository prima
-        citata rendendo quindi disponibile a tutti gli effetti il nodo per il cluster.
+	\item \textbf{Common interface for RPC messages}:
+    We created a unified interface that applies to all RPC messages, defining a set of 
+    core functions for each message:
+    	\begin{itemize}
+        	\item ToString: Returns the state of the message and its values in string format.
+        	\item Execute: Executes the behavior defined by the RPC. To achieve this, the 
+            module leverages cluster metadata for node information, cluster configurations 
+            (e.g., the number of nodes), and sender details.
+        	\item Encode: Serializes the message into bytes.
+        	\item Decode: Deserializes a byte array into a message, populating the message with the extracted data.
+	    \end{itemize}
+    	Each RPC message serves as a wrapper around its corresponding Protobuf message.
+
+    	\item \textbf{Scalability and modularity}:
+    The modular design of the system proved highly effective in meeting our objectives. 
+    During development, we encountered the need to add new message types beyond those 
+    defined by the Raft protocol (e.g., AppendEntryRpc, AppendResponse, RequestVoteRpc, 
+    RequestVoteResponse). Examples include RPCs used to notify nodes with voting rights 
+    or to handle messages received from the client.
+    These requirements emerged during development rather than during initial planning, 
+    and the structured design of the custom RPC module ensured that such additions 
+    were minimally invasive and low-impact.
+
+    	\item \textbf{Automated generation of new RPCs}:
+    Scalability was further enhanced through the use of a script and an RPC template, 
+    which allowed for the generation of new RPCs. This approach also helped prevent 
+    potential errors when creating new message types.
+
+    	\item \textbf{External conversion module}:
+    When a message is received, it is first deserialized into a generic message type 
+    containing a TYPE and a PAYLOAD.
+    The TYPE indicates which RPC was received and determines the decoding method to apply.
+    Once the type is verified, the payload is extracted and converted into the appropriate internal format.
+
+    This design was necessary because it is not possible to automatically convert a raw 
+    byte message directly into its corresponding Protobuf message. Each Protobuf message 
+    has its own decoding method.
+
+    While we acknowledge this as a technical debt, since adding a new RPC requires updating 
+    the conversion module, we deemed it essential to establish a general format understood 
+    by all nodes. Once the generic message is received, each node proceeds to extract and 
+    internally process the payload.
 \end{itemize}
 
+\subsection{Raft for distributed consensus}
+Raft is a distributed consensus algorithm designed to enable a group of computers (nodes) 
+to agree on a shared state, even in the presence of faults or network latency. In essence, 
+Raft ensures that all nodes maintain an identical and up-to-date copy of the data, thereby 
+guaranteeing the consistency and reliability of a distributed system.
 
-\subsection{RPC module}
-Nell'implementare il nostro codice l'utilizzo di un sistema di RPC (Remote Procedure Call) e' stato
-fondamentale. Vista l'importanza di un tale modulo abbiamo pensato di crearne uno ad hoc per le 
-nostre necessita'. Va specificato che l'utilizzo dell'acronimo RPC, in questo caso, è improprio: 
-infatti a differenza delle vere e prioprie RPC, che sono sincrone e consentono di chiamare 
-delle procedure sulle altre macchine, i nostri messaggi sono asincroni (il mittente non rimane 
-in attesa di una risposta) e provocano un comportamento di risposta nel nodo remoto più che un 
-chiamata ad una procedura. Il nostro intento e' stato semplicemente di mantenere la nomenclatura
-utilizzata nell'articolo di riferimento \cite{1}.
-\subsubsection{Obbiettivi::\\}
+\subsubsection{Motivations}
+We chose this protocol to manage consensus among the nodes for the following reasons:
 \begin{itemize}
-    \item Fornire una comune interfaccia per tutte le RPC cosi' da poterle trattare tutte 
-        allo stesso modo senza dover gestire manualmente ognuna di loro.
-    \item Avere un sistema comune per la serializzazione e desirealizzazione dei dati
-    \item Introdurre un sistema che permettesse di inserire, modificare, eliminare una o piu' RPC
-        senza impattare gravemente nella logica del codice.
-\end{itemize}
-\subsubsection{Soluzioni:\\}
-Per realizzare questo modulo abbiamo ci siamo appoggiati a un meccanismo comunemente utilizzato 
-per la serilizzazione degli Abstract Data Type (ADT): \textbf{Protobuf}.
-Di questo meccanismo esiste già una implementazione \cite{5}.
-
-Procedendo in ordine con l'elenco sopra definito abbiamo definito una interfaccia comune
-a tutti i messaggi delle RPC definendo delle funzioni comuni ad ognuno di essi. In particolare:
-\begin{itemize}
-  \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
-  \item Execute: Esegue il comportamento previsto dall'RPC, e a tal fine il modulo fa uso 
-    del clusterMetadata per le informazioni sul nodo, i metadati 
-    del cluster (serve in particolare per conoscere 
-    il numero di nodi nelle configurazioni) e informazioni sul mittente.
-  \item Encode: Serializza il messaggio in byte
-  \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio 
-     con i dati estratti nel processo
-\end{itemize}
-Inoltre, ogni messaggio è un wrapper del corrispondente messaggio protobuf. \\
-Grazie alla progettazione di un sistema modulare e scalabile, gli obiettivi sono stati raggiunti 
-appieno, infatti nel corso dello sviluppo ci siamo imbattuti nella necessità di aggiungere nuovi 
-tipi di messaggio. 
-
-% Infatti nella fatispecie del nostro progetto, oltre alle rpc definite dal protocollo 
-% -- AppendEntryRpc, AppendResponse, RequestVoteRPC, RequestVoteResponse -- ne troviamo altre, 
-% come l'rpc utilizzato per notificare ai noti che hanno diritto di voto e quelle che definiscono 
-% i messaggi che possiamo ricevere dal client. 
-% Questi bisogni sono emersi durante la fase di 
-% sviluppo e non prima, e senza alcun dubbio, 
-% La strutturazione di un modulo RPC ad hoc 
-% ha contribuito a rendere queste modifiche poco invasive e impattanti. \\
-La scalabilità è inoltre facilitata dall'utilizzo di uno script e di un rpc template 
-che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali errori di 
-scrittura di nuove rpc). 
-
-Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio 
-arriva, esso viene deserializzato in un tipo di messagio generico che contiene TIPO e PAYLOAD. 
-Il tipo ci indica quale Rpc è stata ricevuta e conseguentemente quale metodo di decodifica 
-utilizzare. 
-Dopo averne verificato il tipo, viene estratto il payload e convertito. 
-Questo succede perché non è possibile convertire automaticamente un messaggio in formato byte 
-nel suo 
-corrispondente protobuf perché ogni protobuf ha il suo metodo di decodifica. Seppure siamo 
-consapevole che questi rappresenta un debito tecnico (limite), in quanto ad ogni aggiunta di 
-una nuova rpc bisogna aggiungere un voce nel modulo di conversione, abbiamo trovato 
-necessario stabilire un formato generale che potesse essere capito da tutti i nodi i quali 
-in seguito avrebbe proseguito estraendone il payload e convertendolo internamente.
-
-Di seguito, esponiamo le rpc utilizzate e come esse funzionano:
-
-\subsection{Raft per il consenso distribuito}
-\textit{Raft} è un algoritmo di consenso distribuito, ovvero un meccanismo che permette 
-a un gruppo di computer (nodi) di raggiungere un accordo su un dato stato, 
-anche in presenza di guasti o latenze di rete. In pratica, 
-\textit{Raft} assicura che tutti i nodi abbiano una copia identica e 
-aggiornata dei dati, garantendo così la coerenza e l'affidabilità di un sistema distribuito.
-
-\subsubsection{Motivazioni}
-% Sezione vuota per scaletta
-Abbiamo scelto di usare questo protocollo per la gestione del consenso tra i nodi per
-le seguenti ragioni:
-\begin{itemize}
-    \item \textbf{Omogeneita' dei nodi}: 
-        come gia' detto nei nostri Obbiettivi il cluster deve avere tutti i nodi uguali, 
-        l'utilizzo di RAFT permette di ottenere il risulato richiesto molto semplicemente poiche'
-        il protocollo stesso lo prevede.
-    \item \textbf{Alta tolleranza ai guasti}: 
-        Il cluster, come gia' accennato deve essere privo di \textbf{Single Point Of Failure} e
-        tale protocollo, per definizione dello stesso, ne risulta privo. 
-        Cosi' facendo garatisce anche un alto livello di affidabilita' da noi ricercato per il 
-        cluster.
-    \item \textbf{Configurazione dei nodi dinamica}: 
-        Il protocollo permette anche di cambiare comfigurazione del cluster senza richiedere
-        alcun riavvio o intervento manuale. Per quanto quest'ultima
-        parte non sia necessaria per l'applicazione del protocollo, ci permette di garantire
-        la scalabilita' pemettendoci di aumentare o diminuire il numero di 
-        nodi a nostro piacimento.
+	\item \textbf{Homogeneity of nodes}:
+    As outlined in our objectives, the cluster must consist of identical nodes. Raft 
+    facilitates this requirement seamlessly, as the protocol inherently assumes and 
+    enforces uniformity among nodes.
+	\item \textbf{High fault tolerance}:
+    The cluster is designed to avoid any single point of failure. Raft, by its 
+    very definition, is free of such vulnerabilities, making it a highly reliable choice 
+    for our cluster. This feature aligns with our goal of achieving a fault-tolerant and 
+    dependable distributed system.
+	\item  \textbf{Dynamic node configuration}:
+    Raft supports dynamic cluster reconfiguration without requiring restarts or manual 
+    intervention. While this capability is not strictly essential for protocol application, 
+    it significantly enhances scalability, allowing us to flexibly increase or 
+    decrease the number of nodes in the cluster as needed.
 \end{itemize}
 
-%\subsubsection{Applicazione}
-% Sezione vuota per scaletta
-%L'applicazione del protocollo nel cluster risiede all'interno del codice da noi sviluppato
-%eseguito da ogni nodo. E' intrinsicamente legato al funzionamento dell'intero ecosistema e, per 
-%questa ragione, non e' possibile confinarlo ad unico modulo. 
-%Possiamo tuttavia spiegare come e' stato strutturato, a livello di progettazione, all'interno
-%del nostro codice e spiegarne il motivo.
-%Abbiamo deciso di dividere l'implementazione del protocollo in tre macroaree:
-%\begin{itemize}
-%    \item RPC: le chiamate remote eseguite tra un nodo e l'altro
-%    \item gestore dei log: questo componente si occupa di tutto cio' che riguarda il salvataggio 
-%        dei log del protocollo
-%    \item gestore della configurazione: tale modulo ha il compito di controllare quali siano 
-%        le attuali configurazioni attive e agire opportunamente in base alle situazioni.
-%\end{itemize}
-%Tralasciando le RPC che sono uno strumento di servizio, i restanti due blocchi non hanno la stessa
-%importanza. Inizialmente abbiamo provato a mantenere una sola instanza di log per ogni
-%VM. Purtroppo questo approccio si e' rivelato alquanto fallimentare non permettendo
-%l'implementazione del cambio di configurazione poiche' ognonuna di esse deve 
-%poter avere un log privato.
-%Abbiamo quindi deciso di avere un modulo delle configurazioni il quale, al suo interno, contenesse
-%il gestore dei log su cui avere controllo.
-%Successivamente vengono poi instanziate le diverse configurazioni attive in un suddetto momento
-%con accesso, limitato, al log centralizzato e un commit index privato. 
-%Cosi' facendo, per aggiornare la disposizione dei nodi, e' sufficente instanziare una
-%nuova configurazione, aspettare la migrazione dei nodi per poi eliminare quella vecchia in favore 
-%della nuova. Col precedente approccio non sarebbe stato possibile poiche' la migrazione veniva 
-%considerata, erroneamente, come una vera e propria disposizione. 
-%Per quanto concerne il committing di un log e' sufficente chiedere alle singole configurazioni
-%se tale log e' gia' stato processato per poi avere il gestore delle configurazioni che certifica
-%il fatto segnandolo nel log centralizzto della macchina virtuale.
-
-
-\subsubsection{Limiti}
-La struttura sopra descritta permette permette di implementare tutte le nostre necessita' 
-mantenendo un discreto dissociamento tra le varie componenti ma presenta comunque dei limiti
-per nulla irrilevanti:
+\subsubsection{Limitations}
+The structure described above allows us to implement all our needs while maintaining a 
+reasonable level of decoupling between components. However, it presents some significant limitations:
 \begin{itemize}
-    \item \textbf{Complessita'}: il sistema descritto risulta molto complesso nell'implementazione 
-        e nella comprensione. Per quanto counque permetta un veloce aggiornamento non e' 
-        immediato comprenderne il funzionamento per effettuare delle modifiche.
-    \item \textbf{Performance}: uno dei principali problemi della nostra applicazione di RAFT 
-        e' che, come verra' spiegato meglio nelle prossime sezioni, non risulta molto efficente
-        a livello di risorse. 
-    \item \textbf{Compressione dei log}: Nonostante non sia necessaria, la compressione dei log
-        e' alquanto utile ma il nostro utilizzo del protocollo non e' pensato per implementare
-        tale funzionalita'. Questo comporta che se fosse necessario implementarla
-        non ci sono garanzie che l'attuale struttura sia predisposta.
+    \item \textbf{Complexity}: The described system is highly complex in both implementation 
+      and comprehension. While it allows for rapid updates, understanding its workings 
+      for making modifications is not straightforward.
+    \item \textbf{Performance}: One of the primary issues with our Raft application is that, 
+      as will be explained in later sections, it is not resource-efficient.
+    \item \textbf{Log Compression}: Although not strictly necessary, log compression is 
+      highly useful. However, our use of the protocol does not account for this functionality. 
+      This means that if compression needs to be implemented in the future, there is no 
+      guarantee that the current structure will support it.
 \end{itemize}
 
-\subsubsection{Implementazione:\\}
-Cio' che verra' citato
-fa riferimento solamente alla parte di Raft, il resto verra' descritto nella sezione successiva.
-Va fatto notare che in tutto il codice non e' mai stato implementato alcuna forma di 
-\textbf{SpinLock} o \textbf{BusyWait}, qualora si fosse presentata la necessita' e' stato
-creato un loop che veniva sospeso trammite la lettura bloccante di un messaggio su un channel.
-Per implementare il protocollo sono stati implementati i seguenti moduli, :
+\subsubsection{Implementation:\\}
+The following discussion pertains exclusively to the Raft component. Other aspects will be 
+described in subsequent sections.
+
+It should be noted that no form of \textbf{SpinLock} or \textbf{BusyWait} was implemented 
+in the code. Whenever the need arose, a loop was created that was suspended through the 
+blocking read of a message on a channel.
+
+The Raft protocol implementation comprises the following modules:
 \begin{itemize}
-    \item \textbf{raft\_log}: si occupa del salvataggio delle LogEntry e del commitIndex.
-    Definisce il sistema di log di Raft, dove per log intendiamo l'insieme delle entries 
-    che rappresentando le operazioni effettuate sul cluster. La prima componente chiave è 
-    LogInstance, che 
-    rappresenta una singola instanza di una voce nel log di Raft ed è composta dalla entry vera 
-    e propria e da un channel che rappresenta il valore di ritorno (il risultato) associato a 
-    quell'operazione. L'aggiunta di un 
-    di questo channel si è rilevata necessaria per non bloccare il sistema durante l'elaborazione 
-    di un risultato alla richiesta; infatti nel momento in cui questo risultato è pronto, esso 
-    viene inviato nel channel e che inoltrato al nodo corrispondente.
-    Il sistem dei log è poi formato dal \textbf{LogEntrySlave} e il \textbf{LogEntryMaster}. 
-    Entrambi condividono 
-    lo stesso log, ma il primo ha permessi di sola lettura, mentre il secondo ha anche permessi 
-    di scrittura; 
-    Detto cio' qualora si volesse aggiungere una LogEntry si procede chiamando la funzione
-    di \textbf{AppendEntry} che controllera' se la entry non e' gia' presente nel logo, in 
-    caso affermativo aggiungera' in coda l'elemento. L'aggiunta di una entry nel log non ha alcuna
-    implicazione sul \textbf{CommitIndex} il quale rimane invariato. Durante 
-    tutta la fase di inserimento delle entry viene usato un mutex per bloccare data races
-    nell'inserimento di piu' entry allo stesso momento.
-    Per incrementare il commmit index esiste una funzione apposita funziona 
-    (\textbf{IncreaseCommitIndex}).
-    Entrambi queste operazioni sono riservate al \textbf{LogEntryMaster}.
-    Lo scopo del \textbf{LogEntrySlave} sara' chiara quando verra' spiegato il 
-    cambio di configurazione.
+  \item \textbf{\texttt{raft\_log}}:
+    Handles the storage of \texttt{LogEntry} objects and the \texttt{commitIndex}.
+    This module defines the Raft logging system, where the "log" represents the 
+    collection of entries recording the operations executed in the cluster. The key 
+    component is the \texttt{LogInstance}, which represents a single log entry. It consists 
+    of the actual entry and a channel used to return the result of the associated 
+    operation. Adding this channel was necessary to avoid blocking the system while 
+    processing a request's result. Once the result is ready, it is sent through the 
+    channel to the corresponding node.
 
-    \item \textbf{nodeIndexPool}: 
-        salva gli indirizzi dei nodi attualmente attivi nella rete e anche l'ultimo logEntry
-        che hanno ricevuto. Questo modulo e' utilizzato da un nodo solo quando e' il leader
-        poiche' gli serve per capire quale deve essere il contenuto delle AppendEntry per ogni nodo.
-    \item \textbf{ClusterMetadata}: contiene i metadati del nodo corrente:
-        \begin{itemize}
-            \item leader ip
-            \item ruolo del nodo corrente
-            \item diritto di voto del nodo corrente
-            \item ip del nodo corrente
-            \item term del nodo corrente
-            \item durata del timer degli hearthbit 
-            \item durata del timer delle elezioni
-            \item ultimo voto
-        \end{itemize}
-        Definisce i metadati relativi al cluster e al nodo stesso, come il proprio indirizzo IP e quello del leader (sia publici che privati), il term per tracciare la validità della leadership, il ruolo 
-        che ricopre, le informazioni sui timer (election e heartbeat) e i dettagli 
-        sull'elezioni come il quorum, il nodo per cui ha votato e se ha il diritto di voto o meno, 
+    The logging system also includes the \textbf{\texttt{LogEntrySlave}} and \textbf{\texttt{LogEntryMaster}}. Both share
+    the same log, but the former has read-only permissions, while the latter has 
+    both read and write permissions.
 
-    \item \textbf{ConfPool}: 
-        gestisce le configurazioni del sistema. Tiene traccia della configurazione principale, 
-        che rappresenta lo stato attuale del sistema, e di una o più configurazioni temporanee 
-        che potrebbero essere in fase di valutazione o preparazione per diventare la nuova 
-        configurazione principale. 
+    When adding a new log entry, the \textbf{\texttt{AppendEntry}} function checks whether the entry
+    already exists in the log. If not, it appends the entry to the log. Adding a 
+    log entry does not affect the \textbf{\texttt{commitIndex}}, which remains unchanged. During 
+    the entire insertion process, a mutex is used to prevent data races caused 
+    by concurrent entry insertions.
+    
+    The \texttt{\textbf{IncreaseCommitIndex}} function is used to increment the commit index, and 
+    both operations are restricted to the \textbf{\texttt{LogEntryMaster}}. The purpose of \textbf{\texttt{LogEntrySlave}}
+    will become clearer when discussing configuration changes.
 
-        Tale modulo e' l'unico elemento ad avere accesso di scrittura su \textbf{raft\_log},
-        lasciando che le instanze delle configurazioni abbiamo permessi di sola lettura.
+  \item \textbf{\texttt{nodeIndexPool}}: This module stores the addresses of active nodes in the network 
+    and tracks the last \texttt{LogEntry} they received. It is used only by the leader to determine 
+    the content of \texttt{AppendEntry} messages for each node.
 
-        La ragione di cio' e' presto detta: 
-        Durante una fase di transizione (\textbf{joint configuration}) tra da una configurazione 
-        ad un'altra nessuna delle due
-        deve essere in grado di prendere decisioni unilaterali sullo stato del cluster autonomamente
+  \item \textbf{\texttt{ClusterMetadata}}: This module describes both the cluster and the node itself, 
+    such as the node's IP address, the leader's IP (both public and private), the term used
+    to track leadership validity, the node's role, timer information (election and heartbeat),
+    and details about the last election, including quorum, the node for which it voted, 
+    and its voting rights.
 
-        Ergo qualora dovesse essere necessario aggiungere una nuova entry ConfPool aggiungera'
-        al log la nuova entry e notifichera' le configurazioni attive che c'e' una nuova entry
-        da committare.
+  \item \textbf{\texttt{ConfPool}}: This module manages system configurations. It tracks the main 
+    configuration, which represents the current system state, as well as one or more temporary 
+    configurations that might be under evaluation or preparation to become the new main configuration.
+  
+    This module is the only component with write access to \textbf{\texttt{raft\_log}}, while configuration 
+    instances are granted read-only permissions.
+  
+    The reason for this is straightforward: during a transition phase (\textbf{joint configuration}) 
+    from one configuration to another, neither configuration should be allowed to make 
+    unilateral decisions about the cluster's state independently. Therefore, if a new \texttt{ConfPool}
+    entry needs to be added, the module will append the new 
+    entry to the log and notify the active configurations that there is a new entry ready to be committed.
 
-        Dopodiche' aspettera' che entrambe le configurazioni siano pronte a committare la entry
-        e solo a quel punto verra' realmente incrementato il commitIndex del log. Dato che il commit
-        delle entry avviene sempre in ordine di arrivo non e' possibile che una entry venga 
-        committata prima di una arrivata prima rispettando l'ordine di arrivo e la consistenza dei
-        log tra i nodi del cluster.
-        Questa parte e' comune sia per il leader che per i follower, cio' che gli differenzia 
-        e' come le singole instanze delle configurazione dichiarano che sono pronti a committare
-        una entry nel log in base se il nodo e un Follower o un Leader.
+    Afterward, it will wait for both configurations to be ready to commit the entry. Only
+    then will the \texttt{commitIndex} of the log be incremented. Since entries are always committed
+    in the order they are received, it is impossible for an entry to be committed before an
+    earlier one, ensuring both arrival order and log consistency across the cluster nodes.
 
-        In particolare:
-        \begin{itemize}
-            \item Follower: Dichiara la entry committata in automantico non appena ricevuta
-                e notifica la ConfPool che tale si puo' committare la prossima entry.
-            \item Leader: invia una AppendEntry a tutti i nodi nella configurazione.
-                In seguito, quando la maggioranza dei Follower appartente a quella configurazione
-                avra' notificato il leader che hanno committato la entry, notifichera' la ConfPool
-                che si puo' procedere con il commit.
-        \end{itemize}
-        Nel caso ci siano due configurazioni attive nello stesso momento, la procedura sopra
-        citata viene applicata per ambedue le configurazioni e il commit avviene solo quando
-        tutte e due hanno notitificato alla ConfPool che si puo' procedere con il commit.
+    This process is the same for both the leader and followers. The distinction lies in how
+    each instance of the configuration declares readiness to commit an entry, depending on
+    whether the node is a Follower or a Leader.
+    
+    Specifically:
+    \begin{itemize}
+      \item Follower: Automatically marks the entry as committed as soon as it is received
+        and notifies the ConfPool that the next entry can be committed.
+      \item Leader: Sends an AppendEntry to all nodes in the configuration. Once a majority
+        of the followers in that configuration notify the leader that they have committed 
+        the entry, the leader will notify the \texttt{ConfPool} that the commit can proceed.
+    \end{itemize}
 
-        La notifica viene effettuata trammite channel a una goroutine della ConfPool che rimane
-        in attesa sui channel delle configurazioni prima di incrementare il commitIndex.
+    If two configurations are active simultaneously, the procedure described above is
+    applied to both configurations. The commit only occurs when both configurations notify
+    the \texttt{ConfPool} that it can proceed.
+    Notifications are sent via channels to a \texttt{ConfPool} goroutine, which waits on configuration
+    channels before incrementing the commitIndex.
 
-        Va fatto notare che quando viene si aggiunge delle LogEntry nel log della ConfPool
-        la procedura e' bloccante solo per la parte di aggiunta delle entry nel log, in seguito
-        si limita a notificare, trammite un channel, una goroutine interna che si occupa, per 
-        ognuna delle entry eggiunte, di continuare con la procedura di commit.
-        Cosi' facendo l'aggiunta di una o piu' logEntry non richiede l'attesa del completamento
-        della procedura di commit prima di poter continuare con altre operazioni.
-        Il risultato e' che la procedura di commit e' completamente asincrona rispetto all'
-        inserimento.
+    It should be noted that when \texttt{LogEntry} entries are added to the \texttt{ConfPool} log, the process
+    blocks only for the part where the entries are added to the log. Subsequently, it 
+    simply notifies, via a channel, an internal goroutine that handles the commit procedure 
+    for each added entry.
+    This way, adding one or more \texttt{LogEntry} entries does not require waiting for the commit 
+    procedure to complete before continuing with other operations. As a result, the commit
+    procedure is entirely asynchronous with respect to the entry insertion.
+    Once an entry is ready to be committed, a message is sent on another channel to wake up 
+    a function responsible for applying the entry in question.
 
-        Dopo che un'antry risulta essere pronta per essere committata viene inviato un messagio
-        in un altro channel che risveglia una funziona che si occupa di applicare l'entry in 
-        questione.
+    Currently, the described system cannot commit multiple log entries simultaneously; 
+    it can only add multiple entries simultaneously. Additionally, using a mutex within 
+    the \texttt{AppendEntry} procedure to coordinate insertions is not sufficient.
 
-        Il sistema attualmente descritto non e' in grado di committare contemporaneamente 
-        piu' log entry nello stesso momento, puo' solo aggiungerne multiple nello stesso momento.
-        Va inoltre segnalato che l'utilizzo di un mutex all'interno della procedura 
-        di AppendEntry per coordinare gli inserimenti non e' sufficente. Dato infatti che 
-        la gestione di ogni RPC ricevuta e' gestita asincronamente da una goroutine
-        e' possibile che due o piu' di esse rimangano in attesa sul mutex creando cosi una race
-        condition su quale delle due inserisce le sue entry per prime. Per sistemare questo 
-        problema servirebbe un sistema di avoidance synchronization
-        per mantenere l'ordine di arrivo delle goroutine.
-        Purtroppo cio' non e' stato fatto in quanto e' vista da noi come una ottimizzazione da
-        implementare in secondo luogo avendo gia' una versiona stabile e funzionante del cluster.
+    Since the handling of each received RPC is managed asynchronously by a goroutine, two 
+    or more goroutines might end up waiting on the mutex, creating a race condition over 
+    which one inserts its entries first.
+    To solve this issue, a synchronization avoidance mechanism is needed to maintain the 
+    arrival order of the goroutines. Unfortunately, this has not been implemented yet, 
+    as it is considered an optimization to be addressed later, given that the cluster 
+    already has a stable and functional version.
 
-        Nella ConfPool c'e' ancora una goroutine che normalmente e' sospesa da un channel che ne
-        interrompe l'esecuzione: \textbf{checkNodeToUpdate}.
-        Tale funzione ha lo scopo gestire uno dei casi limiti citati dal protocollo: l'aggiungta
-        di un nuovo nodo quando il cluster e' gia' avviato e che quindi deve essere portato a 
-        uno stato consitente.
+    Within the \texttt{ConfPool}, there is another goroutine that is typically suspended, waiting
+    on a channel: \textbf{checkNodeToUpdate}. This function is responsible for handling one of 
+    the edge cases mentioned in the protocol: the addition of a new node to the cluster 
+    after it has already started, ensuring the new node reaches a consistent state.
+    To achieve this, whenever an \texttt{AppendEntry} needs to be sent to a node identified by 
+    its IP, the system verifies if the node is present on the network. If the node 
+    is not present, its IP is stored in a vector. When and if the node joins the network, 
+    its IP is sent to a channel that wakes up the function mentioned above. This 
+    function verifies whether the newly added node needs to be updated and, if so, 
+    calls an RPC to revoke its voting rights, as per the protocol. Once the node 
+    reaches a consistent state, its voting rights are restored using the same RPC. 
 
-        Per fare cio' ogni qualvolta si vuole inviare una AppendEntry ad un nodo, riconosciuto
-        trammite il sup IP, si verifica se il nodo e' presente nella rete. Nel caso non sia presente
-        si salve il suo IP in un vettore.
-        Quando e se quel nodo entra nella rete viene inviato il suo IP su un channel che risveglia
-        la funzione sopra citata. Tale funzione verifica se il nodo che si e' aggiunto deve essere
-        aggiornato e in tal caso chiama una RPC con la quale gli toglie il diritto di voto in accordo
-        con il protocollo, quando poi quel nodo risulta essere arrivato a uno stato consistente
-        il suo diritto di voto viene ripristinato trammite la medesima RPC.
+  \item \textbf{CommonMatchIndex}: This defines an interface responsible for monitoring
+    the last index on which all nodes agree. To achieve this, it periodically performs 
+    a series of checks to ensure that the nodes are aligned and that the system can 
+    proceed consistently. Additionally, it carries out different procedures depending 
+    on each node's voting rights:
+    \begin{itemize}
+      \item If a node has voting rights, a new goroutine is launched to periodically 
+        check for updates to its matchIndex.
+      \item If a node does not have voting rights, a goroutine periodically checks 
+        whether its \texttt{matchIndex} has surpassed the \texttt{CommonMatchIndex}. Once this condition
+        is met, the goroutine shifts to monitoring updates to the \texttt{matchIndex} of the corresponding node.
+    \end{itemize}
+    To update the \texttt{CommonMatchIndex}, the system verifies that the new \texttt{matchIndex} is 
+    greater than both the current\\ \texttt{CommonMatchIndex} and the node's current \texttt{matchIndex}. If 
+    this condition is met, the interface increments the count of "stable" nodes, i.e., 
+    nodes with an updated index. 
+    If the count of stable nodes exceeds half the nodes in the configuration, the entry
+    associated with the index can be considered committed, and the \texttt{CommonMatchIndex} is incremented.
 
-   % \item \textbf{Rpcs}: 
-        % definisce un'interfaccia generica Rpc, utilizzata in tutto il progetto per astrarre la 
-%        logica delle varie chiamate RPC nel sistema Raft. Nonostante il nome sia fuorviante, 
- %       in quanto è acronimo delle Remote Procedure Call, ci teniamo a specificare che non abbiamo 
- %       progettato questo modulo per lavorare in sincrono, bensì in asincrono.
- %       Per alleggerire il carico di lavoro alla goroutine centrale e avendo un discreto numero di 
- %       RPC diverse da gestire, abbiamo definito una interfaccia comune per una generica RPC che 
- %       viene poi implementata da ogni istanza specifica, 
- %       implementando così una inversione delle dipendenze. 
- %       Nell'interfaccia in questione sono stati definite solo le funzione che ogni ADT dovrà 
- %       rispettare per essere considerato una RPC. In particolare sono state definite le seguenti 
- %       funzioni:
- %       \begin{itemize}
- %           \item ToString: Ritorna lo stato del messaggio con i suoi valori in formato di stringa
- %           \item Execute: Esegue la funzione relativa a quel messaggio utilizzando il payload 
- %               del messaggio come variabili insieme ai metadati del cluster, del log e 
- %               delle configurazioni attive
- %           \item Encode: Serializza il messaggio in byte
- %           \item Decode: Deserializza una serie di byte nel messaggio popolando il messaggio 
- %               con i dati estratti nel processo
- %       \end{itemize}
- %       Per eseguire il comportamento previsto da una RPC il modulo fa uso del clusterMetadata 
- %       per le informazioni sul nodo, i metadati del cluster (serve in particolare per conoscere 
- %       il numero di nodi nelle configurazioni) e informazioni sul mittente. \\
- %       Necessitavamo di un sistema il più modulare e scalabile possibile, in quanto,
- %       nell'eventualità di aggiungere un nuovo tipo di rpc, non avremo dovuto apportare troppe 
- %       modifiche. A dimostrazione di ciò, oltre alle rpc definite dal protocollo 
- %       -- AppendEntryRpc, AppendResponse, RequestVoteRPC, 
- %       RequestVoteResponse -- ne troviamo altre, come l'rpc utilizzato per notificare ai noti 
- %       che hanno diritto di voto e quelle che definiscono i messaggi che possiamo ricevere dal client. 
- %       La ragione dietro a questo tipo di 
- %       progettazione è stata 
- %       fatta a frutto dei futuri cambiamenti che ci sarebbero stati e che sono stati fatti, 
- %       difatti il modulo è stato pensando fin dall'inizio in questo modo e, a fronte dei 
- %       cambiamenti che sono stati fatti, non è per nulla cambiato. 
- %       La scalabilità è inoltre facilitata dall'utilizzo di uno script e di un rpc template 
- %       che utiliziamo per generare nuove RPC (garantisce inoltre di evitare eventuali errori di 
- %       scrittura di nuove rpc). 
- %       Utiliziamo però un modulo esterno ad rpc per convertire le classi: quando un messaggio 
- %       arriva, il suoo tipo viene controllato, viene estratto il payload e convertito in base 
- %       al tipo. Questo rappresenta un debito tecnico (limite), in quanto ad ogni aggiunta di 
- %       una nuova rpc, bisogna aggiungere un voce nel modulo di conversione.
+    This system is essential for individual configurations to notify the configuration 
+    manager that they have committed a new entry. This allows the configuration manager 
+    to proceed with incrementing the global commit index. 
 
-    \item \textbf{CommonMatchIndex}:
-        definisce un'interfaccia che si occupa di monitorare l'ultimo indice su cui tutti i nodi 
-        sono d'accordo. Per fare questo, esegue periodicamente una serie di controlli per garantire che i 
-        nodi siano allineati e che il sistema possa proseguire in modo coerente, inoltre effettua procedure 
-        differenti a seconda della capacità di voto di ogni nodo: se il nodo ha diritto di voto, viene 
-        una nuova goroutine che verifica ciclicamente aggiornamenti sul proprio matchIndex; in caso contrario, ossia se il 
-        nodo non ha diritto di voto, una goroutine parte controllando periodicamente che il proprio matchIndex 
-        superi il CommonMatchIndex. Una volta che si verifica questa condizione la gouritine si sposta a 
-        controllare aggiornamenti sul matchIndex del nodo in questione. \\
-        Per aggiornare il CommonMatchIndex, si controlla che il nuovo matchIndex sia maggiore del CommonMatchIndex 
-        e dell'attuale matchIndex del nodo. In caso positivo, l'interfaccia incrementa il numero di nodi "stabili",
-        ossia quelli con l'indice aggiornato. Se questo numero supera la metà dei nodi presenti nella configurazione, 
-        la entry associata all'indice si può considerare committata e il CommonMatchIndex viene incrementato.\\ 
-        Questo sistema è necessario alle singole configurazioni per comunicare al gestore delle configurazioni 
-        che hanno committato una nuova entry: in questo modo il gestore delle configurazioni può procedere
-        ad incrementare il commit globalmente. Tutto questo procedimento è infine effettuato solamente dal leader 
-        per aggiornare il commit index.  
+    Finally, this entire procedure is performed exclusively by the leader to update the commit index.
 \end{itemize}
 
-Nella sua implementazione vengono anche definite delle Rpc usando il modulo precedentemtente 
-definito. Di seguito le definizioni:
-
+In its implementation, several RPCs are defined using the previously described module. 
+Below are the definitions:
 \begin{itemize}
-  \item AppendEntryRpc: viene inviata dal leader in due occasioni: quando deve inviare il proprio segnale di vita ai 
-    nodi follower, ooppure quando ci sono delle entry nel log ancora da replicare. \\
-    Una volta che il follower riceve qeusto messaggio, esegue dapprima un controllo sul term del mittente: se esso è minore l'operazione
-    di replicazione fallisce e invia un appendResponse con esito negativo. Se supera il controllo, invece, il nodo 
-    procede cambiando il proprio ruolo a quello di follower e impostando il leaderIp con l'indirizzo del mittente. Questo 
-    è necessario principalmente per due motivi: solo il leader può inviare appendEntry, quindi il mittente è necessariamente il leader;
-    inoltre, esiste la possibilità che anche il ricevente sia leader, ma di un term minore (quindi un leader vecchio), che
-    quindi deve essere riportato allo stato di follower (in questo caso il leader vecchio può essere andato offline e 
-    nel frattempo una nuova elezione ha avuto luogo e quindi il term dei restanti nodi è aumentato). \\
-    A questo punto, il nodo effettua un controllo sulla lunghezza del vettore di entries ricevuto, stabilendo 
-    se il messaggio è un heartbit msg oppure un tentativo da parte del leader di replicare il proprio
-    log. Nel secondo caso, si procede con un controllo di consistenza, che può fallire nei seguenti casi:
-    \begin{enumerate}
-      \item Il follower ha meno voci rispetto al leader, senza considerare le nuove voci 
-        (di conseguenza il leader deve decrementare il nextIndex e matchIndex riferiti a questo nodo e ritentare l'invio).
-      \item Alla stessa posizione (index), il follower e il leader hanno termini diversi.
-    \end{enumerate} 
-    Se una di queste casistiche si verifica, il nodo risponde false, includendo l'indice della voce incoerente, altrimenti
-    risponde con true indicando il successo dell'operazione. \\
-    Infine, il nodo resetta il suo timeout delle elezioni.
+  \item \textbf{AppendEntryRpc}: This is sent by the leader on two occasions: when it needs
+    to send a heartbeat signal to the follower nodes or when there are entries in the log 
+    that still need to be replicated.
+    When a follower receives this message, it first checks the sender’s term. If the term 
+    is lower, the replication operation fails, and it sends an AppendResponse with a negative 
+    result. If the term passes the check, the node changes its role to follower and sets 
+    leaderIp to the sender’s address. This is necessary for two main reasons:
+    \begin{itemize}
+      \item Only the leader can send AppendEntryRpc, so the sender must be the leader.
+      \item There is a possibility that the receiver is also a leader but of a lower 
+        term (an outdated leader), which must be demoted to follower. This situation 
+        could occur if the old leader went offline and a new election took place, 
+        resulting in an increased term for the remaining nodes.
+    \end{itemize}
+    Afterward, the node checks the length of the entries vector received to determine 
+    if the message is a heartbeat message or an attempt by the leader to replicate its log. 
+    In the latter case, it performs a consistency check that may fail under the following 
+    circumstances:
+    \begin{itemize}
+      \item The follower has fewer entries than the leader, excluding the new entries 
+        (in this case, the leader must decrement the \texttt{nextIndex} and \texttt{matchIndex} for this 
+        node and retry the send).
+      \item At the same position (index), the follower and leader have different terms. 
+    \end{itemize}
+    If either of these conditions occurs, the node responds with false, including 
+    the index of the inconsistent entry. Otherwise, it responds with true, indicating success.
+        
+    Finally, the node resets its election timeout.
 
-  \item AppendEntryResponse: viene inviata da ciascun nodo follower al leader, in risposta ad una AppendEntry. 
-    Il leader controlla se l'esito dell'appendEntry è positivo o negativo, nel primo caso procedere ad incrementare i parametri del nodo:
-    nextIndex e matchIndex. \\
-    Il secondo caso si divide in due: la riposta può essere negativa perché il term del leader è minore rispetto a quello
-    del mittente, in questo caso il leader aggiusta il proprio term e torna allo stato di follower; la risposta può
-    essere negativa per via dia qualche incosistenza con il log del noto mittente, in questo caso il leader 
-    aggiusta il parametro nextIndex corrispondente. In questo modo, alla prossima appendEntry, il leader invierà 
-    risolverà l'inconsistenza.
+  \item \textbf{AppendEntryResponse}: This is sent by each follower node to the leader 
+    in response to an AppendEntryRpc. The leader checks the result of the AppendEntryRpc:
+    \begin{itemize}
+      \item If the result is positive, it increments the node’s \texttt{nextIndex} and \texttt{matchIndex} parameters.
+     \item If the result is negative, there are two possible reasons: either the leader’s 
+       term is lower than the sender’s term, in which case the leader adjusts its term and 
+        reverts to the follower state; or there is a log inconsistency with the sender node, 
+        in which case the leader adjusts the corresponding \texttt{nextIndex}. This ensures that in the 
+        next AppendEntryRpc, the leader will resolve the inconsistency.
+    \end{itemize}
 
-  \item VoteRequest: inviato da qualsiasi nodo il cui election timer è scaduto e serve a richiedere il voto ad altri nodi. Quando 
-    un nodo lo riceve, effettua tre controlli:
-    \begin{enumerate}
-      \item Se il term del mittente è al meno tanto quanto il term del nodo. 
-      \item Se il nodo ricevente ha già votato per il mittente o se non ha votato affatto. 
-      \item Se l'indice e il relativo term dell'ultima entry del log del mittente sono maggiori o uguali a quelli 
-        del nodo ricevente.
-    \end{enumerate}
-    In caso positivo, il ricevente concede il suo voto al mittente, altrimenti no. 
+  \item \textbf{VoteRequest}: This is sent by any node whose election timer has expired to request votes 
+    from other nodes. When a node receives this, it performs three checks:
+    \begin{itemize}
+      \item The sender’s term is at least equal to the receiver’s term.
+      \item The receiver has either already voted for the sender or has not voted at all.
+      \item The index and term of the sender’s last log entry are greater than or equal to those of the receiver.
+      \item If all these conditions are met, the receiver grants its vote to the sender; otherwise, it does not.
+    \end{itemize}
 
-  \item VoteResponse: la risposta che i nodi inviano a seguito di una richiesta di voto. Il nodo ricevente,
-    a seconda dell'esito della richiesta, incrementa il numero di sostenitori oppure li decrementa; calcola
-    la maggioranza da raggiungere, e se il numero di sostenitori la supera, cambia il suo ruolo in quello 
-    di leader; in caso contrario, rimane follower e resetta i parametri relativi alle elezioni (numero di 
-    sostenitori e non, e il candidato per cui ha votato).  
+  \item \textbf{VoteResponse}: This is the response nodes send after receiving a vote request. 
+      Depending on the outcome of the request:
+      \begin{itemize}
+        \item If successful, the receiver increments the number of supporters.
+        \item If unsuccessful, it decrements the number of supporters.
+      \end{itemize}
+      The node calculates the majority threshold. If the number of supporters surpasses 
+      the threshold, it changes its role to leader. Otherwise, it remains a follower and 
+      resets its election parameters (supporter count and the candidate it voted for).
 
-  \item UpdateNode: usata dal leader per conferire il diritto di voto ad un nodo follower. 
+  \item \textbf{UpdateNode}: This is used by the leader to grant voting rights to a follower node.
 
-  \item ClientRequest: rappresenta il messaggio che il leader riceve da un client. Il leader traduce questa Rpc in 
-    una entry, la aggiunge al proprio log e dopo che il cluster l'ha processata, ottiene il risultato che 
-    verrà inviato al client. Per ottenere il risultato, si fa utilizzo del channel della singola entry: ad ogni entry è 
-    un channel di "ritorno del risultato"; e la goroutine che si occupa delle rpc rimane in attesa di questo ritorno.
+  \item \textbf{ClientRequest}: This represents a message received by the leader from a client. The 
+    leader translates this RPC into a log entry, adds it to its log, and waits for the 
+    cluster to process it. Once processed, the result is sent back to the client. Each 
+    log entry is associated with a return channel for the result. The goroutine handling 
+    the RPCs waits for this result on the channel.
 
-  \item ClientReturnValue: rappresenta il messaggio che contiene il risultato di una clientRequest che il leader 
-    invia al client. 
+  \item \textbf{ClientReturnValue}: This represents the message containing the result 
+    of a ClientRequest that the leader sends back to the client.
 
-  \item NewConf: e' un messaggio inviato dall'operatore per dichiarare l'iniziale configurazione 
-      del cluster
+  \item \textbf{NewConf}: This message is sent by the operator to declare the initial 
+    configuration of the cluster. 
 \end{itemize}

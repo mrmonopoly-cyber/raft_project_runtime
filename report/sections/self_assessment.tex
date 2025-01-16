@@ -1,106 +1,114 @@
+\section{Self-assesment}
+\subsection{Achievements}
+The project successfully met the primary objectives defined initially, laying the 
+foundation for a reliable, scalable, and easily configurable cluster system. The most 
+notable results include:
+\begin{itemize}
+  \item \textbf{Reliability and fault tolerance}: The adoption of the Raft protocol 
+    enabled distributed consensus between nodes, eliminating any single point of failure. 
+    This approach ensures that, even in the event of physical failures (e.g., server, 
+    network) or software failures (e.g., OS crashes), the cluster continues to operate 
+    consistently, maintaining the integrity of the shared state.
 
-\section{Valutazioni}
-\subsection{Raggiungimento obiettivi}
-% Sezione vuota per scaletta
-Il progetto ha centrato con successo gli obiettivi principali definiti inizialmente, ponendo le basi per un sistema 
-cluster affidabile, scalabile e di facile configurazione. Tra i risultati più rilevanti si evidenzia:
-\begin{enumerate}
-  \item Affidabilità e Tolleranza ai Guasti: L'adozione del protocollo Raft ha permesso di garantire 
-  un consenso distribuito tra i nodi, eliminando qualsiasi single point of failure. Questo approccio assicura 
-  che, anche in caso di guasti a livello fisico (server, rete) o software (crash del sistema operativo), 
-  il cluster continui a funzionare in maniera coerente, mantenendo l'integrità dello stato condiviso.
-  
-  \item Scalabilità Dinamica: Il sistema consente l'aggiunta o la rimozione di nodi senza interrompere
-  i servizi forniti. L'uso di libvirt come gestore dei nodi ha reso possibile l’astrazione dell’hypervisor,
-  semplificando la gestione delle macchine virtuali e supportando facilmente la scalabilità del cluster.
+  \item \textbf{Dynamic scalability}: The system allows for the addition or removal 
+    of nodes without interrupting the services provided. The use of \textit{libvirt} as a node 
+    manager abstracted the hypervisor, simplifying the management of virtual machines 
+    and easily supporting the scalability of the cluster.
 
-  \item Configurazione Automatizzata: La creazione di script bash ha semplificato e automatizzato la fase 
-  di setup dell’ambiente e delle immagini di sistema. Questo approccio riduce significativamente 
-  i tempi di configurazione e garantisce consistenza nelle installazioni.
+  \item \textbf{Automated configuration}: The creation of bash scripts simplified 
+    and automated the environment and system image setup phase. This approach 
+    significantly reduces configuration times and ensures consistency in installations.
 
-  \item Strumenti di Interazione: Lo sviluppo di tool CLI ha introdotto un'interfaccia intuitiva per 
-  amministratori e utenti finali. La CLI consente di monitorare lo stato del cluster, gestire 
-  configurazioni dinamiche e inviare richieste specifiche, come il recupero o la modifica di file.
+  \item \textbf{Interaction tools}: The development of CLI tools introduced an intuitive 
+    interface for administrators and end users. The CLI allows monitoring the state of
+    the cluster, managing dynamic configurations, and sending specific requests, such 
+    as retrieving or modifying files.
 
-  \item Architettura Modulare: La progettazione del sistema è stata effettuata con un focus sulla modularità
-  e sull’isolamento delle componenti. Moduli dedicati, come il raft\_log, ConfPool e RPC module, hanno permesso
-  di ottenere un sistema organizzato e manutenibile, facilitando future estensioni e miglioramenti.
+  \item \textbf{Modular architecture}: The system was designed with a focus on modularity 
+    and isolation of components. Dedicated modules, such as \texttt{raft\_log}, \texttt{ConfPool}, and RPC 
+    module, resulted in an organized and maintainable system, facilitating future extensions 
+    and improvements.
 
-  \item Ottimizzazione delle Risorse: La scelta di Arch Linux come sistema operativo ha permesso di minimizzare l’uso delle 
-  risorse, grazie a un’immagine di sistema snella e personalizzata con componenti leggeri come Syslinux al posto di GRUB.
-\end{enumerate}
+  \item \textbf{Resource optimization}: The choice of Arch Linux as the operating system 
+    minimized resource usage, thanks to a lean and customized system image with 
+    lightweight components such as \textit{Syslinux} instead of \textit{GRUB}.
+\end{itemize}
 
-\subsection{Difficoltà riscontrate}
-Inizialmente, la sfida principale consisteva nella gestione di \textit{libvirt}, in particolare nell'
-impostazione delle macchine virtuali (VM) e nella configurazione di sottoreti distinte per separare la rete 
-pubblica dalla rete privata. A causa della complessità di \textit{libvirt}, comprendere i suoi meccanismi 
-intricati richiedese una ripida curva di apprendimento. Come già accennato, il nostro obiettivo era creare un 
-ambiente *snello e manutenibile*, ma raggiungere questo risultato si è rivelato tutt'altro che semplice.
+\subsection{Difficulties}
+Initially, the main challenge was managing \textit{libvirt}, particularly in setting up virtual 
+machines (VMs) and configuring distinct subnets to separate the public network from the
+private one. Due to the complexity of \textit{libvirt}, understanding its intricate mechanisms required 
+a steep learning curve. As mentioned earlier, our goal was to create a lean and 
+maintainable environment, but achieving this was far from simple.
 
-Uno degli aspetti più impegnativi è stato progettare e sviluppare un sistema distribuito. Questo compito è 
-notoriamente difficile, infatti sistemi di questo callibro presentano una complessità 
-intrinseca e dei requisiti stringenti come, per esempio, la consistenza, la resistenza ai guasti e la 
-coordinazione tra nodi. A questo si aggiunge \textit{Raft}:
-tradurre i suoi principi e le sue linee guida presentate nell'articolo \cite{1} in una soluzione 
-concreta ha richiesto una quantità di tempo considerevole ed è stata, simultaneamente, una sfida impegnativa da 
-un punto di vista mentale.
-Inoltre, puntavamo a sviluppare un sistema scalabile, con diversi livelli di astrazione e composto da 
-componenti scarsamente accoppiati tra loro. Questo era essenziale poiché, 
-con la crescita del progetto, la gestione del codice diventava sempre più difficile, portando a un crescente 
-debito tecnico. Di conseguenza, abbiamo effettuato diverse revisioni del design architettonico per affrontare 
-questi problemi.
+One of the most challenging aspects was designing and developing a distributed system. 
+This task is notoriously difficult, as such systems inherently have complex requirements, 
+such as consistency, fault tolerance, and coordination between nodes. This is 
+compounded by Raft: translating its principles and guidelines from the paper \cite{1} 
+into a concrete solution took considerable time and was simultaneously a mentally demanding challenge.
 
-Nonostante i nostri sforzi per limitare il debito tecnico, esso è rimasto una sfida costante. La base del codice 
-diventava vasta e complessa, il che complicava la gestione delle \textit{goroutine} e di tutti gli aspetti 
-relativi alla sincronizzazione tra di esse, e persino il semplice compito di seguire il flusso del sistema. 
-Anche i test si sono rivelati difficili a causa di questa complessità. Abbiamo trovato particolarmente 
-complicato progettare il sistema di configurazione, poiché non fu immediatamente chiaro come inserirlo nel 
-sistema già presente. Abbiamo impiegato tempo e sforzi, sia nella rilettura dell'articolo di riferimento \cite{1}, sia nel
-la ristrutturazione del codice, per arrivare ad una soluzione corretta e funzionante
+Furthermore, we aimed to develop a scalable system, with multiple abstraction layers and 
+loosely coupled components. This was essential because, as the project grew, managing 
+the code became increasingly difficult, leading to growing technical debt. As a result, 
+we performed several revisions of the architectural design to address these issues.
 
-Un altro ostacolo significativo è stato eseguire le operazioni di \textit{testing} sul sistema. Gestire più 
-macchine virtuali ed effettuare \textit{debug} tramite semplici stampe  
-si è rivelato macchinoso e dispendioso in termini di tempo. Un sistema di \textit{logging} distribuito sarebbe 
-stato una 
-soluzione più efficace, ma implementare un tale sistema avrebbe richiesto un progetto aggiuntivo.
+Despite our efforts to limit technical debt, it remained a constant challenge. The codebase 
+grew vast and complex, making it difficult to manage the goroutines and all aspects related 
+to their synchronization, not to mention following the system's flow. Testing also proved 
+difficult due to this complexity. We found designing the configuration system particularly 
+tricky, as it wasn't immediately clear how to integrate it into the existing system. We 
+spent time and effort both rereading the reference paper \cite{1} and restructuring the 
+code to arrive at a correct and working solution.
 
-In retrospettiva, bilanciare la complessità tecnica mantenendo al contempo modularità, scalabilità e 
-un'architettura pulita è stata la sfida più grande che abbiamo affrontato durante tutto il progetto.
+Another significant obstacle was performing testing on the system. Managing multiple virtual 
+machines and debugging with simple prints turned out to be cumbersome and time-consuming. 
+A distributed logging system would have been a more effective solution, but implementing 
+such a system would have required an additional project.
 
-\subsection{Miglioramenti realizzabili}
-Nonostante i risultati significativi, il progetto presenta alcune criticità e aree di miglioramento che 
-potrebbero essere affrontate per rendere il sistema più robusto, efficiente e accessibile.
-\begin{enumerate}
-  \item Gestione dei Log Distribuiti: Attualmente, il debugging del sistema e la raccolta dei 
-  log risultano macchinosi, in quanto basati su semplici stampe. L’implementazione di un sistema 
-  di logging distribuito permetterebbe di centralizzare la raccolta dei log, facilitando il 
-  monitoraggio delle macchine virtuali e l’identificazione dei problemi in tempo reale. 
-  
-  \item Risoluzione della Data Race: È stata identificata una possibile data race che povocherebbe 
-  una race condition all'interno della procedura di commit dei log, dove più goroutine possono accedere 
-  contemporaneamente a risorse condivise senza un meccanismo di controllo adeguato. Per 
-  risolvere questo problema, si potrebbe implementare una coda di priorità a doppia struttura,
-  garantendo così l'ordine di esecuzione delle operazioni senza 
-  introdurre ulteriori overhead o spinlock.
+In hindsight, balancing technical complexity while maintaining modularity, scalability, 
+and a clean architecture was the greatest challenge we faced throughout the project.
 
-  \item Ottimizzazione delle Performance: Sebbene il sistema funzioni correttamente, 
-  alcune operazioni del protocollo Raft potrebbero essere ottimizzate ulteriormente. 
-  Ad esempio, la compressione dei log non è attualmente supportata, il che può portare 
-  a un aumento delle risorse utilizzate nel tempo. Introdurre una strategia di snapshot
-  o di compressione permetterebbe di ridurre lo spazio occupato dai log e migliorare 
-  le performance complessive.
+\subsection{Potential improvements}
+Despite the significant results, the project has some critical areas for improvement 
+that could make the system more robust, efficient, and accessible:
+\begin{itemize}
+  \item \textbf{Distributed log management}: Currently, debugging and log collection 
+    are cumbersome, as they rely on simple print statements. Implementing a 
+    distributed logging system would centralize log collection, making it easier 
+    to monitor virtual machines and identify issues in real-time.
 
-  \item Automazione del Deployment in Produzione: Anche se è stata realizzata 
-  un’automazione per la configurazione iniziale, il deployment del cluster in ambienti 
-  di produzione richiede ancora un certo intervento manuale. 
+  \item \textbf{Resolving data races}: A potential data race has been identified, 
+    which could cause a race condition within the log commit procedure, where 
+    multiple goroutines may access shared resources simultaneously without proper control. 
+    To resolve this, a double-ended priority queue could be implemented, ensuring 
+    the order of execution without introducing additional overhead or spinlocks.
 
-  \item Interfaccia Grafica (GUI): L'uso esclusivo della CLI per interagire con il 
-  cluster potrebbe risultare poco accessibile per utenti meno esperti o non tecnici. 
-  Lo sviluppo di un’interfaccia grafica semplificata permetterebbe di visualizzare lo stato 
-  dei nodi, monitorare le metriche del sistema e gestire le configurazioni con maggiore intuitività.
+  \item \textbf{Interface for functionality}: A standardized interface for the plug-and-play 
+    integration of modules that determine the functionalities the cluster offers at any given 
+    time. Ideally, this would also allow the user to utilize additional modules to enable 
+    the cluster to perform various tasks, not just the filesystem function.
 
-  \item Testing e Validazione del Sistema: La complessità del sistema ha reso difficoltosa 
-  l’esecuzione dei test e la validazione delle funzionalità. Potrebbe essere utile introdurre 
-  una suite di test automatizzati, anche se non sarebbero sufficienti a garantire un 
-  comportamento corretto.
-\end{enumerate}
+  \item \textbf{Elimination of locks}: Various parts of the code include mutexes to avoid 
+    race conditions. These systems do not offer strong protection against race conditions 
+    and are also extremely inefficient. Removing them with the idea of using lock-free constructs,
+    or entirely removing blocking mechanisms would be optimal.
+
+  \item \textbf{Performance optimization}: While the system functions correctly, 
+    certain Raft protocol operations could be further optimized. For example, 
+    log compression is not currently supported, which can lead to increased 
+    resource usage over time. Introducing a snapshot or compression strategy 
+    would reduce log space and improve overall performance.
+
+  \item \textbf{Automating production deployment}: While automation has been implemented 
+    for initial configuration, deploying the cluster in production environments 
+    still requires manual intervention.
+
+  \item \textbf{Graphical user interface (GUI)}: Relying solely on the CLI to interact 
+    with the cluster may be inaccessible for less experienced or non-technical users. 
+    Developing a simplified graphical interface would allow users to visualize node 
+    status, monitor system metrics, and manage configurations with greater intuitiveness.
+
+  \item \textbf{System testing and validation}: The complexity of the system made it
+    difficult to run tests and validate functionality. Introducing an automated test 
+    suite would be helpful, though it wouldn't be sufficient to guarantee correct behavior.
+\end{itemize}

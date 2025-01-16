@@ -1,25 +1,28 @@
-\section{Organizzazione di progetto}
-Ora che sono stati definiti, a grandi linee, gli obbiettivi del nostro progetto possiamo
-decrivere come e' stato strutturato il progetto. 
-Utilizzando git sono stati creati tre branch principali:
+\section{Project organization}
+Now that the objectives of our project have been broadly defined, we can 
+describe how the project itself was structured.
+Using Git, three main branches were created:
 \begin{itemize}
-    \item main: funge da interfaccia per tutte le funzionalita' del progetto:
-                dall'installazione all'utilizzo. Fornisce un insieme di programmi e script
-                per lo scopo.
-    \item RaftDev:  contiene solamente la versione stabile del codice che viene utilizzato dai nodi
-                    definendo la sincronizzazione degli stessi e le funzionalita' fornite.
-    \item raft\_executables: contiene una versione compilata del codice. Viene scaricata dai nodi
-        durante l'esecuzione del servizio raft\_daemon (servizio presente nel sistema operativo 
-                             delle VM) . La ragione di questa 
-                             scelta singolare risiede in una maggiore e piu' semplice capacita' di
-                             aggiornamento del codice eseguito dalle VM permettendo un aggiornamento
-                             a caldo delle stesse. Ha aiutato molto nelle fasi di sviluppo per testare
-                             diverse versioni del codice poiche' in questo branch e' presente uno script
-                             che, data in input il nome di uno specifico branch, compila il codice
-                             e salva il binario im una cartella che la VM poi eseguira'a.
-                             Cosifacendo e' stato possibile lavorare su diverse featues in parallelo
-                             senza dover ridefinire le VM per poter testare il codice.
-    \item altri:    qualunque altro branch e' dedito allo sviluppo di nuove funzionalita'. Al termine
-                    dello sviluppo verra' effettuata una procedura di \textbf{merge} con 
-                    \textbf{RaftDev}.
+  \item \texttt{main}: Serves as the interface for all project functionalities, 
+    from installation to usage. It provides a set of programs and scripts for these purposes.
+
+  \item \texttt{RaftDev}: Contains only the stable version of the code used by the
+    nodes, defining their synchronization and the provided functionalities.
+
+  \item \texttt{raft\_executables}: Contains a compiled version of the code. This is 
+    downloaded by the nodes during the execution of the \texttt{raft\_daemon} service 
+    (a service present in the operating system of the VMs).
+    The rationale behind this unique choice lies in achieving a more seamless 
+    and straightforward way to update the code executed by the VMs, enabling 
+    hot updates.
+    This approach was particularly helpful during development phases, allowing 
+    testing of different code versions. In this branch, a script is included 
+    that compiles the code from a specific branch (provided as input) and saves
+    the binary in a directory that the VM will then execute.
+    This allowed work on multiple features in parallel without needing to 
+    redefine the VMs for code testing.
+
+  \item others: Any other branch is dedicated to the development of new features. 
+    Once the development is complete, a \textbf{merge} procedure with 
+    \texttt{RaftDev} will be carried out.
 \end{itemize}

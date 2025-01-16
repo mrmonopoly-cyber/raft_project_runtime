@@ -1,72 +1,80 @@
-%TODO: sposterei questa sezione a dopo o prima della sezione Soluzioni (dipende da cos'è Soluzione)
-\section{Tool di configurazione}
-\subsection{Obiettivi}
-Questi tool di configurazione hanno lo scopo di fornire un'interfaccia client 
-per gestire e interagire con un cluster distribuito. Gli obiettivi principali includono:
+\section{Configuration Tools}
+\subsection{Objectives}
+The purpose of these configuration tools is to provide a client interface for 
+managing and interacting with a distributed cluster. The main objectives include:
+
 \begin{itemize}
-  \item Gestione centralizzata: consentono agli utenti di controllare la configurazione 
-      e lo stato di un cluster, e di eseguire operazione su di esso da un'unica interfaccia 
-        a riga di comando (CLI), facilitando operazioni 
-  amministrative come il cambio di configurazioni, e utente come la richiesta di files.
-  \item Semplicità di comunicazione: Progettato per sostituire gli scipt per nulla semplici 
-      e troppo meccanici e per essere user-friendly con una CLI che permette agli amministratori 
-        di sistema di eseguire comandi complessi tramite semplici input.
+  \item \textbf{Centralized Management}: These tools allow users to control 
+    the configuration and state of a cluster, as well as perform operations 
+    on it through a single Command Line Interface (CLI). This simplifies 
+    administrative tasks, such as configuration changes, and user operations,
+    such as file requests.
+  \item \textbf{Ease of Communication}: Designed to replace overly complex and 
+    mechanical scripts, these tools aim to be user-friendly. The CLI enables 
+    system administrators to execute complex commands through simple inputs, 
+    improving usability and reducing the chance of errors.
 \end{itemize}
 
-
-\subsection{Funzionamento}
+\subsection{Functionality}
 \subsubsection{Admin}
-All'avvio della console, vengono inizializzati i vari componenti, configurato l'ambiente e 
-avviati tutti i servizi 
-necessari per il funzionamento. Durante questa fase, vengono effettuate operazioni importanti 
-come la configurazione del cluster, l'impostazione dell'interfaccia CLI, che consente agli 
-amministratori di lanciare comandi specifici, e la connessione con altri servizi o nodi distribuiti.
+When the console starts, various components are initialized, the environment 
+is configured, and all necessary services for operation are launched. During 
+this phase, key tasks are performed, such as setting up the cluster 
+configuration, initializing the CLI interface to allow administrators to issue 
+specific commands, and establishing connections with other distributed 
+services or nodes.
 
-Una delle componenti principali è vmManager, incaricata della gestione delle macchine virtuali (VM).
-Questi si occupa della creazione, modifica e cancellazione delle VM, nonché della loro 
-configurazione, che viene gestita tramite file XML, come vol.xml, dom.xml e pool.xml. 
-Questi file contengono le informazioni relative alle risorse di virtualizzazione assegnate alle 
-VM, come CPU, memoria e spazio disco. Infine, implementa le logiche necessarie per interfacciarsi 
-con l'hypervisor, consentendo una gestione dinamica delle risorse virtualizzate.
+One of the main components is the \texttt{vmManager}, responsible for managing 
+virtual machines (VMs). It handles the creation, modification, and deletion of 
+VMs, as well as their configuration through XML files such as \texttt{vol.xml}, 
+\texttt{dom.xml}, and \texttt{pool.xml}. These files define the virtualization 
+resources assigned to the VMs, including CPU, memory, and disk space. 
+Additionally, it implements the necessary logic to interface with the 
+hypervisor, enabling dynamic management of virtualized resources.
 
-La gestione dei nodi viene invece affidata ad un'altra componente chiamata clusterManager. 
-In particolare, ne gestisce le connessioni e le configurazioni, inviandone di nuove. 
+Node management, on the other hand, is handled by another component called 
+\texttt{clusterManager}. This component manages node connections and 
+configurations, distributing updates as needed.
 
-Il sistema permette agli amministratori di interagire tramite una CLI, la quale offre la 
-possibilità di aggiornare le configurazioni del cluster, monitorare lo stato dei nodi e gestire 
-la topologia del sistema aggiungendo o 
-rimuovendo nodi. La CLI utilizza modelli di dati per garantire che tutte le informazioni inserite 
-siano strutturate e validate correttamente.
+The system provides administrators with a CLI, offering the ability to update 
+cluster configurations, monitor node statuses, and manage the system topology 
+by adding or removing nodes. The CLI uses data models to ensure that all 
+input is structured and correctly validated.
 
-Le risposte della console variano a seconda dell'operazione richiesta: nel caso di modifica della 
-configurazione, la risposta sarà una conferma, mentre, se si vuole conoscere lo stato del cluster, 
-l'applicativo risponderà con un elenco dei nodi attivi.
-
+The console's responses vary depending on the requested operation. For 
+configuration changes, the response is a confirmation, while for status 
+inquiries, the application responds with a list of active nodes.
 \subsubsection{Client}
-All'avvio, il client viene configurato per connettersi al cluster di nodi distribuiti. In seguito, 
-l'utente interagisce con il client tramite un'interfaccia a riga di comando (CLI), che mette a 
-disposizione diversi operazioni eseguibili sui diversi nodi del cluster, come ottenere, modificare 
-o eliminare un particolare file. I comandi inseriti dall'utente vengono interpretati e parsati, 
-per determinare quale azione deve essere eseguita, il client prepara una richiesta da inviare al 
-cluster e questa viene serializzata e inviata al nodo di destinazione, che potrebbe essere il 
-leader del cluster o un nodo follower. Nel secondo caso, il nodo follower invierà in risposta 
-l'indirizzo del leader, in alternativa si attende una risposta del cluster all'operazione eseguita.
+At startup, the client is configured to connect to the distributed cluster
+of nodes. The user interacts with the client through a Command Line Interface
+(CLI), which provides various operations that can be performed on the 
+cluster's nodes, such as retrieving, modifying, or deleting specific files. 
 
-Una volta ricevuta la risposta dal cluster, questa viene deserializzata e il risultato 
-dell'operazione viene poi presentato all'utente tramite l'interfaccia CLI. Ad esempio, se l'utente 
-ha richiesto di leggere un file, il client mostrerà il file richiesto, mentre per operazioni di 
-scrittura, modifica ed eliminazione, la risposta sarà una semplice conferma.
+Commands entered by the user are interpreted and parsed to determine the 
+required action. The client then prepares a request to send to the cluster. 
+This request is serialized and transmitted to the target node, which could 
+either be the cluster leader or a follower node. In the latter case, the 
+follower node responds with the leader's address. Otherwise, the cluster 
+processes the operation and provides a response.
 
-\subsection{Limiti}
-Nonostante i suoi punti di forza, i tool presentano alcuni limiti:
+Once a response is received from the cluster, it is deserialized, and the 
+result of the operation is presented to the user via the CLI. For instance, 
+if the user requests to read a file, the client displays the requested file. 
+For write, modify, or delete operations, the response is typically a 
+confirmation message.
+
+\subsection{Limitations}
+Despite its strengths, the tools have some limitations:
+
 \begin{itemize}
-  \item Mancanza di un'interfaccia grafica: l'uso esclusivo di una CLI potrebbe risultare poco 
-      intuitivo per utenti non tecnici o per chi preferisce un'interfaccia grafica.
-  \item Manutenzione complessa del cluster: in caso di aggiornamenti di configurazione complessi, 
-      il sistema potrebbe richiedere un intervento manuale sul cluster.
-  \item Gestione limitata degli errori: in situazioni di errori prolungati o corruzione di dati, 
-      il tool potrebbe non essere sufficiente a garantire un recupero automatico e sicuro.
+  \item \textbf{Lack of a Graphical Interface}: The exclusive use of a CLI 
+    may be unintuitive for non-technical users or those who prefer 
+    graphical interfaces.
+  \item \textbf{Complex Cluster Maintenance}: For complex configuration 
+    updates, the system might require manual intervention on the cluster.
+  \item \textbf{Limited Error Handling}: In cases of prolonged errors or 
+    data corruption, the tool may not guarantee automatic and secure recovery.
 \end{itemize}
-In sintesi, questi tool di configurazione sono stati progettati per facilitare la comunicazione 
-con il cluster, ma potrebbero richiedere ulteriori funzionalità per migliorare la resilienza e 
-l'usabilità in ambienti complessi.
+In summary, these configuration tools are designed to facilitate communication 
+with the cluster but may require additional features to improve resilience 
+and usability in complex environments.

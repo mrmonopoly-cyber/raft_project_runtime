@@ -1,171 +1,165 @@
-\subsection{Dettagli implementativi dell'applicativo}
+\subsection{Implementation details of the application}
+Now that the structure of the project is clear, we can proceed with the description 
+of the code and its corresponding functionalities. The programming language chosen 
+for this implementation is \textbf{Golang} due to its simplicity, its user-space threads 
+(better known as \textbf{goroutines}), and its communication channels \cite{4}.
 
-Ora che e' chiara la struttura del progetto si puo' procedere con la descrizione del
-codice e delle relative funzionalita'. Per fare cio' e' stato scelto come linguaggio
-di programmazione \textbf{Golang} per la sua semplicita' d'uso, per i thread in user space
-meglio note come \textbf{goroutine} e per i suoi channel di comunicazione \cite{4}.
-Per non dilungarsi nella inutile spiegazione di come funziona il protocollo RAFT d'ora in avanti
-si assumera' che il lettore abbia conoscenza dell'argomento. In caso contrario si invita
-a leggere il paper di riferimento \cite{1}.
-\subsubsection{Obiettivi}
-Avendo usato gli elementi precendentemente citati per delineare la struttura del cluster tutto
-cio' che deve fare questa parte del progetto e':
+To avoid unnecessary explanations about how the Raft protocol works, we will assume 
+that the reader is familiar with the topic. Otherwise, we recommend referring to 
+the relevant paper \cite{1}.
+
+\subsubsection{Goal}
+Using the previously mentioned elements to define the structure of the cluster, 
+the objectives of this part of the project are:
 \begin{itemize}
-    \item implementare il protocollo RAFT per sincronizzare i nodi
-    \item soddisfare le richieste inviate dai client distinguendole da quelle dei nodi
-    \item riconoscere se e quando viene aggiunto un nodo nella rete
-    \item implementare il cambio di configurazione secondo i criteri del protocollo RAFT
-    \item riconoscere se e quando un nodo non e' piu' attivo
-    \item permettere il soddisfaciemento di una o piu' delle richieste citate in contemporanea 
-        senza implementare spinlock
+  \item Implement the Raft protocol to synchronize the nodes.
+  \item Handle requests sent by clients, distinguishing them from those sent by other nodes.
+  \item Recognize when a new node is added to the network.
+  \item Implement configuration changes according to the criteria of the Raft protocol.
+  \item Detect when a node becomes inactive.
+  \item Enable the simultaneous handling of one or more of the aforementioned requests without implementing spinlocks.
 \end{itemize}
-% Sezione vuota per scaletta
-%TODO: ingloberei questa sotto sezione alla sezione Obiettivi
 
-\subsubsection{Funzionamento}
-Il codice e' stato strutturato per essere diviso in due fasi: 
+\subsubsection{Operation}
+The code is structured into two phases:
 \begin{itemize}
-    \item \textbf{Inizializzazione}:in questa fase vengono caricati tutti gli ip scoperti dal deamon
-        \textbf{discovery.service} (quello del nodo stesso e quelli dei nodi attualmente presenti 
-        nella rete) e la directory dove salvare i dati del filesystem distribuito. Fatto cio'
-        il nodo tenta di instanziare una connessione con ogni indirizzo ip scoperto.
-        Inoltre in questa fase fengono instanziati dei clock necessari per l'implementazione 
-        del protocollo RAFT anche se rimangono disattivati fino a che il nodo non appartiene a una
-        configurazione
-    \item \textbf{Loop}: In questa fase viene eseguito un loop con una chiamata bloccante che 
-        rilascia la \textbf{CPU} fino a che non si verifica una delle tre condizioni:
-        \begin{itemize}
-            \item il nodo riceve una richiesta RPC
-            \item scatta il timer responsabile dell'elezione di un nuovo leader
-            \item scatta il timer che indica di dover inviare un nuovo hearthbit
-        \end{itemize}
-        E' importante puntualizzare che ogni qualvolta si dovesse verificare una delle condizioni
-        verra' creata una goroutine per soddisfare la richiesta liberando il main loop.
-        Facendo cio' si fornisce un miglior tempo di risposta garentendo inoltre la disponibilita' 
-        del servizio.
+  \item \textbf{Initialization}: In this phase, all the IPs discovered by the \texttt{discovery.service}
+    daemon (the node's own IP and those of other nodes currently in the network) and the 
+    directory for saving distributed filesystem data are loaded. Once this is done, the node 
+    attempts to establish a connection with each discovered IP address. Additionally, during 
+    this phase, clocks required for implementing the Raft protocol are instantiated, although 
+    they remain inactive until the node becomes part of a configuration.
+  \item \textbf{Loop}: In this phase, a loop is executed with a blocking call that releases the 
+    CPU until one of three conditions occurs:
+    \begin{itemize}
+      \item The node receives an RPC request.
+      \item The timer responsible for electing a new leader expires.
+      \item The timer signaling the need to send a new heartbeat expires.
+    \end{itemize}   
+    It is important to note that whenever one of these conditions is met, a goroutine is 
+    created to handle the request, freeing up the main loop. This approach ensures better 
+    response times while maintaining service availability.
 \end{itemize}
-La spiegazione del codice continuera' indagando come vengono instaurate nuove connessioni 
-al di fuori della fase di inizializzazione, come un nodo riconosce di appartenere ad una specifica
-configurazione e i tre casi del loop appena citati spiegando i moduli utilizzati man mano. 
-Dove ognuna delle condizioni citate consiste nella ricezione di un messaggio in uno specifico 
-channel.
+The explanation of the code continues by investigating how new connections are established 
+outside the initialization phase, how a node recognizes its membership in a specific configuration, 
+and the three loop cases mentioned above, explaining the modules used step by step. Each 
+of the conditions involves receiving a message in a specific channel.
 
-\paragraph{Instaurazione di una nuova connessione}
-Come accennato sopra, nella fase di inizializzazione ogni nodo cerca di connettersi a tutti i
-nodi scoperti dal daemon dello stesso. 
-Dopodichè viene lanciata un goroutine che rimane in ascolto di nuove connessioni e 
-ogni volta che ne arriva una nuova, il nodo 
-controlla l'indirizzo IP, lo distingue tra indirizzo "interno" (nodo) ed "esterno" (client),
-lancia una goroutine per ciascuna di queste categorie e, infine, aspetta di ricevere messaggi 
-da queste connessioni. \\
-La distinzione delle richieste avviene guardando la provenienza della richiesta: 
+\paragraph{Establishing a New Connection}
+As mentioned earlier, during the initialization phase, each node attempts to connect to all 
+nodes discovered by its daemon.
+After that, a goroutine is launched to listen for new connections. Every time a new connection 
+arrives, the node checks the IP address, distinguishes between "internal" (node) and "external"
+(client) addresses, launches a goroutine for each category, and waits to receive messages 
+from these connections.
+
+The distinction between requests is made based on the source of the request:
 \begin{itemize}
-    \item 192.168.2.X: nodo esterno (client): se il nodo che riceve la richiesta dal client e' il
-        server viene servito, se e' un follower ritorna al client l'indirizzo del master 
-        da conttattare.
-    \item 10.0.0.X: nodo interno: viene salvata la connessione nella memoria del nodo se non e'
-        gia' presente
+  \item \textbf{192.168.2.X}: External node (client). If the node receiving the request is 
+    the server, it processes the request; if it is a follower, it returns the master's 
+    address to the client.
+  \item \textbf{10.0.0.X}: Internal node. The connection is saved in the node's memory 
+    if it is not already present.
 \end{itemize}
-Trammite questo sistema ogni nuovo nodo interno comunica a tutti 
-i nodi attualmente esistenti la sua esistenza e se e' gia' presente nella rete verra' contattato 
-dai nuovi nodi instaurando cosi' una connessione.
+Using this system, each new internal node communicates its existence to all currently 
+existing nodes. If it is already part of the network, it will be contacted by the new nodes, 
+thus establishing a connection.
 
-\paragraph{Instaurazione delle connessione tra i nodi e appartenenza ad una configurazione}
-All'inizio ogni nodo attende che gli venga comunicato se appartiane a una qualche configurazione.
-Cio' puo' accadere in diversi modi:
+\paragraph{Establishing connections between nodes and configuration membership}
+Initially, each node waits to be informed of its membership in a specific configuration. 
+This can occur in different ways:
 \begin{itemize}
-    \item l'attuale master instaura una connesione con il nodo seguente e gli invia un 
-        AppendEntry con la configurazione di riferimento. 
-        Il nodo diventa follower e applica l'AppendEntry ricevuta con la configurazione del 
-        cluster attiva
-
-    \item richiesta dall'amministratore di sistema: l'operatore invia un messaggio a quel nodo dove 
-        gli specifica la configurazione di appartenenza. Quando cio' accade il nodo diventa master.
-        Questa situazione si verifica solamente nella fase di creazione di un nuovo cluster 
-        ed e' necessaria per definire un primo master che dia il via al servizio.
+  \item The current master establishes a connection with the next node and sends an 
+    AppendEntryRpc with the relevant configuration. The node becomes a follower and 
+    applies the received AppendEntryRpc, activating the cluster configuration.
+  \item The system administrator sends a message to the node specifying its 
+    configuration membership. When this happens, the node becomes the master. 
+    This situation only occurs during the creation of a new cluster and is necessary 
+    to define the first master to start the service.
 \end{itemize}
-Quando si verifica una delle due situazioni i timer precedentemente disabilitati vengono attivati.
+When either of these situations occurs, the previously disabled timers are activated.
 
-\paragraph{il nodo riceve una richiesta RPC}
-Come gia' accennato in precedenza ad ogni nodo viene assegnata una goroutine responsabile di
-ricevere messaggi da quella connessione. Quando cio' accade l'intero messaggio viene deserializzato
-con \textbf{Protobuf}.
-Dopo aver estratto il messaggio, la procedura ricava l'ip del mittente, informazione necessaria per 
-sapere a chi inviare una risposta se necessario,
-viene eseguita l'RPC, si verifica se la procedura ha ritornato un risposta da inviare al mittente,
-si invia la risposta in caso e si notifica il completamento su un channel dedicato 
-per quel messaggio. Quest'ultima parte e' stata introdotta per garantire che un nodo non possa 
-saturare il leader di messaggi monopolizzandolo. Questa scelta comporta che il leader non accettera' 
-altri messaggi da uno stesso nodo fino a che il precedente non sara' stato trattato. Siamo a 
-conoscenza che questo sia un grande limite ma e' stato il modo migliore che siamo riusciti 
-a trovare per garantire la correttezza dell'esecuzione senza introdurre race condition nell'esecuzione
-dei messaggi di un nodo.
+\paragraph{a node receives a RPC request}
+As previously mentioned, each node is assigned a goroutine responsible for receiving 
+messages from that connection. When a message is received, it is entirely deserialized 
+using Protobuf.
 
-\subsubsection{scatta il timer responsabile dell'elezione di un nuovo leader}
-Non appena il timer per l'elezione segnala nel proprio channel la sua scadenza, il main loop avvia 
-una goroutine startElection che segnala l'inizio di una nuuova elezione e resetta alcune variabili 
-interne, come il numero di sostenitori e dei non sostenitori. In questo modo, si prepara il terreno 
-per una nuova competizione per la leadership.
-Successivamente, startElection incrementa il termine corrente del nodo, indicando che il nodo sta 
-cercando di diventare il leader in un nuovo ciclo di elezione. Questa operazione è fondamentale per 
-garantire che ogni nodo possa riconoscere il progresso delle elezioni e sapere che il nodo che sta 
-tentando di diventare leader ha un "termine" più alto rispetto agli altri nodi, il che è un 
-requisito essenziale per la validità della richiesta di voto.
-Un altro passo importante è il voto per se stesso. Il nodo si autovota, esprimendo così la sua 
-intenzione di diventare leader. Questo è un passaggio fondamentale nel protocollo Raft, dove ogni 
-nodo deve cercare di ottenere il consenso degli altri nodi.
-Dopo essersi autovotato, il nodo crea un messaggio RPC di richiesta di voto, preparandosi a 
-inviarlo agli altri nodi del cluster.\\ 
-Infine, startElection invia questa richiesta di voto a tutti i nodi nel cluster. Utilizzando una 
-goroutine per ogni invio, la funzione si assicura che le richieste vengano inviate in parallelo, 
-ottimizzando così il tempo di attesa e aumentando le probabilità di ricevere risposte rapide.
+After extracting the message, the procedure retrieves the sender's IP address, which 
+is necessary to determine where to send a response if required. The RPC is executed, 
+and if the procedure returns a response to be sent back, the response is sent, and a 
+notification is made on a dedicated channel for that message.
+This last part was introduced to ensure that a node cannot saturate the leader with 
+messages and monopolize it. This design decision means that the leader will not accept 
+additional messages from the same node until the previous message has been processed. 
+We are aware that this is a significant limitation, but it was the best solution we 
+could find to ensure execution correctness without introducing race conditions in the 
+handling of messages from a single node.
 
-\subsubsection{scatta il timer che indica di dover inviare un nuovo heartbit}
-Allo scadere del timer per l'heartbit, un'ulteriore goroutine viene lanciata e attraversa tutti 
-gli indirizzi IP dei nodi elencati nella configurazione. Per ogni indirizzo IP, la funzione 
-verifica che il nodo esista (ossia esiste nella subnet) e se il nodo è stato trovato, la funzione 
-procede a ottenere lo stato attuale di quel nodo. Questo metodo è vitale perché fornisce 
-informazioni aggiornate, come l'indice della prossima voce di log da elaborare. 
-Con il nodo trovato e le informazioni recuperate, la funzione determina se il nodo richiede nuove 
-voci di log. Se l'indice della prossima voce (nextIndex) è inferiore al numero totale di voci di 
-log disponibili, significa che ci sono aggiornamenti da inviare. 
-In questo caso, viene creato un messaggio di tipo AppendEntryRpc.
-Questa creazione di messaggi è fondamentale per garantire che i follower siano sempre allineati 
-con il leader. Se, invece, non ci sono nuove voci da inviare, viene generato un messaggio di 
-heartbeat generico che funge da segnale di vita, dimostrando che il leader è ancora attivo e 
-operativo.
-Una volta creato il messaggio di heartbeat, la funzione lo codifica in un formato che può essere 
-trasmesso sulla rete.
-Infine, il messaggio codificato viene inviato al nodo. 
-Questo viene ripetuto per tutti gli elementi presenti nella configurazione.
+\paragraph{election timer trigger}
+As soon as the election timer signals its expiration on its channel, the main loop 
+starts a goroutine called \texttt{startElection}. This function signals the beginning of a 
+new election and resets some internal variables, such as the number of supporters 
+and dissenters, preparing the node for the leadership competition.
+Next, \texttt{startElection} increments the node's current term, indicating that the node 
+is attempting to become the leader in a new election cycle. This operation is critical 
+to ensure that all nodes recognize the progress of the election and acknowledge that 
+the node attempting to become the leader has a higher "term" than the other nodes, 
+which is a fundamental requirement for the validity of a vote request.
 
-\subsubsection{File System abstraction}
-Come definito negli obbiettivi il cluster implementa un filesystem distribuito.
-In questo contesto, abbiamo ritenuto indispensabile definire un livello di astrazione del file 
-system per ogni nodo, al fine di facilitare l'interazione con esso e garantire un'implementazione 
-più modulare e gestibile.\\
-L'astrazione del file system di ciascun nodo rappresenta un'interfaccia standardizzata che consente di eseguire operazioni sui 
-file in modo uniforme, indipendentemente dalle specificità del nodo. Questo approccio consente di mantenere
-un elevato grado di coerenza e semplicità nella gestione del file system distribuito.
-Il cuore dell'astrazione risiede in un singolo metodo principale, chiamato ApplyLogEntry, che svolge un ruolo centrale nell'elaborazione
-delle operazioni sui file. Questo metodo è progettato per accettare una "log entry" come input e 
-gestire le seguenti funzioni: il metodo analizza la log entry per identificare il tipo di operazione da eseguire: creazione 
-di un nuovo file, scrittura su un file, rinomina di un file, eliminazione di un file; in seguito, procede con 
-l'esecuzione dell'operazione corrispondente sul file system del nodo.
+An important step is the self-vote. The node votes for itself, expressing its intention 
+to become the leader. This is a key step in the Raft protocol, where every node 
+must attempt to gain consensus from other nodes.
+After voting for itself, the node creates an RPC message for the vote request, 
+preparing to send it to the other nodes in the cluster.
 
-\subsubsection{Limiti}
-grave difetto. 
-Anche se il nostro sistema funziona come descritto nel documento \cite{1}, presenta un 
-grave difetto. 
-La Figura 3 illustra la parte del sistema principalmente coinvolta nel processo di \textit{commit} 
-degli indici.
-degli indici.
-main.c"
+Finally, startElection sends this vote request to all nodes in the cluster. By using 
+a goroutine for each message sent, the function ensures that the requests are sent in 
+parallel, thus optimizing the waiting time and increasing the chances of receiving quick responses.
+
+\subsubsection{heartbeat timer trigger}
+When the heartbeat timer expires, another goroutine is launched, iterating through 
+all the IP addresses of the nodes listed in the configuration. For each IP address, 
+the function verifies whether the node exists (i.e., it is reachable within the 
+subnet). If the node is found, the function retrieves the current state of that node.
+This step is crucial because it provides updated information, such as the index of the 
+next log entry to process. With the node identified and the necessary information 
+retrieved, the function determines whether the node requires new log entries. If the 
+nextIndex of the node is less than the total number of available log entries, it 
+indicates there are updates to be sent.
+In such cases, a message of type AppendEntryRpc is created. This message creation is 
+fundamental to ensuring that the followers remain synchronized with the leader. If no 
+new log entries need to be sent, a generic heartbeat message is generated. This 
+heartbeat acts as a "keep-alive" signal, demonstrating that the leader is still active and operational.
+Once the heartbeat message is created, the function encodes it into a format suitable 
+for transmission over the network. Finally, the encoded message is sent to the node. 
+This process is repeated for all elements present in the configuration.
+
+\subsubsection{File System sbstraction}
+As outlined in the objectives, the cluster implements a distributed file system.
+In this context, it was deemed essential to define a level of abstraction for the 
+file system on each node to simplify interactions and ensure a more modular and 
+manageable implementation.
+
+The file system abstraction for each node represents a standardized interface that 
+enables uniform file operations regardless of the specifics of the node. This approach 
+ensures a high level of consistency and simplicity in managing the distributed file system.
+
+At the core of this abstraction is a single primary method called \texttt{ApplyLogEntry}, which 
+plays a central role in processing file operations. This method is designed to accept 
+a log entry as input and handle the following functions:
+\begin{itemize}
+  \item Analyze the log entry to identify the type of operation to be performed, such as: 
+    creating a new file, writing to a file and renaming, deleting a file
+  \item Execute the corresponding operation on the node's file system.
+\end{itemize}
+
+
+\subsubsection{Flaws}
+Although our system works as described in the document \cite{1}, it has a significant flaw.
 \begin{lstlisting}[language=Go]
 func (c *commonMatchImp) 
   for c.run { 
     if newMatch > c.commonMatchIndex && 
-    ${}}
         sub.Trd < newMatch { 
       c.numStable++ 
       if c.numStable > uint(halfNodeNum) {
@@ -180,12 +174,14 @@ func (c *commonMatchImp)
   } 
 }
 \end{lstlisting}
-Il problema deriva da una sezione critica del codice a cui accedono contemporaneamente più 
-Goroutine senza alcun meccanismo di controllo dell'accesso. In particolare, è possibile che una Goroutine 
-superi il controllo iniziale ed esegua le operazioni previste, e che subito dopo una seconda 
-Goroutine superi lo stesso controllo. A questo punto, però, la prima Goroutine ha già modificato i 
-valori condivisi all'interno del corpo dell'istruzione if, il che significa che la seconda Goroutine 
-opera su valori non aggiornati, invalidando di fatto la condizione della guardia. Anche se abbiamo 
-eseguito numerosi test (che riconosciamo essere insufficienti per dimostrare l'assenza di bug) e 
-abbiamo trovato difficile riprodurre le condizioni necessarie per far emergere race conditions,
-non abbiamo ancora osservato questo problema nella pratica.
+The issue stems from a critical section of the code that is accessed simultaneously
+by multiple goroutines without any access control mechanism. Specifically, it is 
+possible for one goroutine to pass the initial check and execute the intended operations, 
+only for a second goroutine to pass the same check immediately afterward. At this point, 
+however, the first goroutine has already modified the shared values within the body 
+of the if statement. This means the second goroutine operates on outdated values, 
+effectively invalidating the guard condition.
+
+Even though we conducted numerous tests (which we acknowledge are insufficient to 
+prove the absence of bugs) and found it challenging to reproduce the necessary 
+conditions to expose race conditions, we have not yet observed this issue in practice.

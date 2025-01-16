@@ -1,15 +1,28 @@
-
-\section{Composizione di un cluster}
-Prima di poter analizzare i nostri obiettivi, come li abbiamo raggiunti e perché siano state fatte determinate scelte, è necessario descrivere gli elementi che compongono un \textit{cluster} e le loro caratteristiche:
-
+\section{A cluster composition}
+Before analyzing our goals, how we achieved them, and the rationale behind certain 
+choices, it is necessary to describe the components of a cluster and their characteristics:
 \begin{itemize}
-  \item \textbf{Nodi}: Sono i computer che si occupano della computazione necessaria per mantenere il servizio attivo. Possono essere fisici (\textit{server} dedicati) o virtuali (macchine virtuali, \textit{container}).
-  \item \textbf{Gestore dei nodi}: Questo componente si occupa dell'aggiunta, rimozione e sostituzione dei nodi nel \textit{cluster}. Può essere un \textit{hypervisor}, nel caso i nodi siano virtuali, o un operatore, nel caso i nodi siano server reali. È probabile che ci siano più gestori, soprattutto se i nodi sono geograficamente distanti.
-  \item \textbf{Gestore di rete}: Questo componente gestisce le connessioni interne ed esterne al \textit{cluster}. In particolare, si occupa dell'assegnazione degli indirizzi di rete ai nodi (è possibile che ogni nodo abbia più interfacce di rete e quindi più indirizzi IP).
-  \item \textbf{Sistema operativo}: Sebbene appartenga al nodo, il sistema operativo deve essere progettato su misura per il \textit{cluster}, poiché anche questo componente è responsabile per la corretta operatività dell'intera infrastruttura. In particolare, dovrà:
-    \begin{itemize}
-        \item Ottenere gli indirizzi di rete (è possibile siano più di uno per ogni nodo).
-        \item Eseguire una diagnostica interna sullo stato della macchina.
-        \item Eseguire eventuali programmi o daemon responsabili delle funzionalità del \textit{cluster} e degli applicativi.
-    \end{itemize}
+	\item \textbf{Nodes}: These are the computers responsible for performing the computations
+    needed to keep the service running. They can be physical (dedicated servers) or 
+    virtual (virtual machines or containers).
+	
+	\item \textbf{Node Manager}: This component handles the addition, removal, and 
+    replacement of nodes within the cluster. It may be an hypervisor if the nodes are 
+    virtual or an operator if the nodes are physical servers. In cases where nodes 
+    are geographically dispersed, multiple node managers may be required.	
+	
+	\item \textbf{Network Manager}: This component manages both internal and external 
+    connections to the cluster. Specifically, it handles assigning network addresses 
+    to nodes. It is possible for each node to have multiple network interfaces, and 
+    therefore multiple IP addresses.
+	
+	\item \textbf{Operating System}: Although part of the node, the operating system 
+    must be tailored to the cluster because it plays a crucial role in the correct 
+    functioning of the entire infrastructure. In particular, it must:
+	\begin{itemize}
+		\item Obtain network addresses (possibly more than one per node).
+		\item Perform internal diagnostics on the machine's status.
+		\item Run any programs or daemons responsible for the cluster's functionality 
+      and its applications.
+	\end{itemize}
 \end{itemize}
