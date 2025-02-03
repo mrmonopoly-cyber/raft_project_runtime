@@ -21,8 +21,7 @@ roles to ensure separation between public client-facing traffic and internal clu
 	\item \textbf{Public Subnet (192.168.2.0/24)}:
     This subnet is configured with NAT, meaning nodes in the public network can access the external 
     internet and communicate with external systems but cannot directly communicate with each other within the subnet.
-    The public network pool is reserved for nodes that need to interact with external services or 
-    clients. Within this range, IP addresses 1 and 255 are reserved for the hypervisor and broadcast 
+    Within this range, IP addresses 1 and 255 are reserved for the hypervisor and broadcast 
     messages, respectively, while the remaining IPs are dynamically assigned to virtual machines that require external access.
 
   \item \textbf{Private Subnet (10.0.0.0/24)}:
@@ -107,6 +106,7 @@ The following steps outline our approach to achieving the defined goals:
         	\item Decode: Deserializes a byte array into a message, populating the message with the extracted data.
 	    \end{itemize}
     	Each RPC message serves as a wrapper around its corresponding Protobuf message.
+      %FIX: not very clear
 
     	\item \textbf{Scalability and modularity}:
     The modular design of the system proved highly effective in meeting our objectives. 
