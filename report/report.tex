@@ -1,4 +1,4 @@
-\documentclass[acmtog]{acmart}
+\documentclass[acmtog,natbib=true]{acmart}
 
 \AtBeginDocument{%
   \providecommand\BibTeX{{%
@@ -16,13 +16,14 @@
 \usepackage{listings}
 \usepackage{url}
 
-\citestyle{numbers}
+\setcitestyle{numbers}
+% \citestyle{numbers}
 
-\title{PIB: Una soluzione alla complessità di installazione dei cluster moderni}
+\title{PIB: A solution to the installation complexity of modern clusters}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \author{Alberto Damo}
-\authornote{Entrambi gli autori hanno contribuito equamente a questo progetto.}
+\authornote{Both authors contributed equally to this project}
 \email{alberto.damo@studenti.unipd.it}
 \author{Alessandro Pirolo}
 \authornotemark[1]
