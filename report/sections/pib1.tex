@@ -105,8 +105,6 @@ The following steps outline our approach to achieving the defined goals:
         	\item Encode: Serializes the message into bytes.
         	\item Decode: Deserializes a byte array into a message, populating the message with the extracted data.
 	    \end{itemize}
-    	Each RPC message serves as a wrapper around its corresponding Protobuf message.
-      %FIX: not very clear
 
     	\item \textbf{Scalability and modularity}:
     The modular design of the system proved highly effective in meeting our objectives. 
@@ -124,7 +122,8 @@ The following steps outline our approach to achieving the defined goals:
     potential errors when creating new message types.
 
     	\item \textbf{External conversion module}:
-    When a message is received, it is first deserialized into a generic message type 
+    Since each RPC is wrapped within a generic message, 
+        every incoming message is first deserialized into a structured format 
     containing a TYPE and a PAYLOAD.
     The TYPE indicates which RPC was received and determines the decoding method to apply.
     Once the type is verified, the payload is extracted and converted into the appropriate internal format.
