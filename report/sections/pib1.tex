@@ -76,9 +76,19 @@ The implementation of an RPC (Remote Procedure Call) system was a fundamental as
 Given the importance of this module, we developed a custom solution tailored to our specific needs. 
 It is worth noting that the use of the acronym RPC here is somewhat improper: unlike traditional RPCs, 
 which are synchronous and allow procedures to be invoked on other machines, our messages are 
-asynchronous (the sender does not wait for a response). These messages trigger a response behavior 
-on the remote node rather than directly invoking a procedure. Our decision to use the term RPC 
-was simply to maintain consistency with the terminology in the reference article \cite{1}.
+asynchronous (the sender does not wait for a response).
+
+The choice to make messages asynchronous seemed immediately natural. We provide a simple case we 
+believe sufficiently illustrates why we chose asynchrony over synchrony: a node failure. If a node 
+is waiting for 
+a response from another offline node, the wait could potentially be infinite, 
+preventing it from making progress. A possible solution could be introducing a timeout, but on what 
+basis should it be set? Even with a time limit, the issue would persist in the case of slow nodes: 
+a sender could overload a slow receiver, making it even slower.
+
+Although these messages trigger a response behavior 
+on the remote node rather than directly invoking a procedure, we chose to retain the term RPC 
+to maintain consistency with the terminology in the reference article \cite{1}.
 
 \subsubsection{Goals:\\}
 The primary objectives of our RPC module were as follows:
@@ -177,14 +187,18 @@ reasonable level of decoupling between components. However, it presents some sig
       This means that if compression needs to be implemented in the future, there is no 
       guarantee that the current structure will support it.
 \end{itemize}
-
-\subsubsection{Implementation:\\}
+\vspace{3pt}
+\subsubsection{Implementation}
 The following discussion pertains exclusively to the Raft component. Other aspects are 
 described in subsequent sections.
 
 It should be noted that no form of \textbf{SpinLock} or \textbf{BusyWait} was implemented 
-in the code. Whenever the need arose, a loop was created that was suspended through the 
-blocking read of a message on a channel.
+in the code. Instead, we created loops that wait on different channels and 
+perform different computations depending on the message received. This choice was driven 
+by the presence of multiple goroutines in the system, which execute concurrently and 
+communicate with each other through channels. Some of these goroutines suspend themselves 
+on different channels, as they may expect different types of messages. An example of 
+this approach is the part called "\textit{loop}" in Section \ref{operation}.
 
 The Raft protocol implementation comprises the following modules:
 \begin{itemize}
