@@ -2,9 +2,9 @@
 Now that the structure of the project is clear, we can proceed with the description 
 of the code and its corresponding functionalities. The programming language chosen 
 for this implementation is \textbf{Golang} due to its simplicity, its user-space threads 
-(better known as \textbf{goroutines}), and its communication channels \cite{4}.
+(better known as \textbf{goroutines}), and its communication channels \cite{2}.
 
-To avoid unnecessary explanations about how the Raft protocol works, we will assume 
+To avoid unnecessary explanations about how the Raft protocol works, we assume 
 that the reader is familiar with the topic. Otherwise, we recommend referring to 
 the relevant paper \cite{1}.
 
@@ -45,7 +45,7 @@ outside the initialization phase, how a node recognizes its membership in a spec
 and the three loop cases mentioned above, explaining the modules used step by step. Each 
 of the conditions involves receiving a message in a specific channel.
 
-\paragraph{Establishing a New Connection}
+\paragraph{Establishing a new connection}
 As mentioned earlier, during the initialization phase, each node attempts to connect to all 
 nodes discovered by its daemon.
 After that, a goroutine is launched to listen for new connections. Every time a new connection 
@@ -79,7 +79,7 @@ This can occur in different ways:
 \end{itemize}
 When either of these situations occurs, the previously disabled timers are activated.
 
-\paragraph{a node receives a RPC request}
+\paragraph{A node receives a RPC request}
 As previously mentioned, each node is assigned a goroutine responsible for receiving 
 messages from that connection. When a message is received, it is entirely deserialized 
 using Protobuf.
@@ -95,7 +95,7 @@ We are aware that this is a significant limitation, but it was the best solution
 could find to ensure execution correctness without introducing race conditions in the 
 handling of messages from a single node.
 
-\paragraph{election timer trigger}
+\paragraph{Election timer trigger}
 As soon as the election timer signals its expiration on its channel, the main loop 
 starts a goroutine called \texttt{startElection}. This function signals the beginning of a 
 new election and resets some internal variables, such as the number of supporters 
@@ -106,7 +106,7 @@ to ensure that all nodes recognize the progress of the election and acknowledge 
 the node attempting to become the leader has a higher "term" than the other nodes, 
 which is a fundamental requirement for the validity of a vote request.
 
-An important step is the self-vote. The node votes for itself, expressing its intention 
+An important step is the candidature. The node votes for itself, expressing its intention 
 to become the leader. This is a key step in the Raft protocol, where every node 
 must attempt to gain consensus from other nodes.
 After voting for itself, the node creates an RPC message for the vote request, 
@@ -116,7 +116,7 @@ Finally, startElection sends this vote request to all nodes in the cluster. By u
 a goroutine for each message sent, the function ensures that the requests are sent in 
 parallel, thus optimizing the waiting time and increasing the chances of receiving quick responses.
 
-\subsubsection{heartbeat timer trigger}
+\subsubsection{Heartbeat timer trigger}
 When the heartbeat timer expires, another goroutine is launched, iterating through 
 all the IP addresses of the nodes listed in the configuration. For each IP address, 
 the function verifies whether the node exists (i.e., it is reachable within the 
@@ -128,7 +128,7 @@ nextIndex of the node is less than the total number of available log entries, it
 indicates there are updates to be sent.
 In such cases, a message of type AppendEntryRpc is created. This message creation is 
 fundamental to ensuring that the followers remain synchronized with the leader. If no 
-new log entries need to be sent, a generic heartbeat message is generated. This 
+new log entries need to be sent, a simple heartbeat message is generated. This 
 heartbeat acts as a "keep-alive" signal, demonstrating that the leader is still active and operational.
 Once the heartbeat message is created, the function encodes it into a format suitable 
 for transmission over the network. Finally, the encoded message is sent to the node. 
@@ -177,7 +177,7 @@ func (c *commonMatchImp)
 The issue stems from a critical section of the code that is accessed simultaneously
 by multiple goroutines without any access control mechanism. Specifically, it is 
 possible for one goroutine to pass the initial check and execute the intended operations, 
-only for a second goroutine to pass the same check immediately afterward. At this point, 
+only for a second goroutine to pass the same check immediately afterwards. At this point, 
 however, the first goroutine has already modified the shared values within the body 
 of the if statement. This means the second goroutine operates on outdated values, 
 effectively invalidating the guard condition.
@@ -185,3 +185,6 @@ effectively invalidating the guard condition.
 Even though we conducted numerous tests (which we acknowledge are insufficient to 
 prove the absence of bugs) and found it challenging to reproduce the necessary 
 conditions to expose race conditions, we have not yet observed this issue in practice.
+To resolve this, a double-ended priority queue could be implemented, ensuring 
+the order of execution without introducing additional overhead or spinlocks.
+

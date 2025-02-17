@@ -71,7 +71,7 @@ services are automatically started on each node:
 \end{itemize}
 
 
-\subsection{RPC Module}
+\subsection{RPC Module} \label{RPCmodule}
 The implementation of an RPC (Remote Procedure Call) system was a fundamental aspect of our project. 
 Given the importance of this module, we developed a custom solution tailored to our specific needs. 
 It is worth noting that the use of the acronym RPC here is somewhat improper: unlike traditional RPCs, 
@@ -90,7 +90,7 @@ The primary objectives of our RPC module were as follows:
 
 \subsubsection{Solutions:\\}
 To build this module, we relied on a widely used mechanism for serializing Abstract Data Types 
-(ADTs): \textit{Protobuf}. An existing implementation of this mechanism was utilized \cite{5}.
+(ADTs): \textit{Protobuf}. An existing implementation of this mechanism was utilized \cite{3}.
 
 The following steps outline our approach to achieving the defined goals:
 \begin{itemize}
@@ -179,7 +179,7 @@ reasonable level of decoupling between components. However, it presents some sig
 \end{itemize}
 
 \subsubsection{Implementation:\\}
-The following discussion pertains exclusively to the Raft component. Other aspects will be 
+The following discussion pertains exclusively to the Raft component. Other aspects are 
 described in subsequent sections.
 
 It should be noted that no form of \textbf{SpinLock} or \textbf{BusyWait} was implemented 
@@ -235,7 +235,7 @@ The Raft protocol implementation comprises the following modules:
     entry needs to be added, the module will append the new 
     entry to the log and notify the active configurations that there is a new entry ready to be committed.
 
-    Afterward, it will wait for both configurations to be ready to commit the entry. Only
+    Afterwards, it will wait for both configurations to be ready to commit the entry. Only
     then will the \texttt{commitIndex} of the log be incremented. Since entries are always committed
     in the order they are received, it is impossible for an entry to be committed before an
     earlier one, ensuring both arrival order and log consistency across the cluster nodes.
@@ -319,8 +319,8 @@ The Raft protocol implementation comprises the following modules:
     Finally, this entire procedure is performed exclusively by the leader to update the commit index.
 \end{itemize}
 
-In its implementation, several RPCs are defined using the previously described module. 
-Below are the definitions:
+In this implementation, several RPCs are defined using the module described in \ref{RPCmodule}. 
+Their definitions are shown below.
 \begin{itemize}
   \item \textbf{AppendEntryRpc}: This is sent by the leader on two occasions: when it needs
     to send a heartbeat signal to the follower nodes or when there are entries in the log 
@@ -336,7 +336,7 @@ Below are the definitions:
         could occur if the old leader went offline and a new election took place, 
         resulting in an increased term for the remaining nodes.
     \end{itemize}
-    Afterward, the node checks the length of the entries vector received to determine 
+    Afterwards, the node checks the length of the entries vector received to determine 
     if the message is a heartbeat message or an attempt by the leader to replicate its log. 
     In the latter case, it performs a consistency check that may fail under the following 
     circumstances:

@@ -80,8 +80,6 @@ that could make the system more robust, efficient, and accessible:
   \item \textbf{Resolving data races}: A potential data race has been identified, 
     which could cause a race condition within the log commit procedure, where 
     multiple goroutines may access shared resources simultaneously without proper control. 
-    To resolve this, a double-ended priority queue could be implemented, ensuring 
-    the order of execution without introducing additional overhead or spinlocks.
 
   \item \textbf{Interface for functionality}: A standardized interface for the plug-and-play 
     integration of modules that determine the functionalities the cluster offers at any given 
